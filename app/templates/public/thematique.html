@@ -414,22 +414,34 @@ function exportGraphique(btn) {
   ctx.fillStyle = '#9ca3af';
   ctx.fillText(String(d.annee), PAD, y + 18);
 
-  // Tendance (à droite de la valeur)
+  // Tendance sur sa propre ligne, sous la valeur et l'année
+  var tY = y + 42;
   if (d.tendance && d.pct !== '') {
     var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
-    ctx.font = 'bold 16px system-ui, sans-serif';
-    ctx.fillStyle = tColor;
     var sign = parseFloat(d.pct) > 0 ? '+' : '';
-    var tText = d.tendance + '  ' + sign + d.pct + '%  depuis ' + d.anneeAncienne;
-    ctx.fillText(tText, PAD + valW + 60, y - 12);
+    var tSymbol = d.tendance + '  ' + sign + d.pct + '%';
+    ctx.font = 'bold 15px system-ui, sans-serif';
+    ctx.fillStyle = tColor;
+    ctx.fillText(tSymbol, PAD, tY);
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillText('depuis ' + d.anneeAncienne, PAD + ctx.measureText(tSymbol).width + 10, tY);
+    y = tY + 20;
+  } else {
+    y = tY;
   }
 
-  y += 30;
+  y += 10;
 
-  // Chart.js canvas en bas
-  var chartH = H - y - PAD - 16;
-  if (chartH > 80) {
-    ctx.drawImage(srcCanvas, PAD, y, W - PAD * 2, chartH);
+  // Chart.js canvas — ratio naturel conservé pour éviter l'agrandissement des labels
+  var availW = W - PAD * 2;
+  var availH = H - y - PAD - 16;
+  if (availH > 40 && srcCanvas.height > 0) {
+    var ar = srcCanvas.width / srcCanvas.height;
+    var drawW = availW;
+    var drawH = Math.round(drawW / ar);
+    if (drawH > availH) { drawH = availH; drawW = Math.round(drawH * ar); }
+    ctx.drawImage(srcCanvas, PAD, y, drawW, drawH);
   }
 
   // Footer
