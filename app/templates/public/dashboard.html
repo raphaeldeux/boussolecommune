@@ -3,9 +3,9 @@
 
 {% block content %}
 <!-- En-tête -->
-<div class="mb-8">
-  <h1 class="text-3xl font-bold text-gray-900">CommuneSanté <span class="text-emerald-600">Sautron</span></h1>
-  <p class="text-gray-500 mt-1">Observatoire citoyen de la commune de Sautron (Loire-Atlantique, ~8 600 hab.)</p>
+<div class="mb-6 sm:mb-8">
+  <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">CommuneSanté <span class="text-emerald-600">Sautron</span></h1>
+  <p class="text-gray-500 mt-1 text-sm sm:text-base">Observatoire citoyen de la commune de Sautron (Loire-Atlantique, ~8 600 hab.)</p>
   {% if derniere_maj %}
   <p class="text-xs text-gray-400 mt-1">Dernière mise à jour : {{ derniere_maj | format_date }}</p>
   {% endif %}
@@ -13,33 +13,37 @@
 
 <!-- Score global -->
 {% if score_global %}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 flex items-center gap-6">
-  <div>
-    <svg viewBox="0 0 100 100" class="w-24 h-24">
-      <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"/>
-      <circle cx="50" cy="50" r="45" fill="none"
-        stroke="{{ score_global_couleur }}" stroke-width="10"
-        stroke-dasharray="283" stroke-dashoffset="0"
-        stroke-linecap="round" transform="rotate(-90 50 50)"/>
-      <text x="50" y="57" text-anchor="middle" font-size="32" font-weight="bold"
-        fill="{{ score_global_couleur }}">{{ score_global }}</text>
-    </svg>
-  </div>
-  <div>
-    <div class="text-lg font-semibold text-gray-700">Score global de la commune</div>
-    <div class="text-sm text-gray-500 mt-1">
-      Évaluation agrégée sur 6 thématiques, pondérée selon leur importance.
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 mb-8">
+  <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+    <!-- Jauge circulaire -->
+    <div class="flex-shrink-0">
+      <svg viewBox="0 0 100 100" class="w-20 h-20 sm:w-24 sm:h-24">
+        <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+        <circle cx="50" cy="50" r="45" fill="none"
+          stroke="{{ score_global_couleur }}" stroke-width="10"
+          stroke-dasharray="283" stroke-dashoffset="0"
+          stroke-linecap="round" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" text-anchor="middle" font-size="32" font-weight="bold"
+          fill="{{ score_global_couleur }}">{{ score_global }}</text>
+      </svg>
     </div>
-    <div class="flex gap-2 mt-3 text-xs">
-      {% for lettre, couleur in [('A','#16a34a'),('B','#65a30d'),('C','#d97706'),('D','#dc2626'),('E','#7f1d1d')] %}
-      <span class="px-2 py-1 rounded text-white font-bold" style="background:{{ couleur }}">{{ lettre }}</span>
-      {% endfor %}
-      <span class="text-gray-400 self-center">A = excellent · E = critique</span>
+    <!-- Texte -->
+    <div class="text-center sm:text-left">
+      <div class="text-base sm:text-lg font-semibold text-gray-700">Score global de la commune</div>
+      <div class="text-sm text-gray-500 mt-1">
+        Évaluation agrégée sur 6 thématiques, pondérée selon leur importance.
+      </div>
+      <div class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-3">
+        {% for lettre, couleur in [('A','#16a34a'),('B','#65a30d'),('C','#d97706'),('D','#dc2626'),('E','#7f1d1d')] %}
+        <span class="px-2 py-0.5 rounded text-white font-bold text-sm" style="background:{{ couleur }}">{{ lettre }}</span>
+        {% endfor %}
+        <span class="text-gray-400 text-xs self-center">A = excellent · E = critique</span>
+      </div>
     </div>
   </div>
 </div>
 {% else %}
-<div class="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8 text-gray-500 text-sm">
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-8 text-gray-500 text-sm">
   Le score global sera calculé dès que suffisamment de données seront disponibles.
 </div>
 {% endif %}
@@ -47,12 +51,12 @@
 <!-- Portrait de la commune -->
 {% set stats_renseignees = stats_portrait | selectattr('donnee') | list %}
 {% if stats_renseignees %}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+<div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
   {% for stat in stats_portrait %}
   {% if stat.donnee %}
-  <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
-    <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">{{ stat.libelle_citoyen }}</div>
-    <div class="text-2xl font-bold text-gray-800">
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 sm:px-5 sm:py-4">
+    <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1 leading-tight">{{ stat.libelle_citoyen }}</div>
+    <div class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">
       {{ stat.donnee.valeur | format_valeur }}
       <span class="text-sm font-normal text-gray-500">{{ stat.unite }}</span>
     </div>
@@ -63,7 +67,7 @@
       {% set evo_bonne = (stat.pct_evolution > 0 and stat.sens_positif == 'haut') or (stat.pct_evolution < 0 and stat.sens_positif == 'bas') %}
       {% set evo_mauvaise = (stat.pct_evolution < 0 and stat.sens_positif == 'haut') or (stat.pct_evolution > 0 and stat.sens_positif == 'bas') %}
       <span class="{% if evo_bonne %}text-green-600{% elif evo_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-medium">
-        {% if stat.pct_evolution > 0 %}+{% endif %}{{ stat.pct_evolution }}% depuis {{ stat.annee_ancienne }}
+        {% if stat.pct_evolution > 0 %}+{% endif %}{{ stat.pct_evolution }}%
       </span>
       {% endif %}
     </div>
@@ -74,33 +78,30 @@
 {% endif %}
 
 <!-- Grille des 6 thématiques -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
   {% for carte in cartes %}
   <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
-     class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 transition flex flex-col group min-h-72">
+     class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 active:scale-[0.99] transition-all flex flex-col group">
 
     <!-- En-tête carte -->
-    <div class="p-6 border-b border-gray-100">
-      <div class="flex items-start justify-between gap-4">
-        <!-- Icône + titre + question -->
-        <div class="flex items-start gap-3 min-w-0">
-          <span class="text-3xl mt-0.5 flex-shrink-0">{{ carte.icon }}</span>
+    <div class="p-4 sm:p-5 border-b border-gray-100">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-2.5 min-w-0">
+          <span class="text-2xl sm:text-3xl mt-0.5 flex-shrink-0">{{ carte.icon }}</span>
           <div class="min-w-0">
-            <div class="font-bold text-gray-900 text-base leading-snug">{{ carte.label }}</div>
-            <div class="text-xs text-gray-500 italic mt-1.5 leading-relaxed">{{ carte.question }}</div>
+            <div class="font-bold text-gray-900 text-sm sm:text-base leading-snug">{{ carte.label }}</div>
+            <div class="text-xs text-gray-500 italic mt-1 leading-relaxed">{{ carte.question }}</div>
           </div>
         </div>
-        <!-- Badge score -->
         <div class="flex-shrink-0">
           {% if carte.score %}
           <div class="score-badge score-badge-lg score-{{ carte.score }}">{{ carte.score }}</div>
           {% else %}
-          <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-lg">—</div>
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold text-base sm:text-lg">—</div>
           {% endif %}
         </div>
       </div>
-      <!-- Compteur indicateurs -->
-      <div class="text-xs text-gray-400 mt-3 ml-10">
+      <div class="text-xs text-gray-400 mt-2 ml-9">
         {{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs renseignés
         {% if carte.nb_renseignes < 3 %}
         · <span class="text-amber-500">score insuffisant</span>
@@ -109,34 +110,31 @@
     </div>
 
     <!-- Indicateurs clés -->
-    <div class="px-6 py-5 flex-1 space-y-4">
+    <div class="px-4 sm:px-5 py-4 flex-1 space-y-3">
       {% if carte.indicateurs_cles %}
         {% for ind in carte.indicateurs_cles %}
-        <div class="flex items-baseline justify-between text-sm gap-2">
-          <span class="text-gray-600 leading-snug">{{ ind.libelle_citoyen | truncate(52) }}</span>
-          <div class="flex items-center gap-1 flex-shrink-0 text-right">
+        <div class="flex items-start justify-between text-sm gap-2">
+          <span class="text-gray-600 leading-snug text-xs sm:text-sm">{{ ind.libelle_citoyen | truncate(48) }}</span>
+          <div class="flex items-center gap-1 flex-shrink-0">
             {% if ind.donnee %}
-            <span class="font-semibold text-gray-800">{{ ind.donnee.valeur | format_valeur }}</span>
-            <span class="text-gray-400 text-xs">{{ ind.unite }}</span>
+            <span class="font-semibold text-gray-800 text-xs sm:text-sm whitespace-nowrap">{{ ind.donnee.valeur | format_valeur }} <span class="text-gray-400 font-normal">{{ ind.unite }}</span></span>
             {% endif %}
             {% if ind.tendance %}
             {% set t_bonne = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
             {% set t_mauvaise = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
-            <span class="{% if t_bonne %}text-green-600{% elif t_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-bold">
-              {{ ind.tendance }}
-            </span>
+            <span class="{% if t_bonne %}text-green-600{% elif t_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-bold text-base leading-none">{{ ind.tendance }}</span>
             {% endif %}
           </div>
         </div>
         {% endfor %}
       {% else %}
-      <p class="text-gray-400 text-sm italic">Données insuffisantes pour afficher les indicateurs clés.</p>
+      <p class="text-gray-400 text-xs sm:text-sm italic">Données insuffisantes pour afficher les indicateurs clés.</p>
       {% endif %}
     </div>
 
     <!-- Footer carte -->
-    <div class="px-6 py-4 border-t border-gray-100">
-      <span class="text-sm text-emerald-600 group-hover:text-emerald-800 font-medium">
+    <div class="px-4 sm:px-5 py-3 border-t border-gray-100">
+      <span class="text-sm text-emerald-600 group-hover:text-emerald-800 font-medium transition-colors">
         Voir le détail →
       </span>
     </div>
@@ -144,13 +142,14 @@
   {% endfor %}
 </div>
 
-<!-- Méthode -->
-<div class="mt-12 bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-600">
+<!-- À propos -->
+<div class="mt-10 sm:mt-12 bg-white rounded-xl border border-gray-100 p-5 sm:p-6 text-sm text-gray-600">
   <h2 class="font-semibold text-gray-800 mb-2">À propos de la méthode</h2>
   <p>Les scores sont calculés automatiquement à partir de données publiques (OFGL, INSEE, préfecture) et de
   saisies vérifiées. Chaque indicateur est ensuite interprété par l'IA Claude (Anthropic) dans un langage
   accessible aux citoyens non experts. Les données manquantes sont affichées explicitement.</p>
   <p class="mt-2">Ce site est édité par l'association <strong>Sautron Autrement</strong>.
-  <a href="mailto:contact@sautronautrement.fr" class="text-emerald-600 hover:underline">Nous contacter</a>.</p>
+  <a href="mailto:contact@sautronautrement.fr" class="text-emerald-600 hover:underline">Nous contacter</a> ·
+  <a href="{{ url_for('public.methodologie') }}" class="text-emerald-600 hover:underline">Note méthodologique</a>.</p>
 </div>
 {% endblock %}
