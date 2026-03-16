@@ -168,4 +168,4 @@ def ajuster_score(score_base, valeur_actuelle, valeur_ancienne, valeur_reference
             ajustement -= 0.5
 
     val_ajuste = max(1, min(5, val + ajustement))
-    return valeur_vers_score(round(val_ajuste))
+    return valeur_vers_score(val_ajuste)
