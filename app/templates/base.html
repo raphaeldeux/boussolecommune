@@ -55,6 +55,23 @@
             {{ nav_icon }} {{ nav_label }}
           </a>
           {% endfor %}
+
+          <!-- Bouton connexion / admin -->
+          {% if session.get('admin_logged_in') %}
+          <a href="{{ url_for('admin.dashboard') }}"
+             class="ml-2 px-2.5 py-1.5 rounded-md bg-emerald-900 hover:bg-emerald-800 transition text-emerald-200 text-xs font-medium">
+            ⚙️ Admin
+          </a>
+          <a href="{{ url_for('admin.logout') }}"
+             class="px-2.5 py-1.5 rounded-md hover:bg-emerald-600 transition text-emerald-300 text-xs">
+            Déconnexion
+          </a>
+          {% else %}
+          <a href="{{ url_for('admin.login') }}"
+             class="ml-2 px-2.5 py-1.5 rounded-md border border-emerald-400 hover:bg-emerald-600 transition text-xs font-medium">
+            Connexion
+          </a>
+          {% endif %}
         </div>
 
         <!-- Hamburger (mobile) -->
@@ -94,6 +111,27 @@
           {{ nav_icon }} {{ nav_label }}
         </a>
         {% endfor %}
+        <!-- Connexion / admin (mobile) -->
+        <div class="border-t border-emerald-600 mt-1 pt-2">
+          {% if session.get('admin_logged_in') %}
+          <a href="{{ url_for('admin.dashboard') }}"
+             class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition"
+             onclick="toggleMobileMenu()">
+            ⚙️ Administration
+          </a>
+          <a href="{{ url_for('admin.logout') }}"
+             class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm text-emerald-300 transition"
+             onclick="toggleMobileMenu()">
+            Déconnexion
+          </a>
+          {% else %}
+          <a href="{{ url_for('admin.login') }}"
+             class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition"
+             onclick="toggleMobileMenu()">
+            🔐 Connexion
+          </a>
+          {% endif %}
+        </div>
       </div>
     </div>
   </nav>
