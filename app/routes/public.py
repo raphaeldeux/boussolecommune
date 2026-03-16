@@ -101,12 +101,36 @@ def dashboard():
     score_global = calculer_score_global(scores_thematiques)
     derniere_maj = donnee_model.get_derniere_maj()
 
+    # Stats portrait de la commune
+    portrait_inds = ind_model.get_by_thematique("portrait")
+    stats_portrait = []
+    for ind in portrait_inds:
+        donnee = donnee_model.get_latest(ind["id"])
+        pct_evolution = None
+        annee_ancienne = None
+        if donnee:
+            hist = donnee_model.get_by_indicateur(ind["id"])
+            if len(hist) > 1:
+                ancienne = hist[-1]
+                annee_ancienne = ancienne["annee"]
+                if ancienne["valeur"] and ancienne["valeur"] != 0:
+                    pct_evolution = round(
+                        (donnee["valeur"] - ancienne["valeur"]) / abs(ancienne["valeur"]) * 100, 1
+                    )
+        stats_portrait.append({
+            **ind,
+            "donnee": donnee,
+            "pct_evolution": pct_evolution,
+            "annee_ancienne": annee_ancienne,
+        })
+
     return render_template(
         "public/dashboard.html",
         cartes=cartes,
         score_global=score_global,
         score_global_couleur=SCORE_COULEURS.get(score_global),
         derniere_maj=derniere_maj,
+        stats_portrait=stats_portrait,
     )
 
 

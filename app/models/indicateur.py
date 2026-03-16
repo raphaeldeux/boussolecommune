@@ -37,6 +37,7 @@ THEMATIQUE_LABELS = {
     "lien_social": "Soin du lien social",
     "democratie": "Soin de la démocratie",
     "vivant":     "Soin du vivant",
+    "portrait":   "Portrait de la commune",
 }
 
 THEMATIQUE_QUESTIONS = {
@@ -46,6 +47,7 @@ THEMATIQUE_QUESTIONS = {
     "lien_social": "La commune fait-elle vivre sa communauté ?",
     "democratie": "La commune gouverne-t-elle avec transparence ?",
     "vivant":     "La commune ménage-t-elle son environnement ?",
+    "portrait":   "",
 }
 
 THEMATIQUE_ICONS = {
@@ -55,6 +57,7 @@ THEMATIQUE_ICONS = {
     "lien_social": "🤝",
     "democratie": "🏛️",
     "vivant":     "🌿",
+    "portrait":   "🏘️",
 }
 
 THEMATIQUE_POIDS = {

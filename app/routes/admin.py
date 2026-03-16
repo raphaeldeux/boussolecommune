@@ -38,7 +38,7 @@ def logout():
 @bp.route("/")
 @login_required
 def dashboard():
-    thematiques = ind_model.get_thematiques()
+    thematiques = ind_model.get_thematiques() + ["portrait"]
     stats = []
     for them in thematiques:
         indicateurs = ind_model.get_by_thematique(them)
@@ -80,7 +80,7 @@ def dashboard():
 @bp.route("/saisie", methods=["GET", "POST"])
 @login_required
 def saisie():
-    thematiques = ind_model.get_thematiques()
+    thematiques = ind_model.get_thematiques() + ["portrait"]
     tous_indicateurs = []
     for them in thematiques:
         inds = ind_model.get_by_thematique(them)

@@ -44,6 +44,33 @@
 </div>
 {% endif %}
 
+<!-- Portrait de la commune -->
+{% set stats_renseignees = stats_portrait | selectattr('donnee') | list %}
+{% if stats_renseignees %}
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+  {% for stat in stats_portrait %}
+  {% if stat.donnee %}
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
+    <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1">{{ stat.libelle_citoyen }}</div>
+    <div class="text-2xl font-bold text-gray-800">
+      {{ stat.donnee.valeur | format_valeur }}
+      <span class="text-sm font-normal text-gray-500">{{ stat.unite }}</span>
+    </div>
+    <div class="text-xs text-gray-400 mt-1">
+      {{ stat.donnee.annee }}
+      {% if stat.pct_evolution is not none %}
+      ·
+      <span class="{% if stat.pct_evolution > 0 %}text-green-600{% elif stat.pct_evolution < 0 %}text-red-500{% else %}text-gray-400{% endif %} font-medium">
+        {% if stat.pct_evolution > 0 %}+{% endif %}{{ stat.pct_evolution }}% depuis {{ stat.annee_ancienne }}
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
 <!-- Grille des 6 thématiques -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
   {% for carte in cartes %}

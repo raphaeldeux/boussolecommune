@@ -66,5 +66,14 @@ def init_db():
             statut TEXT CHECK(statut IN ('succes','partiel','echec'))
         );
     """)
+    conn.executescript("""
+        INSERT OR IGNORE INTO indicateurs
+            (id, thematique, libelle_citoyen, libelle_technique, unite, sens_positif, source_type, actif)
+        VALUES
+            ('portrait_population',    'portrait', 'Population',                  'Population municipale INSEE',         'hab.',  'neutre', 'saisie_manuelle', 1),
+            ('portrait_age_median',    'portrait', 'Âge médian',                  'Âge médian de la population INSEE',   'ans',   'neutre', 'saisie_manuelle', 1),
+            ('portrait_revenu_median', 'portrait', 'Revenu médian des ménages',   'Niveau de vie médian INSEE',          '€/an',  'neutre', 'saisie_manuelle', 1),
+            ('portrait_chomage',       'portrait', 'Taux de chômage',             'Taux de chômage localisé INSEE',      '%',     'bas',    'saisie_manuelle', 1);
+    """)
     conn.commit()
     conn.close()
