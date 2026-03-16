@@ -108,7 +108,13 @@
             responsive: true,
             plugins: { legend: { display: false } },
             scales: {
-              y: { beginAtZero: false, ticks: { maxTicksLimit: 4 } },
+              y: {
+                beginAtZero: false,
+                ticks: {
+                  maxTicksLimit: 4,
+                  callback: function(value) { return value + '\u00a0' + {{ ind.unite | tojson }}; }
+                }
+              },
               x: { grid: { display: false } }
             }
           }
