@@ -184,75 +184,6 @@
       <div class="mt-3 text-sm text-gray-600 leading-relaxed">{{ ind.interpretation.phrase_longue }}</div>
       {% endif %}
 
-      <!-- Carte post (hors-écran, export uniquement) -->
-      <div id="social-{{ ind.id }}"
-           style="position:fixed; left:-9999px; top:0;
-                  width:1200px; height:630px; overflow:hidden;
-                  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-                  background:#f0fdf4; box-sizing:border-box;">
-        <!-- Panneau gauche : blanc -->
-        <div style="position:absolute; left:0; top:0; width:700px; height:630px;
-                    background:white; padding:52px 52px 36px 52px; box-sizing:border-box;
-                    display:flex; flex-direction:column; justify-content:space-between;">
-          <div>
-            <div style="font-size:12px; font-weight:700; letter-spacing:0.1em;
-                        text-transform:uppercase; color:#059669; margin-bottom:8px;">
-              Sautron · {{ label }}
-            </div>
-            <div style="font-size:22px; font-weight:700; color:#111827; line-height:1.25;
-                        margin-bottom:20px;
-                        overflow:hidden; display:-webkit-box;
-                        -webkit-line-clamp:3; -webkit-box-orient:vertical;">
-              {{ ind.libelle_citoyen }}
-            </div>
-            <div style="font-size:64px; font-weight:800; color:#111827; line-height:1; margin-bottom:4px;">
-              {{ ind.donnee.valeur | format_valeur }}<span style="font-size:22px; font-weight:400; color:#6b7280; margin-left:6px;">{{ ind.unite }}</span>
-            </div>
-            <div style="font-size:13px; color:#9ca3af; margin-bottom:24px;">{{ ind.donnee.annee }}</div>
-            {% if ind.tendance and ind.pct_evolution is not none %}
-            {% set hausse_bonne = ind.sens_positif == 'haut' %}
-            {% set t_bonne = (ind.tendance == '↗' and hausse_bonne) or (ind.tendance == '↘' and not hausse_bonne and ind.sens_positif != 'neutre') %}
-            {% set t_mauvaise = (ind.tendance == '↘' and hausse_bonne) or (ind.tendance == '↗' and not hausse_bonne and ind.sens_positif != 'neutre') %}
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:24px;">
-              <span style="font-size:28px; {% if t_bonne %}color:#16a34a;{% elif t_mauvaise %}color:#dc2626;{% else %}color:#9ca3af;{% endif %}">{{ ind.tendance }}</span>
-              <span style="font-size:18px; font-weight:700; {% if t_bonne %}color:#16a34a;{% elif t_mauvaise %}color:#dc2626;{% else %}color:#9ca3af;{% endif %}">{% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%</span>
-              <span style="font-size:12px; color:#9ca3af;">depuis {{ ind.annee_ancienne }}</span>
-            </div>
-            {% endif %}
-            {% if ind.interpretation and ind.interpretation.phrase_courte %}
-            <div style="font-size:14px; color:#374151; line-height:1.55; font-style:italic;
-                        border-left:3px solid #d1fae5; padding-left:14px;
-                        overflow:hidden; display:-webkit-box;
-                        -webkit-line-clamp:4; -webkit-box-orient:vertical;">
-              {{ ind.interpretation.phrase_courte }}
-            </div>
-            {% endif %}
-          </div>
-          <div style="font-size:11px; color:#d1d5db; border-top:1px solid #f3f4f6; padding-top:14px;">
-            CommuneSanté · Sautron · Sautron Autrement
-          </div>
-        </div>
-        <!-- Panneau droit : couleur score -->
-        <div style="position:absolute; left:700px; top:0; width:500px; height:630px;
-                    background:{{ ind.score_couleur or '#10b981' }};
-                    display:flex; flex-direction:column;
-                    align-items:center; justify-content:center; gap:14px;">
-          {% if ind.score %}
-          <div style="width:150px; height:150px; background:white; border-radius:20px;
-                      display:flex; align-items:center; justify-content:center;
-                      font-size:88px; font-weight:800; line-height:1;
-                      color:{{ ind.score_couleur or '#10b981' }};">
-            {{ ind.score }}
-          </div>
-          <div style="font-size:12px; color:rgba(255,255,255,0.75); font-weight:600;
-                      letter-spacing:0.08em; text-transform:uppercase;">
-            Score de santé
-          </div>
-          {% endif %}
-          <div style="font-size:56px; margin-top:20px; opacity:0.3;">{{ icon }}</div>
-        </div>
-      </div>
-
       <!-- Source + en savoir plus -->
       <div class="mt-3 flex items-center justify-between flex-wrap gap-2 pt-3 border-t border-gray-50">
         <div class="text-xs text-gray-400 italic">
@@ -260,16 +191,42 @@
         </div>
         <div class="flex items-center gap-3">
           {% if ind.historique and ind.historique | length > 1 %}
-          <button onclick="exportChart('chart-{{ ind.id }}', '{{ ind.libelle_citoyen }}')"
-                  class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
+          <button
+            data-canvas-id="chart-{{ ind.id }}"
+            data-label="{{ label | e }}"
+            data-libelle="{{ ind.libelle_citoyen | e }}"
+            data-valeur="{{ ind.donnee.valeur | format_valeur | e }}"
+            data-unite="{{ ind.unite | e }}"
+            data-annee="{{ ind.donnee.annee }}"
+            data-score="{{ ind.score or '' }}"
+            data-couleur="{{ ind.score_couleur or '#10b981' }}"
+            data-tendance="{{ ind.tendance or '' }}"
+            data-pct="{{ ind.pct_evolution if ind.pct_evolution is not none else '' }}"
+            data-annee-ancienne="{{ ind.annee_ancienne or '' }}"
+            onclick="exportGraphique(this)"
+            class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
             </svg>
             Graphique
           </button>
           {% endif %}
-          <button onclick="exportSocialCard('social-{{ ind.id }}', '{{ ind.libelle_citoyen }}', this)"
-                  class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
+          <button
+            data-ind-id="{{ ind.id }}"
+            data-label="{{ label | e }}"
+            data-icon="{{ icon }}"
+            data-libelle="{{ ind.libelle_citoyen | e }}"
+            data-valeur="{{ ind.donnee.valeur | format_valeur | e }}"
+            data-unite="{{ ind.unite | e }}"
+            data-annee="{{ ind.donnee.annee }}"
+            data-score="{{ ind.score or '' }}"
+            data-couleur="{{ ind.score_couleur or '#10b981' }}"
+            data-tendance="{{ ind.tendance or '' }}"
+            data-pct="{{ ind.pct_evolution if ind.pct_evolution is not none else '' }}"
+            data-annee-ancienne="{{ ind.annee_ancienne or '' }}"
+            data-phrase="{{ ind.interpretation.phrase_courte | e if ind.interpretation and ind.interpretation.phrase_courte else '' }}"
+            onclick="exportPost(this)"
+            class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
             </svg>
@@ -362,39 +319,6 @@ function closeModal(id) {
 function closeModalOnOverlay(event, id) {
   if (event.target === event.currentTarget) closeModal(id);
 }
-function triggerDownload(dataUrl, filename) {
-  var a = document.createElement('a');
-  a.href = dataUrl;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-function exportChart(canvasId, label) {
-  var canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  var chart = Chart.getChart(canvas);
-  if (!chart) return;
-  triggerDownload(chart.toBase64Image('image/png', 1.0), 'sautron-' + canvasId.replace('chart-', '') + '.png');
-}
-function exportSocialCard(divId, label, btn) {
-  var el = document.getElementById(divId);
-  if (!el) return;
-  var orig = btn ? btn.innerHTML : null;
-  if (btn) { btn.innerHTML = '…'; btn.disabled = true; }
-  html2canvas(el, {
-    width: 1200, height: 630, scale: 1,
-    useCORS: true, logging: false,
-    backgroundColor: '#f0fdf4'
-  }).then(function(canvas) {
-    triggerDownload(canvas.toDataURL('image/png'), 'sautron-' + divId.replace('social-', '') + '.png');
-  }).catch(function() {
-    alert('Impossible de générer la carte. Réessayez.');
-  }).finally(function() {
-    if (btn) { btn.innerHTML = orig; btn.disabled = false; }
-  });
-}
-// Close modal on Escape key
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     document.querySelectorAll('[id^="modal-"]').forEach(function(el) {
@@ -402,5 +326,225 @@ document.addEventListener('keydown', function(e) {
     });
   }
 });
+
+// ── Helpers Canvas ──────────────────────────────────────────────
+function triggerDownload(dataUrl, filename) {
+  var a = document.createElement('a');
+  a.href = dataUrl; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function splitLines(ctx, text, maxWidth) {
+  var words = String(text).split(' '), lines = [], line = '';
+  for (var i = 0; i < words.length; i++) {
+    var test = line ? line + ' ' + words[i] : words[i];
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line); line = words[i];
+    } else { line = test; }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ── Export Graphique (900 × 480) ─────────────────────────────────
+function exportGraphique(btn) {
+  var d = btn.dataset;
+  var srcCanvas = document.getElementById(d.canvasId);
+  if (!srcCanvas) return;
+
+  var W = 900, H = 480, PAD = 36;
+  var c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  var ctx = c.getContext('2d');
+
+  // Fond blanc
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Bande couleur en haut
+  ctx.fillStyle = d.couleur;
+  ctx.fillRect(0, 0, W, 8);
+
+  var y = 8 + PAD;
+
+  // Badge score (coin haut droit)
+  if (d.score) {
+    roundRect(ctx, W - PAD - 52, 18, 52, 52, 10);
+    ctx.fillStyle = d.couleur;
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.score, W - PAD - 26, 55);
+    ctx.textAlign = 'left';
+  }
+
+  // Label thématique
+  ctx.fillStyle = '#059669';
+  ctx.font = 'bold 11px system-ui, sans-serif';
+  ctx.fillText(('SAUTRON · ' + d.label).toUpperCase(), PAD, y);
+  y += 22;
+
+  // Titre indicateur (max 2 lignes)
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 20px system-ui, sans-serif';
+  var titleLines = splitLines(ctx, d.libelle, W - PAD * 2 - 70);
+  titleLines.slice(0, 2).forEach(function(l) { ctx.fillText(l, PAD, y); y += 27; });
+  y += 6;
+
+  // Valeur principale
+  ctx.font = 'bold 48px system-ui, sans-serif';
+  ctx.fillStyle = '#111827';
+  var valW = ctx.measureText(d.valeur).width;
+  ctx.fillText(d.valeur, PAD, y);
+  ctx.font = '18px system-ui, sans-serif';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText(' ' + d.unite, PAD + valW, y);
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.fillStyle = '#9ca3af';
+  ctx.fillText(String(d.annee), PAD, y + 18);
+
+  // Tendance (à droite de la valeur)
+  if (d.tendance && d.pct !== '') {
+    var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
+    ctx.font = 'bold 16px system-ui, sans-serif';
+    ctx.fillStyle = tColor;
+    var sign = parseFloat(d.pct) > 0 ? '+' : '';
+    var tText = d.tendance + '  ' + sign + d.pct + '%  depuis ' + d.anneeAncienne;
+    ctx.fillText(tText, PAD + valW + 60, y - 12);
+  }
+
+  y += 30;
+
+  // Chart.js canvas en bas
+  var chartH = H - y - PAD - 16;
+  if (chartH > 80) {
+    ctx.drawImage(srcCanvas, PAD, y, W - PAD * 2, chartH);
+  }
+
+  // Footer
+  ctx.font = '10px system-ui, sans-serif';
+  ctx.fillStyle = '#d1d5db';
+  ctx.textAlign = 'right';
+  ctx.fillText('CommuneSanté · Sautron · Sautron Autrement', W - PAD, H - 10);
+
+  triggerDownload(c.toDataURL('image/png'), 'sautron-graphique-' + d.canvasId.replace('chart-', '') + '.png');
+}
+
+// ── Export Post Facebook (1200 × 630) ───────────────────────────
+function exportPost(btn) {
+  var d = btn.dataset;
+  var W = 1200, H = 630, PL = 700, PAD = 52;
+  var c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  var ctx = c.getContext('2d');
+
+  // Panneau gauche blanc
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, PL, H);
+
+  // Panneau droit coloré
+  ctx.fillStyle = d.couleur;
+  ctx.fillRect(PL, 0, W - PL, H);
+
+  var y = PAD + 14;
+  ctx.textAlign = 'left';
+
+  // Étiquette commune · thématique
+  ctx.fillStyle = '#059669';
+  ctx.font = 'bold 12px system-ui, sans-serif';
+  ctx.fillText(('SAUTRON · ' + d.label).toUpperCase(), PAD, y);
+  y += 30;
+
+  // Titre indicateur (max 3 lignes)
+  ctx.fillStyle = '#111827';
+  ctx.font = 'bold 22px system-ui, sans-serif';
+  var titleLines = splitLines(ctx, d.libelle, PL - PAD * 2);
+  titleLines.slice(0, 3).forEach(function(l) { ctx.fillText(l, PAD, y); y += 30; });
+  y += 14;
+
+  // Grande valeur
+  ctx.font = 'bold 64px system-ui, sans-serif';
+  ctx.fillStyle = '#111827';
+  var valW = ctx.measureText(d.valeur).width;
+  ctx.fillText(d.valeur, PAD, y);
+  ctx.font = '400 22px system-ui, sans-serif';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText(' ' + d.unite, PAD + valW + 4, y);
+  ctx.font = '13px system-ui, sans-serif';
+  ctx.fillStyle = '#9ca3af';
+  ctx.fillText(String(d.annee), PAD, y + 22);
+  y += 60;
+
+  // Tendance
+  if (d.tendance && d.pct !== '') {
+    var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
+    ctx.font = 'bold 26px system-ui, sans-serif';
+    ctx.fillStyle = tColor;
+    ctx.fillText(d.tendance, PAD, y);
+    var sign = parseFloat(d.pct) > 0 ? '+' : '';
+    ctx.font = 'bold 18px system-ui, sans-serif';
+    var pctText = sign + d.pct + '%';
+    ctx.fillText(pctText, PAD + 38, y);
+    ctx.font = '12px system-ui, sans-serif';
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillText('depuis ' + d.anneeAncienne, PAD + 38 + ctx.measureText(pctText).width + 12, y);
+    y += 40;
+  }
+
+  // Phrase courte (max 4 lignes, avec barre verte gauche)
+  if (d.phrase) {
+    ctx.fillStyle = '#d1fae5';
+    ctx.fillRect(PAD, y, 3, 86);
+    ctx.font = 'italic 14px system-ui, sans-serif';
+    ctx.fillStyle = '#374151';
+    var phraseLines = splitLines(ctx, d.phrase, PL - PAD * 2 - 18);
+    phraseLines.slice(0, 4).forEach(function(l) {
+      ctx.fillText(l, PAD + 14, y + 18);
+      y += 21;
+    });
+  }
+
+  // Footer (panneau gauche)
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.fillStyle = '#d1d5db';
+  ctx.fillText('CommuneSanté · Sautron · Sautron Autrement', PAD, H - 20);
+
+  // Panneau droit : badge score
+  var cx = PL + (W - PL) / 2;
+  ctx.textAlign = 'center';
+
+  if (d.score) {
+    roundRect(ctx, cx - 75, H / 2 - 160, 150, 150, 18);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.font = 'bold 88px system-ui, sans-serif';
+    ctx.fillStyle = d.couleur;
+    ctx.fillText(d.score, cx, H / 2 - 42);
+    ctx.font = 'bold 12px system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText('SCORE DE SANTÉ', cx, H / 2 + 12);
+  }
+
+  // Icône thématique
+  ctx.globalAlpha = 0.3;
+  ctx.font = '56px system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(d.icon, cx, H / 2 + 100);
+  ctx.globalAlpha = 1.0;
+
+  ctx.textAlign = 'left';
+  triggerDownload(c.toDataURL('image/png'), 'sautron-post-' + d.indId + '.png');
+}
 </script>
 {% endblock %}
