@@ -48,7 +48,10 @@
           <!-- Tendance longue période -->
           {% if ind.tendance and ind.valeur_ancienne is not none %}
           <div class="text-center min-w-max">
-            <div class="text-xl {% if ind.tendance == '↗' %}text-green-600{% elif ind.tendance == '↘' %}text-red-500{% else %}text-gray-400{% endif %} font-bold leading-none">
+            {% set hausse_bonne = ind.sens_positif == 'haut' %}
+          {% set tendance_bonne = (ind.tendance == '↗' and hausse_bonne) or (ind.tendance == '↘' and not hausse_bonne and ind.sens_positif != 'neutre') %}
+          {% set tendance_mauvaise = (ind.tendance == '↘' and hausse_bonne) or (ind.tendance == '↗' and not hausse_bonne and ind.sens_positif != 'neutre') %}
+          <div class="text-xl {% if tendance_bonne %}text-green-600{% elif tendance_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-bold leading-none">
               {{ ind.tendance }}
               {% if ind.pct_evolution is not none %}
               <span class="text-sm font-semibold">{% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%</span>
@@ -99,8 +102,10 @@
           </span>
         </div>
         <!-- Écart -->
+        {% set ecart_bon = (ecart > 0 and ind.sens_positif == 'haut') or (ecart < 0 and ind.sens_positif == 'bas') %}
+        {% set ecart_mauvais = (ecart < 0 and ind.sens_positif == 'haut') or (ecart > 0 and ind.sens_positif == 'bas') %}
         <div class="mt-2 text-xs text-right
-          {% if ecart > 0 %}text-green-600{% elif ecart < 0 %}text-red-500{% else %}text-gray-400{% endif %}">
+          {% if ecart_bon %}text-green-600{% elif ecart_mauvais %}text-red-500{% else %}text-gray-400{% endif %}">
           {% if ecart > 0 %}+{% endif %}{{ ecart }}% par rapport à la référence
         </div>
       </div>

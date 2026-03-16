@@ -60,7 +60,9 @@
       {{ stat.donnee.annee }}
       {% if stat.pct_evolution is not none %}
       ·
-      <span class="{% if stat.pct_evolution > 0 %}text-green-600{% elif stat.pct_evolution < 0 %}text-red-500{% else %}text-gray-400{% endif %} font-medium">
+      {% set evo_bonne = (stat.pct_evolution > 0 and stat.sens_positif == 'haut') or (stat.pct_evolution < 0 and stat.sens_positif == 'bas') %}
+      {% set evo_mauvaise = (stat.pct_evolution < 0 and stat.sens_positif == 'haut') or (stat.pct_evolution > 0 and stat.sens_positif == 'bas') %}
+      <span class="{% if evo_bonne %}text-green-600{% elif evo_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-medium">
         {% if stat.pct_evolution > 0 %}+{% endif %}{{ stat.pct_evolution }}% depuis {{ stat.annee_ancienne }}
       </span>
       {% endif %}
@@ -118,7 +120,9 @@
             <span class="text-gray-400 text-xs">{{ ind.unite }}</span>
             {% endif %}
             {% if ind.tendance %}
-            <span class="{% if ind.tendance == '↗' %}text-green-600{% elif ind.tendance == '↘' %}text-red-500{% else %}text-gray-400{% endif %} font-bold">
+            {% set t_bonne = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
+            {% set t_mauvaise = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
+            <span class="{% if t_bonne %}text-green-600{% elif t_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-bold">
               {{ ind.tendance }}
             </span>
             {% endif %}
