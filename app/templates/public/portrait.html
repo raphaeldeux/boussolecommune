@@ -98,9 +98,9 @@
 {% if pyramide_rows %}
 <script>
 (function() {
-  var tranches = {{ pyramide_rows | map(attribute='tranche') | list | tojson }};
-  var hommes   = {{ pyramide_rows | map(attribute='hommes')  | list | tojson }};
-  var femmes   = {{ pyramide_rows | map(attribute='femmes')  | list | tojson }};
+  var tranches = {{ pyramide_rows | map(attribute='tranche') | list | tojson }}.reverse();
+  var hommes   = {{ pyramide_rows | map(attribute='hommes')  | list | tojson }}.reverse();
+  var femmes   = {{ pyramide_rows | map(attribute='femmes')  | list | tojson }}.reverse();
   var hNeg = hommes.map(function(v) { return -v; });
 
   var ctx = document.getElementById('pyramide-chart').getContext('2d');
@@ -116,6 +116,8 @@
           borderColor: '#3b82f6',
           borderWidth: 1,
           borderRadius: 2,
+          barPercentage: 1.0,
+          categoryPercentage: 0.95,
         },
         {
           label: 'Femmes',
@@ -124,6 +126,8 @@
           borderColor: '#ec4899',
           borderWidth: 1,
           borderRadius: 2,
+          barPercentage: 1.0,
+          categoryPercentage: 0.95,
         }
       ]
     },
