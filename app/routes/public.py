@@ -21,8 +21,22 @@ def _enrichir_indicateur(ind, annee=None):
     if not donnee_courante:
         donnee_courante = donnee
 
+    # Pour la tendance, on compare la donnée la plus récente avec la plus ancienne disponible
+    historique = donnee_model.get_by_indicateur(ind["id"])  # trié DESC
+    donnee_ancienne = historique[-1] if len(historique) > 1 else None
+    valeur_ancienne = donnee_ancienne["valeur"] if donnee_ancienne else None
+    annee_ancienne = donnee_ancienne["annee"] if donnee_ancienne else None
+
+    # Conserver valeur_n1 pour le service Claude (contexte IA)
     donnee_n1 = donnee_model.get_by_indicateur_annee(ind["id"], donnee_courante["annee"] - 1)
     valeur_n1 = donnee_n1["valeur"] if donnee_n1 else None
+
+    # % d'évolution entre la plus ancienne et la plus récente
+    pct_evolution = None
+    if valeur_ancienne is not None and valeur_ancienne != 0:
+        pct_evolution = round(
+            (donnee_courante["valeur"] - valeur_ancienne) / abs(valeur_ancienne) * 100, 1
+        )
 
     score = calculer_score(
         donnee_courante["valeur"],
@@ -36,8 +50,7 @@ def _enrichir_indicateur(ind, annee=None):
     if interpretation and interpretation.get("score"):
         score = interpretation["score"]
 
-    tendance = calculer_tendance(donnee_courante["valeur"], valeur_n1)
-    historique = donnee_model.get_by_indicateur(ind["id"])
+    tendance = calculer_tendance(donnee_courante["valeur"], valeur_ancienne)
 
     return {
         **ind,
@@ -47,6 +60,9 @@ def _enrichir_indicateur(ind, annee=None):
         "interpretation": interpretation,
         "tendance": tendance,
         "valeur_n1": valeur_n1,
+        "valeur_ancienne": valeur_ancienne,
+        "annee_ancienne": annee_ancienne,
+        "pct_evolution": pct_evolution,
         "historique": historique,
     }
 

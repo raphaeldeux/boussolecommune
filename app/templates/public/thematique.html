@@ -45,13 +45,16 @@
             </div>
             <div class="text-xs text-gray-400">{{ ind.donnee.annee }}</div>
           </div>
-          <!-- Tendance -->
-          {% if ind.tendance and ind.valeur_n1 is not none %}
-          <div class="text-center">
-            <div class="text-xl {% if ind.tendance == '↗' %}text-green-600{% elif ind.tendance == '↘' %}text-red-500{% else %}text-gray-400{% endif %} font-bold">
+          <!-- Tendance longue période -->
+          {% if ind.tendance and ind.valeur_ancienne is not none %}
+          <div class="text-center min-w-max">
+            <div class="text-xl {% if ind.tendance == '↗' %}text-green-600{% elif ind.tendance == '↘' %}text-red-500{% else %}text-gray-400{% endif %} font-bold leading-none">
               {{ ind.tendance }}
+              {% if ind.pct_evolution is not none %}
+              <span class="text-sm font-semibold">{% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%</span>
+              {% endif %}
             </div>
-            <div class="text-xs text-gray-400">vs {{ ind.donnee.annee - 1 }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">{{ ind.annee_ancienne }} → {{ ind.donnee.annee }}</div>
           </div>
           {% endif %}
           <!-- Score badge -->
