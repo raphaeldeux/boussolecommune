@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Saisie manuelle — Admin CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
+  <h1 class="text-2xl font-bold text-gray-900">Saisie manuelle</h1>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <!-- Formulaire -->
+  <div class="lg:col-span-2">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <form method="POST">
+        <!-- Sélecteur indicateur -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Indicateur *</label>
+          <select name="indicateur_id" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  id="sel-indicateur">
+            <option value="">-- Sélectionner un indicateur --</option>
+            {% set current_them = namespace(val=None) %}
+            {% for ind in indicateurs %}
+              {% if ind.them_label != current_them.val %}
+                {% if current_them.val %}</optgroup>{% endif %}
+                <optgroup label="{{ ind.them_label }}">
+                {% set current_them.val = ind.them_label %}
+              {% endif %}
+              <option value="{{ ind.id }}"
+                {% if request.args.get('ind') == ind.id %}selected{% endif %}>
+                {{ ind.libelle_citoyen | truncate(70) }}
+              </option>
+            {% endfor %}
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+          <!-- Année -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Année *</label>
+            <input type="number" name="annee" required min="2000" max="2030"
+                   value="{{ request.form.get('annee', 2024) }}"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <!-- Valeur -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Valeur *</label>
+            <input type="text" name="valeur" required placeholder="Ex: 42.5"
+                   value="{{ request.form.get('valeur', '') }}"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          </div>
+        </div>
+
+        <!-- Source (publique) -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Source <span class="text-gray-400 font-normal">(affichée publiquement)</span>
+          </label>
+          <input type="text" name="source"
+                 value="{{ request.form.get('source', '') }}"
+                 placeholder="Ex: Rapport annuel commune 2024, Délibération n°2024-..."
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <!-- Commentaire interne -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Commentaire interne <span class="text-gray-400 font-normal">(non affiché)</span>
+          </label>
+          <textarea name="commentaire" rows="2"
+                    placeholder="Notes internes sur cette saisie…"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">{{ request.form.get('commentaire', '') }}</textarea>
+        </div>
+
+        <button type="submit"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+          💾 Enregistrer et générer l'interprétation Claude
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Saisies récentes -->
+  <div>
+    <h2 class="text-base font-semibold text-gray-700 mb-3">Saisies récentes</h2>
+    <div class="space-y-2">
+      {% for d in recentes %}
+      <div class="bg-white rounded-lg border border-gray-100 px-3 py-2 text-sm">
+        <div class="font-medium text-gray-700 truncate">{{ d.libelle_citoyen | truncate(45) }}</div>
+        <div class="text-gray-400 text-xs mt-0.5">
+          {{ d.valeur | format_valeur }} {{ d.unite }} · {{ d.annee }} ·
+          {{ d.date_saisie | format_date }}
+        </div>
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm italic">Aucune saisie pour l'instant.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

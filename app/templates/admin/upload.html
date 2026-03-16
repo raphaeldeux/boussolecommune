@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}Upload CSV — Admin CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
+  <h1 class="text-2xl font-bold text-gray-900">Import CSV</h1>
+</div>
+
+<!-- Formulaire upload -->
+{% if not apercu %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+  <form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="apercu">
+
+    <!-- Format -->
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Format du fichier</label>
+      <div class="flex gap-4">
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="format" value="generique"
+                 {% if format_csv == 'generique' or not format_csv %}checked{% endif %}>
+          <span class="text-sm">Format générique</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="format" value="ofgl"
+                 {% if format_csv == 'ofgl' %}checked{% endif %}>
+          <span class="text-sm">Format OFGL (finances)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Zone dépôt fichier -->
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Fichier CSV</label>
+      <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-400 transition"
+           id="drop-zone">
+        <input type="file" name="fichier" accept=".csv,.txt" id="file-input" class="hidden" required>
+        <div class="text-4xl mb-2">📂</div>
+        <p class="text-sm text-gray-500">Glissez un fichier ici ou
+          <button type="button" onclick="document.getElementById('file-input').click()"
+                  class="text-emerald-600 hover:underline font-medium">parcourez</button>
+        </p>
+        <p id="file-name" class="text-xs text-gray-400 mt-2"></p>
+      </div>
+    </div>
+
+    <!-- Formats attendus -->
+    <div class="mb-5 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 space-y-2">
+      <div>
+        <strong>Format générique :</strong>
+        <code class="bg-white px-1 rounded border">annee,indicateur_id,valeur,source</code>
+      </div>
+      <div>
+        <strong>Format OFGL :</strong>
+        <code class="bg-white px-1 rounded border">code_commune;libelle_commune;annee;libelle_compte;montant</code>
+      </div>
+    </div>
+
+    <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+      🔍 Analyser le fichier
+    </button>
+  </form>
+</div>
+
+{% else %}
+<!-- Aperçu -->
+<div class="space-y-6">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+      Aperçu — {{ apercu | length }} ligne(s) valide(s)
+      {% if erreurs %}<span class="text-red-500 text-sm font-normal ml-2">· {{ erreurs | length }} erreur(s)</span>{% endif %}
+    </h2>
+
+    {% if apercu %}
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="text-left px-3 py-2 text-gray-500 font-medium">Indicateur</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
+            <th class="text-left px-3 py-2 text-gray-500 font-medium">Source</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for ligne in apercu %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-3 py-2">
+              <div class="font-medium text-gray-700">{{ ligne.get('libelle_citoyen', ligne.indicateur_id) | truncate(50) }}</div>
+              <div class="text-xs text-gray-400">{{ ligne.indicateur_id }}</div>
+            </td>
+            <td class="px-3 py-2 text-center text-gray-600">{{ ligne.annee }}</td>
+            <td class="px-3 py-2 text-center font-mono text-gray-700">{{ ligne.valeur }}</td>
+            <td class="px-3 py-2 text-gray-500 text-xs">{{ ligne.get('source', '') | truncate(40) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if erreurs %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <h3 class="text-sm font-semibold text-red-700 mb-2">Lignes ignorées ({{ erreurs | length }})</h3>
+      <ul class="text-xs text-red-600 space-y-1">
+        {% for e in erreurs %}
+        <li>Ligne {{ e.ligne }} : {{ e.message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <!-- Boutons confirmation / annulation -->
+    {% if apercu %}
+    <div class="flex gap-3">
+      <form method="POST">
+        <input type="hidden" name="action" value="importer">
+        <input type="hidden" name="format" value="{{ format_csv }}">
+        <button type="submit"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition"
+                onclick="return confirm('Confirmer l\'import de {{ apercu | length }} ligne(s) ?')">
+          ✅ Confirmer l'import
+        </button>
+      </form>
+      <a href="{{ url_for('admin.upload') }}"
+         class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium transition">
+        Annuler
+      </a>
+    </div>
+    {% else %}
+    <a href="{{ url_for('admin.upload') }}"
+       class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium transition">
+      ← Recommencer
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+// Drag & drop et affichage nom fichier
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const fileName = document.getElementById('file-name');
+if (fileInput) {
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) fileName.textContent = fileInput.files[0].name;
+  });
+}
+if (dropZone) {
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-emerald-400'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('border-emerald-400'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('border-emerald-400');
+    if (e.dataTransfer.files[0]) {
+      fileInput.files = e.dataTransfer.files;
+      fileName.textContent = e.dataTransfer.files[0].name;
+    }
+  });
+}
+</script>
+{% endblock %}

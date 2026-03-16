@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}CommuneSanté — Tableau de bord · Sautron{% endblock %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="mb-8">
+  <h1 class="text-3xl font-bold text-gray-900">CommuneSanté <span class="text-emerald-600">Sautron</span></h1>
+  <p class="text-gray-500 mt-1">Observatoire citoyen de la commune de Sautron (Loire-Atlantique, ~8 600 hab.)</p>
+  {% if derniere_maj %}
+  <p class="text-xs text-gray-400 mt-1">Dernière mise à jour : {{ derniere_maj | format_date }}</p>
+  {% endif %}
+</div>
+
+<!-- Score global -->
+{% if score_global %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 flex items-center gap-6">
+  <div>
+    <svg viewBox="0 0 100 100" class="w-24 h-24">
+      <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+      <circle cx="50" cy="50" r="45" fill="none"
+        stroke="{{ score_global_couleur }}" stroke-width="10"
+        stroke-dasharray="283" stroke-dashoffset="0"
+        stroke-linecap="round" transform="rotate(-90 50 50)"/>
+      <text x="50" y="57" text-anchor="middle" font-size="32" font-weight="bold"
+        fill="{{ score_global_couleur }}">{{ score_global }}</text>
+    </svg>
+  </div>
+  <div>
+    <div class="text-lg font-semibold text-gray-700">Score global de la commune</div>
+    <div class="text-sm text-gray-500 mt-1">
+      Évaluation agrégée sur 6 thématiques, pondérée selon leur importance.
+    </div>
+    <div class="flex gap-2 mt-3 text-xs">
+      {% for lettre, couleur in [('A','#16a34a'),('B','#65a30d'),('C','#d97706'),('D','#dc2626'),('E','#7f1d1d')] %}
+      <span class="px-2 py-1 rounded text-white font-bold" style="background:{{ couleur }}">{{ lettre }}</span>
+      {% endfor %}
+      <span class="text-gray-400 self-center">A = excellent · E = critique</span>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8 text-gray-500 text-sm">
+  Le score global sera calculé dès que suffisamment de données seront disponibles.
+</div>
+{% endif %}
+
+<!-- Grille des 6 thématiques -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {% for carte in cartes %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition flex flex-col">
+    <!-- En-tête carte -->
+    <div class="p-5 border-b border-gray-50 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">{{ carte.icon }}</span>
+        <div>
+          <div class="font-semibold text-gray-800">{{ carte.label }}</div>
+          <div class="text-xs text-gray-400">{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs renseignés</div>
+        </div>
+      </div>
+      {% if carte.score %}
+      <div class="score-badge score-badge-lg score-{{ carte.score }}">{{ carte.score }}</div>
+      {% else %}
+      <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold">—</div>
+      {% endif %}
+    </div>
+
+    <!-- Indicateurs clés -->
+    <div class="p-4 flex-1 space-y-3">
+      {% if carte.indicateurs_cles %}
+        {% for ind in carte.indicateurs_cles %}
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-600 truncate flex-1 mr-2">{{ ind.libelle_citoyen | truncate(50) }}</span>
+          <div class="flex items-center gap-1 flex-shrink-0">
+            {% if ind.donnee %}
+            <span class="font-semibold text-gray-800">{{ ind.donnee.valeur | format_valeur }}</span>
+            <span class="text-gray-400 text-xs">{{ ind.unite }}</span>
+            {% endif %}
+            {% if ind.tendance %}
+            <span class="{% if ind.tendance == '↗' %}text-green-600{% elif ind.tendance == '↘' %}text-red-500{% else %}text-gray-400{% endif %} font-bold">
+              {{ ind.tendance }}
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <p class="text-gray-400 text-sm italic">Données insuffisantes pour afficher les indicateurs clés.</p>
+      {% endif %}
+    </div>
+
+    <!-- Footer carte -->
+    <div class="px-5 py-3 border-t border-gray-50">
+      {% if carte.nb_renseignes < 3 %}
+      <span class="text-xs text-amber-600">⚠ Données insuffisantes (min. 3 requis pour le score)</span>
+      {% endif %}
+      <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
+         class="block text-right text-sm text-emerald-600 hover:text-emerald-800 font-medium mt-1">
+        Voir le détail →
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Méthode -->
+<div class="mt-12 bg-white rounded-xl border border-gray-100 p-6 text-sm text-gray-600">
+  <h2 class="font-semibold text-gray-800 mb-2">À propos de la méthode</h2>
+  <p>Les scores sont calculés automatiquement à partir de données publiques (OFGL, INSEE, préfecture) et de
+  saisies vérifiées. Chaque indicateur est ensuite interprété par l'IA Claude (Anthropic) dans un langage
+  accessible aux citoyens non experts. Les données manquantes sont affichées explicitement.</p>
+  <p class="mt-2">Ce site est édité par l'association <strong>Sautron Autrement</strong>.
+  <a href="mailto:contact@sautronautrement.fr" class="text-emerald-600 hover:underline">Nous contacter</a>.</p>
+</div>
+{% endblock %}

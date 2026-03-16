@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Dashboard admin — CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <h1 class="text-2xl font-bold text-gray-900">Administration</h1>
+  <div class="flex gap-2 flex-wrap">
+    <a href="{{ url_for('admin.saisie') }}"
+       class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✏️ Saisir une valeur
+    </a>
+    <a href="{{ url_for('admin.upload') }}"
+       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      📤 Uploader un CSV
+    </a>
+    <a href="{{ url_for('admin.logout') }}"
+       class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+      Déconnexion
+    </a>
+  </div>
+</div>
+
+{% for them in stats %}
+<div class="mb-8">
+  <div class="flex items-center gap-2 mb-3">
+    <h2 class="text-lg font-semibold text-gray-700">{{ them.label }}</h2>
+    <span class="text-sm text-gray-400">{{ them.nb_renseignes }}/{{ them.nb_total }} renseignés</span>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-100">
+        <tr>
+          <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Score</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Claude</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for ind in them.indicateurs %}
+        <tr class="hover:bg-gray-50 {% if not ind.donnee %}opacity-50{% endif %}">
+          <td class="px-4 py-3">
+            <div class="font-medium text-gray-700">{{ ind.libelle_citoyen | truncate(60) }}</div>
+            <div class="text-xs text-gray-400">{{ ind.id }}</div>
+          </td>
+          <td class="px-3 py-3 text-center text-gray-700 font-mono">
+            {% if ind.donnee %}{{ ind.donnee.valeur | format_valeur }} {{ ind.unite }}{% else %}—{% endif %}
+          </td>
+          <td class="px-3 py-3 text-center text-gray-500">
+            {{ ind.donnee.annee if ind.donnee else '—' }}
+          </td>
+          <td class="px-3 py-3 text-center">
+            {% if ind.score %}
+            <span class="score-badge score-{{ ind.score }}">{{ ind.score }}</span>
+            {% else %}
+            <span class="text-gray-300">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-center">
+            {% if ind.interp_statut == 'ok' %}
+            <span class="text-green-600 text-xs">✓ OK</span>
+            {% elif ind.interp_statut == 'en_attente' %}
+            <span class="text-amber-500 text-xs">⏳ En attente</span>
+            {% else %}
+            <span class="text-gray-300 text-xs">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-center">
+            <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}"
+               class="text-emerald-600 hover:underline text-xs mr-2">Saisir</a>
+            {% if ind.donnee %}
+            <form method="POST" action="{{ url_for('admin.regenerer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
+                  class="inline" onsubmit="return confirm('Régénérer l\'interprétation ?')">
+              <button type="submit" class="text-blue-500 hover:underline text-xs">Régénérer</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} — CommuneSanté Sautron{% endblock %}
+
+{% block content %}
+<!-- En-tête thématique -->
+<div class="mb-8 flex items-start gap-4">
+  <span class="text-4xl mt-1">{{ icon }}</span>
+  <div class="flex-1">
+    <div class="flex items-center gap-3 flex-wrap">
+      <h1 class="text-2xl font-bold text-gray-900">{{ label }}</h1>
+      {% if score %}
+      <div class="score-badge score-badge-lg score-{{ score }}">{{ score }}</div>
+      {% else %}
+      <span class="text-sm text-gray-400 italic">Score insuffisant</span>
+      {% endif %}
+    </div>
+    {% if interpretation %}
+    <p class="text-gray-600 mt-2 italic">{{ interpretation }}</p>
+    {% endif %}
+    <a href="{{ url_for('public.dashboard') }}" class="text-sm text-emerald-600 hover:underline mt-2 inline-block">← Retour au tableau de bord</a>
+  </div>
+</div>
+
+<!-- Liste des indicateurs -->
+<div class="space-y-6">
+  {% for ind in indicateurs %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    {% if ind.donnee %}
+    <!-- Indicateur renseigné -->
+    <div class="p-5">
+      <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-gray-900 text-lg leading-tight">{{ ind.libelle_citoyen }}</div>
+          {% if ind.libelle_technique %}
+          <div class="text-sm text-gray-400 mt-0.5">{{ ind.libelle_technique }}</div>
+          {% endif %}
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <!-- Valeur principale -->
+          <div class="text-right">
+            <div class="text-2xl font-bold text-gray-800">
+              {{ ind.donnee.valeur | format_valeur }}
+              <span class="text-base font-normal text-gray-500">{{ ind.unite }}</span>
+            </div>
+            <div class="text-xs text-gray-400">{{ ind.donnee.annee }}</div>
+          </div>
+          <!-- Tendance -->
+          {% if ind.tendance and ind.valeur_n1 is not none %}
+          <div class="text-center">
+            <div class="text-xl {% if ind.tendance == '↗' %}text-green-600{% elif ind.tendance == '↘' %}text-red-500{% else %}text-gray-400{% endif %} font-bold">
+              {{ ind.tendance }}
+            </div>
+            <div class="text-xs text-gray-400">vs {{ ind.donnee.annee - 1 }}</div>
+          </div>
+          {% endif %}
+          <!-- Score badge -->
+          {% if ind.score %}
+          <div class="score-badge score-badge-lg score-{{ ind.score }}">{{ ind.score }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Référence nationale -->
+      {% if ind.valeur_reference and ind.libelle_reference %}
+      <div class="mt-3 text-sm text-gray-500 bg-gray-50 rounded px-3 py-2">
+        📊 Référence : <strong>{{ ind.valeur_reference | format_valeur }} {{ ind.unite }}</strong>
+        — {{ ind.libelle_reference }}
+      </div>
+      {% endif %}
+
+      <!-- Interprétation courte -->
+      {% if ind.interpretation and ind.interpretation.phrase_courte %}
+      <div class="mt-3 font-medium text-gray-700">{{ ind.interpretation.phrase_courte }}</div>
+      {% elif not ind.interpretation or not ind.interpretation.phrase_courte %}
+      <div class="mt-3 text-sm text-gray-400 italic">Interprétation en cours de génération…</div>
+      {% endif %}
+
+      <!-- Graphique historique -->
+      {% if ind.historique and ind.historique | length > 1 %}
+      <div class="mt-4">
+        <canvas id="chart-{{ ind.id }}" height="80"></canvas>
+      </div>
+      <script>
+      (function() {
+        var ctx = document.getElementById('chart-{{ ind.id }}').getContext('2d');
+        var labels = {{ ind.historique | map(attribute='annee') | list | tojson }};
+        var data = {{ ind.historique | map(attribute='valeur') | list | tojson }};
+        labels = labels.slice().reverse();
+        data = data.slice().reverse();
+        new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: '{{ ind.unite }}',
+              data: data,
+              backgroundColor: '{{ ind.score_couleur or "#10b981" }}44',
+              borderColor: '{{ ind.score_couleur or "#10b981" }}',
+              borderWidth: 2,
+              borderRadius: 4,
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: false, ticks: { maxTicksLimit: 4 } },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      })();
+      </script>
+      {% endif %}
+
+      <!-- Interprétation longue -->
+      {% if ind.interpretation and ind.interpretation.phrase_longue %}
+      <div class="mt-3 text-sm text-gray-600 leading-relaxed">{{ ind.interpretation.phrase_longue }}</div>
+      {% endif %}
+
+      <!-- Source -->
+      <div class="mt-3 flex items-center justify-between flex-wrap gap-2">
+        <div class="text-xs text-gray-400 italic">
+          Source : {{ ind.donnee.source if ind.donnee.source else "Source non renseignée" }}
+        </div>
+        {% if ind.description %}
+        <button onclick="document.getElementById('modal-{{ ind.id }}').classList.remove('hidden')"
+                class="text-xs text-emerald-600 hover:underline">En savoir plus ↓</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Modal description -->
+    {% if ind.description %}
+    <div id="modal-{{ ind.id }}" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl">
+        <h3 class="font-bold text-lg mb-3">{{ ind.libelle_citoyen }}</h3>
+        <p class="text-gray-600 text-sm leading-relaxed">{{ ind.description }}</p>
+        <button onclick="document.getElementById('modal-{{ ind.id }}').classList.add('hidden')"
+                class="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700">
+          Fermer
+        </button>
+      </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Indicateur non renseigné -->
+    <div class="p-5 opacity-60">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <div class="font-medium text-gray-500">{{ ind.libelle_citoyen }}</div>
+          {% if ind.libelle_technique %}
+          <div class="text-xs text-gray-400">{{ ind.libelle_technique }}</div>
+          {% endif %}
+        </div>
+        <span class="bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1 rounded-full flex-shrink-0">
+          Donnée non disponible
+        </span>
+      </div>
+      <p class="text-xs text-gray-400 mt-2 italic">
+        Cette donnée n'est pas encore disponible. Elle sera mise à jour dès que possible.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

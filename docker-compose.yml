@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    restart: always
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    env_file: .env
