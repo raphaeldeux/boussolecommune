@@ -114,37 +114,12 @@ def _build_cartes():
 def dashboard():
     cartes, score_global = _build_cartes()
     derniere_maj = donnee_model.get_derniere_maj()
-
-    # Stats portrait de la commune
-    portrait_inds = ind_model.get_by_thematique("portrait")
-    stats_portrait = []
-    for ind in portrait_inds:
-        donnee = donnee_model.get_latest(ind["id"])
-        pct_evolution = None
-        annee_ancienne = None
-        if donnee:
-            hist = donnee_model.get_by_indicateur(ind["id"])
-            if len(hist) > 1:
-                ancienne = hist[-1]
-                annee_ancienne = ancienne["annee"]
-                if ancienne["valeur"] and ancienne["valeur"] != 0:
-                    pct_evolution = round(
-                        (donnee["valeur"] - ancienne["valeur"]) / abs(ancienne["valeur"]) * 100, 1
-                    )
-        stats_portrait.append({
-            **ind,
-            "donnee": donnee,
-            "pct_evolution": pct_evolution,
-            "annee_ancienne": annee_ancienne,
-        })
-
     return render_template(
         "public/dashboard.html",
         cartes=cartes,
         score_global=score_global,
         score_global_couleur=SCORE_COULEURS.get(score_global),
         derniere_maj=derniere_maj,
-        stats_portrait=stats_portrait,
     )
 
 
@@ -254,6 +229,63 @@ def portrait():
         pyramide_annee=annee_sel,
         pyramide_rows=pyramide_rows,
     )
+
+
+@bp.route("/api/chat", methods=["POST"])
+def chat():
+    from flask import request, jsonify
+    from app.config import ANTHROPIC_API_KEY
+
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"error": "Service non disponible"}), 503
+
+    payload = request.get_json(silent=True)
+    if not payload or not payload.get("message"):
+        return jsonify({"error": "Message requis"}), 400
+
+    message = payload["message"].strip()[:600]
+    history = payload.get("history", [])
+    # Garde au plus les 6 derniers messages (3 échanges)
+    history = [h for h in history if h.get("role") in ("user", "assistant")][-6:]
+
+    # Contexte : tous les indicateurs avec leur dernière valeur
+    lignes_ctx = [
+        "Données actuelles de la commune de Sautron (Loire-Atlantique, ~8 600 hab.) :\n"
+    ]
+    for them in ind_model.get_thematiques():
+        lignes_ctx.append(f"### {ind_model.THEMATIQUE_LABELS[them]}")
+        for ind in ind_model.get_by_thematique(them):
+            d = donnee_model.get_latest(ind["id"])
+            if d:
+                ligne = f"- {ind['libelle_citoyen']} : {d['valeur']} {ind.get('unite','')} ({d['annee']})"
+                interp = interp_model.get(ind["id"], d["annee"])
+                if interp and interp.get("phrase_courte"):
+                    ligne += f" → {interp['phrase_courte']}"
+                lignes_ctx.append(ligne)
+            else:
+                lignes_ctx.append(f"- {ind['libelle_citoyen']} : donnée non disponible")
+        lignes_ctx.append("")
+
+    system = (
+        "Tu es un assistant citoyen pour la commune de Sautron (Loire-Atlantique). "
+        "Tu réponds aux questions des citoyens sur la gestion et les indicateurs de leur commune. "
+        "Ton ton est simple, accessible et bienveillant. Tu es honnête sur les limites des données. "
+        "Tu ne portes aucun jugement politique. Tu réponds en français, de façon concise.\n\n"
+        + "\n".join(lignes_ctx)
+    )
+
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            system=system,
+            messages=history + [{"role": "user", "content": message}],
+        )
+        return jsonify({"response": resp.content[0].text})
+    except Exception:
+        return jsonify({"error": "Erreur lors de la génération de la réponse."}), 500
 
 
 @bp.route("/methodologie")

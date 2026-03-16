@@ -290,5 +290,138 @@
   </footer>
 
   {% block scripts %}{% endblock %}
+
+  <!-- Chatbot citoyen -->
+  <div id="chat-widget" class="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+
+    <!-- Fenêtre de chat -->
+    <div id="chat-window" class="hidden flex-col w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden" style="max-height:520px">
+      <!-- En-tête -->
+      <div class="bg-emerald-700 text-white px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">💬</span>
+          <div>
+            <div class="font-semibold text-sm leading-tight">Assistant CommuneSanté</div>
+            <div class="text-xs text-emerald-200 leading-tight">Posez vos questions sur Sautron</div>
+          </div>
+        </div>
+        <button id="chat-close" class="text-emerald-200 hover:text-white transition text-lg leading-none">✕</button>
+      </div>
+      <!-- Messages -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto px-4 py-3 space-y-3 text-sm" style="min-height:200px;max-height:340px">
+        <div class="flex gap-2">
+          <span class="text-lg flex-shrink-0">🏘️</span>
+          <div class="bg-gray-100 rounded-2xl rounded-tl-none px-3 py-2 text-gray-700 max-w-[85%]">
+            Bonjour ! Je peux répondre à vos questions sur les indicateurs et la gestion de la commune de Sautron. Que souhaitez-vous savoir ?
+          </div>
+        </div>
+      </div>
+      <!-- Saisie -->
+      <div class="border-t border-gray-100 px-3 py-2 flex gap-2">
+        <input id="chat-input" type="text" placeholder="Votre question…" maxlength="600"
+               class="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition">
+        <button id="chat-send"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-3 py-2 text-sm font-medium transition flex items-center gap-1 flex-shrink-0">
+          Envoyer
+        </button>
+      </div>
+    </div>
+
+    <!-- Bouton flottant -->
+    <button id="chat-toggle"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg text-2xl transition active:scale-95">
+      💬
+    </button>
+  </div>
+
+  <script>
+  (function() {
+    var toggle  = document.getElementById('chat-toggle');
+    var close   = document.getElementById('chat-close');
+    var win     = document.getElementById('chat-window');
+    var input   = document.getElementById('chat-input');
+    var send    = document.getElementById('chat-send');
+    var msgs    = document.getElementById('chat-messages');
+    var history = [];
+
+    function openChat() {
+      win.classList.remove('hidden');
+      win.classList.add('flex');
+      input.focus();
+    }
+    function closeChat() {
+      win.classList.add('hidden');
+      win.classList.remove('flex');
+    }
+    toggle.addEventListener('click', function() {
+      win.classList.contains('hidden') ? openChat() : closeChat();
+    });
+    close.addEventListener('click', closeChat);
+
+    function addMsg(role, text) {
+      var div = document.createElement('div');
+      div.className = 'flex gap-2' + (role === 'user' ? ' justify-end' : '');
+      var icon = role === 'user' ? '' : '<span class="text-lg flex-shrink-0">🏘️</span>';
+      var bubble = document.createElement('div');
+      bubble.className = role === 'user'
+        ? 'bg-emerald-600 text-white rounded-2xl rounded-tr-none px-3 py-2 max-w-[85%]'
+        : 'bg-gray-100 text-gray-700 rounded-2xl rounded-tl-none px-3 py-2 max-w-[85%]';
+      bubble.textContent = text;
+      if (icon) div.innerHTML = icon;
+      div.appendChild(bubble);
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function addLoader() {
+      var div = document.createElement('div');
+      div.id = 'chat-loader';
+      div.className = 'flex gap-2';
+      div.innerHTML = '<span class="text-lg flex-shrink-0">🏘️</span>'
+        + '<div class="bg-gray-100 rounded-2xl rounded-tl-none px-3 py-2 text-gray-400 text-xs italic">En train de répondre…</div>';
+      msgs.appendChild(div);
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+    function removeLoader() {
+      var l = document.getElementById('chat-loader');
+      if (l) l.remove();
+    }
+
+    function sendMessage() {
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      addMsg('user', text);
+      history.push({ role: 'user', content: text });
+      send.disabled = true;
+      addLoader();
+
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: history.slice(0, -1) })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        removeLoader();
+        var rep = data.response || data.error || 'Une erreur est survenue.';
+        addMsg('assistant', rep);
+        history.push({ role: 'assistant', content: rep });
+        if (history.length > 12) history = history.slice(-12);
+      })
+      .catch(function() {
+        removeLoader();
+        addMsg('assistant', 'Une erreur est survenue, veuillez réessayer.');
+      })
+      .finally(function() { send.disabled = false; });
+    }
+
+    send.addEventListener('click', sendMessage);
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+  })();
+  </script>
+
 </body>
 </html>

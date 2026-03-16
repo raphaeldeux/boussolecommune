@@ -48,40 +48,26 @@
 </div>
 {% endif %}
 
-<!-- Portrait de la commune -->
-{% set stats_renseignees = stats_portrait | selectattr('donnee') | list %}
-{% if stats_renseignees %}
-<div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-8">
-  {% for stat in stats_portrait %}
-  {% if stat.donnee %}
-  <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 sm:px-5 sm:py-4">
-    <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1 leading-tight">{{ stat.libelle_citoyen }}</div>
-    <div class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">
-      {{ stat.donnee.valeur | format_valeur }}
-      <span class="text-sm font-normal text-gray-500">{{ stat.unite }}</span>
-    </div>
-    <div class="text-xs text-gray-400 mt-1">
-      {{ stat.donnee.annee }}
-      {% if stat.pct_evolution is not none %}
-      ·
-      {% set evo_bonne = (stat.pct_evolution > 0 and stat.sens_positif == 'haut') or (stat.pct_evolution < 0 and stat.sens_positif == 'bas') %}
-      {% set evo_mauvaise = (stat.pct_evolution < 0 and stat.sens_positif == 'haut') or (stat.pct_evolution > 0 and stat.sens_positif == 'bas') %}
-      <span class="{% if evo_bonne %}text-green-600{% elif evo_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-medium">
-        {% if stat.pct_evolution > 0 %}+{% endif %}{{ stat.pct_evolution }}%
-      </span>
-      {% endif %}
-    </div>
+<!-- Barre de recherche -->
+<div class="mb-6">
+  <div class="relative max-w-xl">
+    <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 pointer-events-none">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+      </svg>
+    </span>
+    <input id="recherche" type="search" placeholder="Rechercher une thématique ou un indicateur…"
+           class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition">
   </div>
-  {% endif %}
-  {% endfor %}
+  <p id="recherche-vide" class="hidden mt-4 text-sm text-gray-400 italic">Aucun résultat pour cette recherche.</p>
 </div>
-{% endif %}
 
 <!-- Grille des 6 thématiques -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
   {% for carte in cartes %}
   <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
-     class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 active:scale-[0.99] transition-all flex flex-col group">
+     class="carte-theme bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 active:scale-[0.99] transition-all flex flex-col group"
+     data-search="{{ carte.label | lower }} {{ carte.question | lower }} {% for ind in carte.indicateurs_cles %}{{ ind.libelle_citoyen | lower }} {% endfor %}">
 
     <!-- En-tête carte -->
     <div class="p-4 sm:p-5 border-b border-gray-100">
@@ -142,4 +128,24 @@
   {% endfor %}
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  var input = document.getElementById('recherche');
+  var cartes = document.querySelectorAll('.carte-theme');
+  var vide = document.getElementById('recherche-vide');
+  input.addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase();
+    var nb = 0;
+    cartes.forEach(function(c) {
+      var match = !q || c.dataset.search.includes(q);
+      c.parentElement.style.display = match ? '' : 'none';
+      if (match) nb++;
+    });
+    vide.classList.toggle('hidden', !q || nb > 0);
+  });
+})();
+</script>
 {% endblock %}
