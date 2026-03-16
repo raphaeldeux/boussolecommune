@@ -284,6 +284,18 @@ def upload():
     )
 
 
+@bp.route("/supprimer/<indicateur_id>/<int:annee>", methods=["POST"])
+@login_required
+def supprimer(indicateur_id, annee):
+    ind = ind_model.get_by_id(indicateur_id)
+    if not ind:
+        flash("Indicateur introuvable.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    donnee_model.delete(indicateur_id, annee)
+    flash(f"Donnée {annee} supprimée pour « {ind['libelle_citoyen']} ».", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
 @bp.route("/regenerer/<indicateur_id>/<int:annee>", methods=["POST"])
 @login_required
 def regenerer(indicateur_id, annee):

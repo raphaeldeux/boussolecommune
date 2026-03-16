@@ -60,6 +60,20 @@ def get_recentes(limit=20):
     return [dict(r) for r in rows]
 
 
+def delete(indicateur_id, annee):
+    conn = get_db()
+    conn.execute(
+        "DELETE FROM donnees WHERE indicateur_id = ? AND annee = ?",
+        (indicateur_id, annee)
+    )
+    conn.execute(
+        "DELETE FROM interpretations WHERE indicateur_id = ? AND annee = ?",
+        (indicateur_id, annee)
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_derniere_maj():
     conn = get_db()
     row = conn.execute("SELECT MAX(date_saisie) as maj FROM donnees").fetchone()
