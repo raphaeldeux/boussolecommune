@@ -4,7 +4,7 @@ import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
 from app.services.scoring import (
     calculer_score, ajuster_score, calculer_score_thematique, calculer_score_global,
-    calculer_tendance, SCORE_COULEURS
+    calculer_tendance, SCORE_COULEURS, SCORE_VALEURS
 )
 
 bp = Blueprint("public", __name__)
@@ -76,8 +76,8 @@ def _enrichir_indicateur(ind, annee=None):
     }
 
 
-@bp.route("/")
-def dashboard():
+def _build_cartes():
+    """Construit la liste des cartes thématiques enrichies (partagée par dashboard et synthese)."""
     thematiques = ind_model.get_thematiques()
     cartes = []
     scores_thematiques = {}
@@ -92,22 +92,25 @@ def dashboard():
         ])
         scores_thematiques[them] = score_them
 
-        # 3 indicateurs clés = les 3 premiers renseignés
-        cles = renseignes[:3]
-
         cartes.append({
             "slug": them,
             "label": ind_model.THEMATIQUE_LABELS[them],
             "question": ind_model.THEMATIQUE_QUESTIONS[them],
             "icon": ind_model.THEMATIQUE_ICONS[them],
             "score": score_them,
-            "score_couleur": SCORE_COULEURS.get(score_them),
-            "indicateurs_cles": cles,
+            "score_couleur": SCORE_COULEURS.get(score_them) or "#9ca3af",
+            "indicateurs_cles": renseignes[:3],
             "nb_renseignes": len(renseignes),
             "nb_total": len(indicateurs),
         })
 
     score_global = calculer_score_global(scores_thematiques)
+    return cartes, score_global
+
+
+@bp.route("/")
+def dashboard():
+    cartes, score_global = _build_cartes()
     derniere_maj = donnee_model.get_derniere_maj()
 
     # Stats portrait de la commune
@@ -174,6 +177,23 @@ def thematique(slug):
         score_couleur=SCORE_COULEURS.get(score_them),
         interpretation=interpretation_them,
         score_couleurs=SCORE_COULEURS,
+    )
+
+
+@bp.route("/synthese")
+def synthese():
+    cartes, score_global = _build_cartes()
+    radar_labels = [c["label"] for c in cartes]
+    radar_values = [SCORE_VALEURS.get(c["score"], 0) for c in cartes]
+    radar_colors = [c["score_couleur"] for c in cartes]
+    return render_template(
+        "public/synthese.html",
+        cartes=cartes,
+        score_global=score_global,
+        score_global_couleur=SCORE_COULEURS.get(score_global) or "#9ca3af",
+        radar_labels=radar_labels,
+        radar_values=radar_values,
+        radar_colors=radar_colors,
     )
 
 
