@@ -62,7 +62,7 @@ def score_vers_valeur(score):
 def valeur_vers_score(valeur):
     if valeur is None:
         return None
-    rounded = round(valeur)
+    rounded = int(valeur + 0.5)  # arrondi demi-supérieur (évite l'arrondi bancaire de round())
     rounded = max(1, min(5, rounded))
     return VALEUR_SCORES.get(rounded)
 
