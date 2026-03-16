@@ -149,6 +149,18 @@ CREATE TABLE interpretations (
     UNIQUE(indicateur_id, annee)
 );
 
+-- Pyramide des âges (tranches de 15 ans, source : INSEE RP)
+CREATE TABLE pyramide_ages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    annee INTEGER NOT NULL,
+    tranche TEXT NOT NULL,                      -- '0-14', '15-29', '30-44', '45-59',
+                                                --   '60-74', '75-89', '90+'
+    ordre INTEGER NOT NULL,                     -- 0 à 6, pour l'ordre d'affichage
+    hommes INTEGER NOT NULL DEFAULT 0,
+    femmes INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(annee, tranche)
+);
+
 -- Log des imports CSV
 CREATE TABLE imports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,6 +174,24 @@ CREATE TABLE imports (
     statut TEXT CHECK(statut IN ('succes','partiel','echec'))
 );
 ```
+
+### 3.5 Tranches d'âge de la pyramide
+
+La pyramide des âges utilise **7 tranches de 15 ans** alignées sur la nomenclature INSEE simplifiée :
+
+| Tranche (clé DB) | Libellé affiché | Ordre |
+|-----------------|-----------------|-------|
+| `0-14`  | 0 à 14 ans      | 0 |
+| `15-29` | 15 à 29 ans     | 1 |
+| `30-44` | 30 à 44 ans     | 2 |
+| `45-59` | 45 à 59 ans     | 3 |
+| `60-74` | 60 à 74 ans     | 4 |
+| `75-89` | 75 à 89 ans     | 5 |
+| `90+`   | 90 ans ou plus  | 6 |
+
+Source de référence : **INSEE Recensement de la Population (RP)**, fichier individus âge détaillé.
+
+Les données sont saisies par tranche, séparées hommes/femmes, et affichées sous forme de graphique en barres horizontales miroir (hommes à gauche, femmes à droite) sur la page publique `/portrait`.
 
 ---
 
