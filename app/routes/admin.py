@@ -87,6 +87,24 @@ def saisie():
         for i in inds:
             tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS[them]})
 
+    # Pré-remplissage depuis URL (mode modification)
+    fv = {"annee": "2024", "valeur": "", "source": "", "commentaire": ""}
+    if request.method == "GET":
+        ind_arg = request.args.get("ind")
+        annee_arg = request.args.get("annee")
+        if ind_arg and annee_arg:
+            try:
+                existing = donnee_model.get_by_indicateur_annee(ind_arg, int(annee_arg))
+                if existing:
+                    fv = {
+                        "annee": str(existing["annee"]),
+                        "valeur": str(existing["valeur"]),
+                        "source": existing.get("source") or "",
+                        "commentaire": existing.get("commentaire") or "",
+                    }
+            except (ValueError, TypeError):
+                pass
+
     if request.method == "POST":
         indicateur_id = request.form.get("indicateur_id", "").strip()
         annee_str = request.form.get("annee", "").strip()
@@ -139,6 +157,15 @@ def saisie():
 
             return redirect(url_for("admin.saisie"))
 
+    # Après POST (erreur), écraser fv avec les valeurs soumises
+    if request.method == "POST":
+        fv = {
+            "annee": request.form.get("annee", "2024"),
+            "valeur": request.form.get("valeur", ""),
+            "source": request.form.get("source", ""),
+            "commentaire": request.form.get("commentaire", ""),
+        }
+
     recentes = donnee_model.get_recentes(15)
     return render_template(
         "admin/saisie.html",
@@ -146,6 +173,7 @@ def saisie():
         thematiques=thematiques,
         thematique_labels=ind_model.THEMATIQUE_LABELS,
         recentes=recentes,
+        fv=fv,
     )
 
 

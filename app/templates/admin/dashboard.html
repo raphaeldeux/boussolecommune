@@ -31,7 +31,7 @@
     <table class="w-full text-sm">
       <thead class="bg-gray-50 border-b border-gray-100">
         <tr>
-          <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
+          <th class="text-left px-4 py-2 text-gray-500 font-medium w-1/2">Indicateur</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Score</th>
@@ -42,11 +42,13 @@
       <tbody class="divide-y divide-gray-50">
         {% for ind in them.indicateurs %}
         <tr class="hover:bg-gray-50 {% if not ind.donnee %}opacity-50{% endif %}">
-          <td class="px-4 py-3">
-            <div class="font-medium text-gray-700">{{ ind.libelle_citoyen | truncate(60) }}</div>
-            <div class="text-xs text-gray-400">{{ ind.id }}</div>
+          <td class="px-4 py-3 max-w-xs">
+            <div class="font-medium text-gray-700 truncate" title="{{ ind.libelle_citoyen }}">
+              {{ ind.libelle_citoyen | truncate(50) }}
+            </div>
+            <div class="text-xs text-gray-400">{{ ind.libelle_technique | truncate(45) if ind.libelle_technique else ind.id }}</div>
           </td>
-          <td class="px-3 py-3 text-center text-gray-700 font-mono">
+          <td class="px-3 py-3 text-center text-gray-700 font-mono whitespace-nowrap">
             {% if ind.donnee %}{{ ind.donnee.valeur | format_valeur }} {{ ind.unite }}{% else %}—{% endif %}
           </td>
           <td class="px-3 py-3 text-center text-gray-500">
@@ -68,14 +70,17 @@
             <span class="text-gray-300 text-xs">—</span>
             {% endif %}
           </td>
-          <td class="px-3 py-3 text-center">
-            <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}"
-               class="text-emerald-600 hover:underline text-xs mr-2">Saisir</a>
+          <td class="px-3 py-3 text-center whitespace-nowrap">
             {% if ind.donnee %}
+            <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}&annee={{ ind.donnee.annee }}"
+               class="text-amber-600 hover:underline text-xs mr-2">Modifier</a>
             <form method="POST" action="{{ url_for('admin.regenerer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
                   class="inline" onsubmit="return confirm('Régénérer l\'interprétation ?')">
               <button type="submit" class="text-blue-500 hover:underline text-xs">Régénérer</button>
             </form>
+            {% else %}
+            <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}"
+               class="text-emerald-600 hover:underline text-xs">Saisir</a>
             {% endif %}
           </td>
         </tr>
