@@ -77,3 +77,12 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
+    # Migration : ajout de annee_reference si absent (base existante)
+    conn = get_db()
+    try:
+        conn.execute("ALTER TABLE indicateurs ADD COLUMN annee_reference INTEGER")
+        conn.commit()
+    except Exception:
+        pass  # colonne déjà présente
+    conn.close()

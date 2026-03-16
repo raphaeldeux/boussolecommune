@@ -26,6 +26,18 @@ def get_by_thematique(thematique):
     return [dict(r) for r in rows]
 
 
+def update_reference(indicateur_id, valeur, libelle, annee):
+    conn = get_db()
+    conn.execute(
+        """UPDATE indicateurs
+           SET valeur_reference = ?, libelle_reference = ?, annee_reference = ?
+           WHERE id = ?""",
+        (valeur, libelle, annee, indicateur_id)
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_thematiques():
     return ["finances", "cadre_vie", "personnes", "lien_social", "democratie", "vivant"]
 

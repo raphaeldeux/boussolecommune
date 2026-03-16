@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Références communes similaires — Admin{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <h1 class="text-2xl font-bold text-gray-900">Références — communes similaires</h1>
+  <div class="flex gap-2 flex-wrap">
+    <a href="{{ url_for('admin.dashboard') }}"
+       class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
+      ← Retour
+    </a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for cat, msg in messages %}
+<div class="mb-4 px-4 py-3 rounded-lg text-sm
+  {% if cat == 'success' %}bg-green-50 text-green-800 border border-green-200
+  {% elif cat == 'danger' %}bg-red-50 text-red-800 border border-red-200
+  {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+  {{ msg }}
+</div>
+{% endfor %}
+{% endwith %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+  <!-- Formulaire de saisie -->
+  <div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h2 class="font-semibold text-gray-800 mb-4">Saisir une valeur de référence</h2>
+      <form method="POST">
+        <div class="space-y-4">
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Indicateur</label>
+            <select name="indicateur_id" id="ref-indicateur" required
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              <option value="">— Choisir un indicateur —</option>
+              {% set current_them = namespace(value='') %}
+              {% for ind in indicateurs %}
+                {% if ind.them_label != current_them.value %}
+                  {% if current_them.value != '' %}</optgroup>{% endif %}
+                  <optgroup label="{{ ind.them_label }}">
+                  {% set current_them.value = ind.them_label %}
+                {% endif %}
+                <option value="{{ ind.id }}"
+                        data-valref="{{ ind.valeur_reference or '' }}"
+                        data-libref="{{ ind.libelle_reference or '' }}"
+                        data-anneeref="{{ ind.annee_reference or '' }}"
+                        data-unite="{{ ind.unite or '' }}">
+                  {{ ind.libelle_citoyen }}
+                </option>
+              {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Valeur de référence <span id="ref-unite" class="text-gray-400 font-normal"></span>
+              </label>
+              <input type="text" name="valeur_reference" id="ref-valeur" required
+                     placeholder="ex : 6.8"
+                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Année</label>
+              <input type="number" name="annee_reference" id="ref-annee"
+                     min="2000" max="2030" placeholder="ex : 2022"
+                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Source / libellé</label>
+            <input type="text" name="libelle_reference" id="ref-libelle"
+                   placeholder="ex : Moyenne communes 5 000–10 000 hab. (INSEE)"
+                   class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+
+          <button type="submit"
+                  class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            Enregistrer la référence
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tableau récapitulatif -->
+  <div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100">
+        <h2 class="font-semibold text-gray-800">Références en place</h2>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-100">
+          <tr>
+            <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium">Référence</th>
+            <th class="text-left px-3 py-2 text-gray-500 font-medium">Source</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% set has_any = namespace(value=false) %}
+          {% for ind in indicateurs %}
+          {% if ind.valeur_reference %}
+          {% set has_any.value = true %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="font-medium text-gray-700 text-xs">{{ ind.libelle_citoyen | truncate(36) }}</div>
+              <div class="text-xs text-gray-400">{{ ind.them_label }}</div>
+            </td>
+            <td class="px-3 py-3 text-center font-mono text-gray-700 whitespace-nowrap text-xs">
+              {{ ind.valeur_reference | format_valeur }} {{ ind.unite }}
+              {% if ind.annee_reference %}
+              <div class="text-gray-400">{{ ind.annee_reference }}</div>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-xs text-gray-500">{{ ind.libelle_reference or '—' }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+          {% if not has_any.value %}
+          <tr>
+            <td colspan="3" class="px-4 py-6 text-center text-gray-400 text-sm italic">
+              Aucune référence saisie pour l'instant.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('ref-indicateur').addEventListener('change', function() {
+  var opt = this.options[this.selectedIndex];
+  document.getElementById('ref-valeur').value = opt.dataset.valref || '';
+  document.getElementById('ref-libelle').value = opt.dataset.libref || '';
+  document.getElementById('ref-annee').value = opt.dataset.anneeref || '';
+  var unite = opt.dataset.unite;
+  document.getElementById('ref-unite').textContent = unite ? '(' + unite + ')' : '';
+});
+</script>
+{% endblock %}

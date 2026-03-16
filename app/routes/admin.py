@@ -284,6 +284,56 @@ def upload():
     )
 
 
+@bp.route("/references", methods=["GET", "POST"])
+@login_required
+def references():
+    thematiques = ind_model.get_thematiques() + ["portrait"]
+    tous_indicateurs = []
+    for them in thematiques:
+        inds = ind_model.get_by_thematique(them)
+        for i in inds:
+            tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS[them]})
+
+    if request.method == "POST":
+        indicateur_id = request.form.get("indicateur_id", "").strip()
+        valeur_str = request.form.get("valeur_reference", "").strip()
+        libelle = request.form.get("libelle_reference", "").strip()
+        annee_str = request.form.get("annee_reference", "").strip()
+
+        erreurs = []
+        if not indicateur_id:
+            erreurs.append("Veuillez sélectionner un indicateur.")
+        if not valeur_str:
+            erreurs.append("La valeur de référence est requise.")
+        else:
+            try:
+                valeur = float(valeur_str.replace(",", "."))
+            except ValueError:
+                erreurs.append("La valeur doit être un nombre.")
+                valeur = None
+        annee = int(annee_str) if annee_str.isdigit() else None
+
+        if not erreurs:
+            ind = ind_model.get_by_id(indicateur_id)
+            if not ind:
+                erreurs.append("Indicateur introuvable.")
+
+        if erreurs:
+            for e in erreurs:
+                flash(e, "danger")
+        else:
+            ind_model.update_reference(indicateur_id, valeur, libelle, annee)
+            flash(f"Référence mise à jour pour « {ind['libelle_citoyen']} ».", "success")
+            return redirect(url_for("admin.references"))
+
+    return render_template(
+        "admin/references.html",
+        indicateurs=tous_indicateurs,
+        thematiques=thematiques,
+        thematique_labels=ind_model.THEMATIQUE_LABELS,
+    )
+
+
 @bp.route("/supprimer/<indicateur_id>/<int:annee>", methods=["POST"])
 @login_required
 def supprimer(indicateur_id, annee):
