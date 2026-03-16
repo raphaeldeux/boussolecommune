@@ -27,32 +27,32 @@ def get_by_thematique(thematique):
 
 
 def get_thematiques():
-    return ["finances", "ecologie", "social", "gouvernance", "services", "economie"]
+    return ["humain", "lien_social", "cadre_vie", "avenir", "democratie", "cooperation"]
 
 
 THEMATIQUE_LABELS = {
-    "finances": "Finances publiques",
-    "ecologie": "Écologie & environnement",
-    "social": "Social & cohésion",
-    "gouvernance": "Gouvernance & transparence",
-    "services": "Services publics & patrimoine",
-    "economie": "Vitalité économique",
+    "humain":      "Prendre soin de l'humain",
+    "lien_social": "Prendre soin du lien social",
+    "cadre_vie":   "Prendre soin du cadre de vie",
+    "avenir":      "Prendre soin de l'avenir",
+    "democratie":  "Prendre soin de la démocratie",
+    "cooperation": "Prendre soin de la coopération métropolitaine",
 }
 
 THEMATIQUE_ICONS = {
-    "finances": "💰",
-    "ecologie": "🌿",
-    "social": "🤝",
-    "gouvernance": "🏛️",
-    "services": "🏗️",
-    "economie": "📈",
+    "humain":      "❤️",
+    "lien_social": "🤝",
+    "cadre_vie":   "🌳",
+    "avenir":      "🔮",
+    "democratie":  "🏛️",
+    "cooperation": "🌐",
 }
 
 THEMATIQUE_POIDS = {
-    "finances": 0.25,
-    "ecologie": 0.20,
-    "social": 0.20,
-    "gouvernance": 0.15,
-    "services": 0.10,
-    "economie": 0.10,
+    "humain":      0.20,
+    "lien_social": 0.15,
+    "cadre_vie":   0.20,
+    "avenir":      0.25,
+    "democratie":  0.10,
+    "cooperation": 0.10,
 }
