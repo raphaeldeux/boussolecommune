@@ -111,6 +111,17 @@ code_commune;libelle_commune;annee;libelle_compte;montant
 44202;Sautron;2023;Encours de dette;8400000
 ```
 
+### Références — communes similaires
+
+Aller sur `/admin/references` → sélectionner un indicateur → saisir :
+- **Valeur de référence** : moyenne de la strate (ex : `6.8`)
+- **Année** : année de la donnée de référence (ex : `2022`)
+- **Source / libellé** : description de la strate (ex : `Moyenne communes 5 000–10 000 hab. (OFGL)`)
+
+Quand une référence est saisie pour un indicateur, une barre de comparaison apparaît automatiquement
+sur la page publique de la thématique. Les références existantes peuvent être éditées ou supprimées
+depuis le tableau récapitulatif de la même page.
+
 ---
 
 ## Scoring A–E
