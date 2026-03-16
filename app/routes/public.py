@@ -56,7 +56,9 @@ def _enrichir_indicateur(ind, annee=None):
     )
 
     interpretation = interp_model.get(ind["id"], donnee_courante["annee"])
-    if interpretation and interpretation.get("score"):
+    # L'interprétation IA ne remplace le score algorithmique que si celui-ci
+    # est None (sens neutre ou seuils absents).
+    if score is None and interpretation and interpretation.get("score"):
         score = interpretation["score"]
 
     return {
