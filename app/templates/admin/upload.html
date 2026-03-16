@@ -11,6 +11,7 @@
 {% if not apercu %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
   <form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="apercu">
 
     <!-- Format -->
@@ -116,6 +117,7 @@
     {% if apercu %}
     <div class="flex gap-3">
       <form method="POST">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="importer">
         <input type="hidden" name="format" value="{{ format_csv }}">
         <button type="submit"

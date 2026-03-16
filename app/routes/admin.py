@@ -1,7 +1,7 @@
 import json
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
-from app.auth import check_password, login_required
+from app.auth import check_password, login_required, is_rate_limited, record_attempt
 from app.config import UPLOAD_FOLDER
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
@@ -18,12 +18,18 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
+        ip = request.remote_addr
+        if is_rate_limited(ip):
+            flash("Trop de tentatives. Réessayez dans 15 minutes.", "danger")
+            return render_template("admin/login.html")
         password = request.form.get("password", "")
         if check_password(password):
+            session.permanent = True
             session["admin_logged_in"] = True
             flash("Connexion réussie.", "success")
             return redirect(url_for("admin.dashboard"))
         else:
+            record_attempt(ip)
             flash("Mot de passe incorrect.", "danger")
     return render_template("admin/login.html")
 

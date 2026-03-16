@@ -78,10 +78,12 @@
                class="text-amber-600 hover:underline text-xs mr-2">Modifier</a>
             <form method="POST" action="{{ url_for('admin.regenerer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
                   class="inline" onsubmit="return confirm('Régénérer l\'interprétation ?')">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <button type="submit" class="text-blue-500 hover:underline text-xs">Régénérer</button>
             </form>
             <form method="POST" action="{{ url_for('admin.supprimer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
                   class="inline ml-2" onsubmit="return confirm('Supprimer la donnée {{ ind.donnee.annee }} pour « {{ ind.libelle_citoyen | truncate(30) }} » ? Cette action est irréversible.')">
+              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <button type="submit" class="text-red-400 hover:text-red-600 hover:underline text-xs">Supprimer</button>
             </form>
             {% else %}
