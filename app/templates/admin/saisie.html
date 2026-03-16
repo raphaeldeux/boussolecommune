@@ -13,7 +13,7 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <form method="POST">
         <!-- Sélecteur indicateur -->
-        <div class="mb-4">
+        <div class="mb-3">
           <label class="block text-sm font-medium text-gray-700 mb-1">Indicateur *</label>
           <select name="indicateur_id" required
                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -27,12 +27,29 @@
                 {% set current_them.val = ind.them_label %}
               {% endif %}
               <option value="{{ ind.id }}"
+                data-technique="{{ ind.libelle_technique or '' }}"
+                data-unite="{{ ind.unite or '' }}"
+                data-sens="{{ ind.sens_positif or '' }}"
+                data-description="{{ ind.description or '' }}"
+                data-reference="{{ ind.valeur_reference or '' }}"
+                data-libelle-reference="{{ ind.libelle_reference or '' }}"
                 {% if request.args.get('ind') == ind.id %}selected{% endif %}>
-                {{ ind.libelle_citoyen | truncate(70) }}
+                {{ ind.libelle_citoyen }}
               </option>
             {% endfor %}
             </optgroup>
           </select>
+        </div>
+
+        <!-- Fiche indicateur (affichée dynamiquement) -->
+        <div id="fiche-indicateur" class="hidden mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm space-y-1">
+          <div class="font-semibold text-blue-800" id="fiche-technique"></div>
+          <div class="flex flex-wrap gap-4 text-blue-700">
+            <span>Unité : <strong id="fiche-unite"></strong></span>
+            <span>Sens : <strong id="fiche-sens"></strong></span>
+            <span id="fiche-reference-wrap" class="hidden">Référence : <strong id="fiche-reference"></strong></span>
+          </div>
+          <div id="fiche-description" class="text-blue-600 text-xs leading-relaxed"></div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
@@ -99,4 +116,36 @@
     </div>
   </div>
 </div>
+
+<script>
+const sel = document.getElementById('sel-indicateur');
+const fiche = document.getElementById('fiche-indicateur');
+
+const SENS_LABELS = { haut: '↑ Une valeur haute est meilleure', bas: '↓ Une valeur basse est meilleure', neutre: '→ Interprétation qualitative' };
+
+function updateFiche() {
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) { fiche.classList.add('hidden'); return; }
+
+  document.getElementById('fiche-technique').textContent = opt.dataset.technique || opt.value;
+  document.getElementById('fiche-unite').textContent = opt.dataset.unite || '—';
+  document.getElementById('fiche-sens').textContent = SENS_LABELS[opt.dataset.sens] || opt.dataset.sens || '—';
+  document.getElementById('fiche-description').textContent = opt.dataset.description || '';
+
+  const refWrap = document.getElementById('fiche-reference-wrap');
+  if (opt.dataset.reference) {
+    document.getElementById('fiche-reference').textContent =
+      opt.dataset.reference + (opt.dataset.unite ? ' ' + opt.dataset.unite : '') +
+      (opt.dataset.libelleReference ? ' (' + opt.dataset.libelleReference + ')' : '');
+    refWrap.classList.remove('hidden');
+  } else {
+    refWrap.classList.add('hidden');
+  }
+
+  fiche.classList.remove('hidden');
+}
+
+sel.addEventListener('change', updateFiche);
+if (sel.value) updateFiche();
+</script>
 {% endblock %}
