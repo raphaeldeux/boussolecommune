@@ -173,3 +173,8 @@ def thematique(slug):
         interpretation=interpretation_them,
         score_couleurs=SCORE_COULEURS,
     )
+
+
+@bp.route("/methodologie")
+def methodologie():
+    return render_template("public/methodologie.html")

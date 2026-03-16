@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Note méthodologique — CommuneSanté Sautron{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <h1 class="text-2xl font-bold text-gray-900 mb-1">Note méthodologique</h1>
+  <p class="text-gray-500 text-sm mb-8">Comment sont calculés les scores affichés sur ce site ?</p>
+
+  <!-- 1. Score de base -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-100 text-emerald-700 rounded px-2 py-0.5 text-sm font-bold">1</span>
+      Score de base par indicateur
+    </h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      Chaque indicateur dispose de seuils fixés à partir des standards nationaux ou locaux.
+      La valeur mesurée pour Sautron est positionnée par rapport à ces seuils pour obtenir
+      un score initial de A à E.
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <th class="text-left px-4 py-2 border border-gray-200">Score</th>
+            <th class="text-left px-4 py-2 border border-gray-200">Signification</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for score, label, bg in [
+            ('A', 'Très satisfaisant — bien au-dessus des seuils attendus', '#16a34a'),
+            ('B', 'Satisfaisant — dans les normes', '#65a30d'),
+            ('C', 'À surveiller — proche des seuils d\'alerte', '#d97706'),
+            ('D', 'Préoccupant — en dessous des seuils d\'alerte', '#dc2626'),
+            ('E', 'Critique — très éloigné des normes', '#7f1d1d'),
+          ] %}
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200">
+              <span class="score-badge score-{{ score }} text-xs" style="width:1.8rem;height:1.8rem;font-size:0.85rem;">{{ score }}</span>
+            </td>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">{{ label }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-400 mt-2 italic">
+      Les indicateurs dont le sens est ambigu (ex : nombre d'associations) ne reçoivent pas de score
+      algorithmique — ils sont évalués uniquement par l'interprétation IA.
+    </p>
+  </section>
+
+  <!-- 2. Ajustement trajectoire -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-100 text-emerald-700 rounded px-2 py-0.5 text-sm font-bold">2</span>
+      Ajustement selon la trajectoire
+    </h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      Le score de base est ensuite modulé par l'évolution de l'indicateur sur la période disponible.
+      Une commune qui s'améliore est valorisée ; une commune qui se dégrade est pénalisée,
+      d'autant plus que la chute est importante.
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <th class="text-left px-4 py-2 border border-gray-200">Évolution (sens pris en compte)</th>
+            <th class="text-center px-4 py-2 border border-gray-200">Ajustement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Amélioration &gt; 25 %</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-green-600">+1 point</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Amélioration 2 – 25 %</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-green-600">+0,5 point</td>
+          </tr>
+          <tr class="border-b border-gray-100 bg-gray-50">
+            <td class="px-4 py-2 border border-gray-200 text-gray-500 italic">Stable (variation &lt; 2 %)</td>
+            <td class="px-4 py-2 border border-gray-200 text-center text-gray-400">0</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Dégradation 2 – 10 %</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-orange-500">−0,5 point</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Dégradation 10 – 25 %</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-red-500">−1 point</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Dégradation &gt; 25 %</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-red-700">−1,5 point</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-400 mt-2 italic">
+      L'évolution est mesurée entre la donnée la plus ancienne et la plus récente disponibles.
+      Le sens de l'indicateur est pris en compte : une baisse de la dette est une amélioration ;
+      une baisse du taux d'épargne est une dégradation.
+    </p>
+  </section>
+
+  <!-- 3. Ajustement comparaison -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-100 text-emerald-700 rounded px-2 py-0.5 text-sm font-bold">3</span>
+      Ajustement selon la comparaison avec les communes similaires
+    </h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      Lorsqu'une valeur de référence est disponible (moyenne de communes de taille comparable,
+      source OFGL ou INSEE), le score est également modulé selon l'écart entre Sautron et cette référence.
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <th class="text-left px-4 py-2 border border-gray-200">Écart vs communes similaires</th>
+            <th class="text-center px-4 py-2 border border-gray-200">Ajustement</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron &gt; 10 % au-dessus (dans le bon sens)</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-green-600">+0,5 point</td>
+          </tr>
+          <tr class="border-b border-gray-100 bg-gray-50">
+            <td class="px-4 py-2 border border-gray-200 text-gray-500 italic">Écart &lt; 10 % (dans la moyenne)</td>
+            <td class="px-4 py-2 border border-gray-200 text-center text-gray-400">0</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron 10 – 25 % en dessous</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-orange-500">−0,5 point</td>
+          </tr>
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron 25 – 50 % en dessous</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-red-500">−1 point</td>
+          </tr>
+          <tr>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron &gt; 50 % en dessous</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-red-700">−1,5 point</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="text-xs text-gray-400 mt-2 italic">
+      Ces comparaisons sont indicatives. Un écart peut refléter un choix politique local délibéré.
+      La référence utilisée et son année sont précisées sur chaque indicateur.
+    </p>
+  </section>
+
+  <!-- 4. Score final -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-100 text-emerald-700 rounded px-2 py-0.5 text-sm font-bold">4</span>
+      Score final de l'indicateur
+    </h2>
+    <div class="bg-gray-50 rounded-xl border border-gray-200 px-5 py-4 text-sm text-gray-700 leading-relaxed">
+      <p class="mb-2">
+        <strong>Score final = Score de base ± ajustement trajectoire ± ajustement comparaison</strong>
+      </p>
+      <p class="mb-3 text-gray-500">
+        L'ajustement total est plafonné entre −3 et +1,5 points. Le résultat est ramené à la lettre
+        la plus proche sur l'échelle A–E.
+      </p>
+      <p class="text-xs bg-white border border-gray-100 rounded px-3 py-2 text-gray-600">
+        <strong>Exemple :</strong> taux d'épargne noté C (3 points) par les seuils,
+        mais avec −54 % de trajectoire (−1,5 pt) et −40 % vs communes similaires (−1 pt)
+        → 3 − 1,5 − 1 = 0,5 → arrondi à 1 → <strong>Score E</strong>.
+      </p>
+      <p class="text-xs text-gray-400 mt-3 italic">
+        Si une interprétation IA a été générée et qu'elle attribue explicitement un score,
+        celui-ci remplace le score algorithmique pour cet indicateur.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5. Scores thématiques et global -->
+  <section class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-100 text-emerald-700 rounded px-2 py-0.5 text-sm font-bold">5</span>
+      Score thématique et score global
+    </h2>
+    <p class="text-gray-600 text-sm leading-relaxed mb-4">
+      Le score d'une thématique est la moyenne simple des scores de ses indicateurs renseignés
+      (minimum 3 requis). Le score global est une moyenne pondérée des 6 thématiques :
+    </p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+            <th class="text-left px-4 py-2 border border-gray-200">Thématique</th>
+            <th class="text-center px-4 py-2 border border-gray-200">Poids</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for label, poids in [
+            ('💰 Soin des finances', '25 %'),
+            ('🌳 Soin du cadre de vie', '20 %'),
+            ('❤️ Soin des personnes', '20 %'),
+            ('🤝 Soin du lien social', '15 %'),
+            ('🏛️ Soin de la démocratie', '12 %'),
+            ('🌿 Soin du vivant', '8 %'),
+          ] %}
+          <tr class="border-b border-gray-100">
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">{{ label }}</td>
+            <td class="px-4 py-2 border border-gray-200 text-center font-medium text-gray-800">{{ poids }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 6. Sources -->
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+      <span class="bg-emerald-100 text-emerald-700 rounded px-2 py-0.5 text-sm font-bold">6</span>
+      Sources des données
+    </h2>
+    <p class="text-gray-600 text-sm leading-relaxed">
+      Les données proviennent de sources publiques : <strong>OFGL</strong> (finances locales),
+      <strong>INSEE</strong> (démographie, logement, emploi), <strong>DRAAF</strong> (agriculture),
+      et des documents officiels de la commune (rapports, délibérations). La source précise
+      est indiquée sous chaque indicateur. Les interprétations textuelles sont générées par
+      l'<strong>API Claude (Anthropic)</strong> à partir des données et de leur contexte.
+    </p>
+  </section>
+
+  <div class="text-center mt-4">
+    <a href="{{ url_for('public.dashboard') }}"
+       class="text-sm text-emerald-600 hover:underline">← Retour au tableau de bord</a>
+  </div>
+
+</div>
+{% endblock %}
