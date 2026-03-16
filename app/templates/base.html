@@ -41,6 +41,10 @@
              class="px-2.5 py-1.5 rounded-md hover:bg-emerald-600 transition {% if request.endpoint == 'public.dashboard' %}bg-emerald-800{% endif %}">
             Accueil
           </a>
+          <a href="{{ url_for('public.portrait') }}"
+             class="px-2.5 py-1.5 rounded-md hover:bg-emerald-600 transition {% if request.endpoint == 'public.portrait' %}bg-emerald-800{% endif %}">
+            🏘️ Portrait
+          </a>
           <a href="{{ url_for('public.synthese') }}"
              class="px-2.5 py-1.5 rounded-md hover:bg-emerald-600 transition {% if request.endpoint == 'public.synthese' %}bg-emerald-800{% endif %}">
             ◎ Synthèse
@@ -90,6 +94,14 @@
                  class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
                 ⚙️ Administration
               </a>
+              <a href="{{ url_for('admin.pyramide') }}"
+                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
+                🏘️ Pyramide des âges
+              </a>
+              <a href="{{ url_for('admin.subventions') }}"
+                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
+                🤝 Subventions
+              </a>
               <div class="border-t border-gray-100 my-1"></div>
               <a href="{{ url_for('admin.logout') }}"
                  class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition text-red-500">
@@ -126,6 +138,11 @@
            class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.dashboard' %}bg-emerald-800{% endif %}"
            onclick="toggleMobileMenu()">
           🏠 Accueil
+        </a>
+        <a href="{{ url_for('public.portrait') }}"
+           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.portrait' %}bg-emerald-800{% endif %}"
+           onclick="toggleMobileMenu()">
+          🏘️ Portrait
         </a>
         <a href="{{ url_for('public.synthese') }}"
            class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.synthese' %}bg-emerald-800{% endif %}"

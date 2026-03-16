@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Portrait de la commune — CommuneSanté Sautron{% endblock %}
+
+{% block content %}
+<div class="mb-6 sm:mb-8">
+  <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Portrait de la commune</h1>
+  <p class="text-gray-500 mt-1 text-sm sm:text-base">Données démographiques et sociales de Sautron</p>
+</div>
+
+<!-- Stats clés -->
+{% set stats_ok = stats | selectattr('donnee') | list %}
+{% if stats_ok %}
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
+  {% for stat in stats %}
+  {% if stat.donnee %}
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3 sm:px-5 sm:py-4">
+    <div class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-1 leading-tight">
+      {{ stat.libelle_citoyen }}
+    </div>
+    <div class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">
+      {{ stat.donnee.valeur | format_valeur }}
+      <span class="text-sm font-normal text-gray-500">{{ stat.unite }}</span>
+    </div>
+    <div class="text-xs text-gray-400 mt-1">
+      {{ stat.donnee.annee }}
+      {% if stat.pct_evolution is not none %}
+      ·
+      {% set evo_bonne = (stat.pct_evolution > 0 and stat.sens_positif == 'haut') or (stat.pct_evolution < 0 and stat.sens_positif == 'bas') %}
+      {% set evo_mauvaise = (stat.pct_evolution < 0 and stat.sens_positif == 'haut') or (stat.pct_evolution > 0 and stat.sens_positif == 'bas') %}
+      <span class="{% if evo_bonne %}text-green-600{% elif evo_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-medium">
+        {% if stat.pct_evolution > 0 %}+{% endif %}{{ stat.pct_evolution }}%
+      </span>
+      depuis {{ stat.annee_ancienne }}
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Pyramide des âges -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
+  <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="text-lg font-semibold text-gray-800">Pyramide des âges</h2>
+      {% if pyramide_annee %}
+      <p class="text-sm text-gray-400 mt-0.5">Recensement INSEE {{ pyramide_annee }}</p>
+      {% endif %}
+    </div>
+    <!-- Sélecteur d'année -->
+    {% if pyramide_years | length > 1 %}
+    <div class="flex gap-1">
+      {% for y in pyramide_years %}
+      <a href="{{ url_for('public.portrait') }}?annee={{ y }}"
+         class="px-3 py-1 rounded-lg text-xs font-medium transition
+                {% if y == pyramide_annee %}bg-emerald-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+        {{ y }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if pyramide_rows %}
+  <!-- Légende -->
+  <div class="flex items-center gap-4 mb-4 text-xs text-gray-500">
+    <span class="flex items-center gap-1.5">
+      <span class="w-3 h-3 rounded-sm inline-block" style="background:#3b82f6"></span> Hommes
+    </span>
+    <span class="flex items-center gap-1.5">
+      <span class="w-3 h-3 rounded-sm inline-block" style="background:#ec4899"></span> Femmes
+    </span>
+  </div>
+  <div style="max-height: 520px;">
+    <canvas id="pyramide-chart"></canvas>
+  </div>
+  <!-- Totaux -->
+  {% set total_h = pyramide_rows | sum(attribute='hommes') %}
+  {% set total_f = pyramide_rows | sum(attribute='femmes') %}
+  <div class="mt-4 flex gap-6 text-sm text-gray-500">
+    <span>Total hommes : <strong class="text-blue-600">{{ "{:,}".format(total_h).replace(",", " ") }}</strong></span>
+    <span>Total femmes : <strong class="text-pink-500">{{ "{:,}".format(total_f).replace(",", " ") }}</strong></span>
+    <span>Population totale : <strong class="text-gray-700">{{ "{:,}".format(total_h + total_f).replace(",", " ") }}</strong></span>
+  </div>
+  {% else %}
+  <div class="py-12 text-center text-gray-400 text-sm">
+    Aucune donnée disponible.
+    {% if not pyramide_years %}
+    <br><span class="text-xs">Les données peuvent être saisies depuis l'interface d'administration.</span>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if pyramide_rows %}
+<script>
+(function() {
+  var tranches = {{ pyramide_rows | map(attribute='tranche') | list | tojson }};
+  var hommes   = {{ pyramide_rows | map(attribute='hommes')  | list | tojson }};
+  var femmes   = {{ pyramide_rows | map(attribute='femmes')  | list | tojson }};
+  var hNeg = hommes.map(function(v) { return -v; });
+
+  var ctx = document.getElementById('pyramide-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: tranches,
+      datasets: [
+        {
+          label: 'Hommes',
+          data: hNeg,
+          backgroundColor: 'rgba(59,130,246,0.75)',
+          borderColor: '#3b82f6',
+          borderWidth: 1,
+          borderRadius: 2,
+        },
+        {
+          label: 'Femmes',
+          data: femmes,
+          backgroundColor: 'rgba(236,72,153,0.75)',
+          borderColor: '#ec4899',
+          borderWidth: 1,
+          borderRadius: 2,
+        }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.dataset.label + ' : ' + Math.abs(ctx.parsed.x);
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          stacked: false,
+          ticks: {
+            callback: function(v) { return Math.abs(v); },
+            maxTicksLimit: 6,
+          },
+          grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        y: {
+          stacked: false,
+          grid: { display: false },
+          ticks: { font: { size: 12 } },
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

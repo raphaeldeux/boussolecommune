@@ -286,6 +286,96 @@
   {% endfor %}
 </div>
 
+{% if slug == 'lien_social' and subventions_years %}
+<!-- Section subventions -->
+<div class="mt-6 sm:mt-8 border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
+  <button onclick="this.nextElementSibling.classList.toggle('hidden')"
+          class="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 text-left hover:bg-gray-50 transition">
+    <span class="font-semibold text-gray-800 text-sm sm:text-base">
+      🤝 Subventions aux associations
+      {% if subventions_annee %}
+      <span class="text-gray-400 font-normal text-xs ml-2">{{ subventions_annee }}</span>
+      {% endif %}
+      {% if subventions_total > 0 %}
+      <span class="ml-2 text-emerald-700 font-bold">{{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €</span>
+      {% endif %}
+    </span>
+    <span class="text-gray-400 text-xs flex-shrink-0 ml-2">▼</span>
+  </button>
+  <div class="hidden px-4 sm:px-5 pb-5 pt-2">
+
+    <!-- Sélecteur d'année -->
+    {% if subventions_years | length > 1 %}
+    <div class="flex gap-1 mb-4 flex-wrap">
+      {% for y in subventions_years %}
+      <a href="{{ url_for('public.thematique', slug='lien_social') }}?annee_subv={{ y }}"
+         class="px-3 py-1 rounded-lg text-xs font-medium transition
+                {% if y == subventions_annee %}bg-emerald-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+        {{ y }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+      <!-- Tableau -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="text-left px-3 py-2 text-gray-500 font-medium">Association</th>
+              <th class="text-left px-3 py-2 text-gray-500 font-medium">Domaine</th>
+              <th class="text-right px-3 py-2 text-gray-500 font-medium">Montant</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for ligne in subventions_lignes %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-3 py-2 text-gray-700">{{ ligne.nom_beneficiaire }}</td>
+              <td class="px-3 py-2">
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                  {% if ligne.domaine == 'sport' %}bg-blue-50 text-blue-700
+                  {% elif ligne.domaine == 'culture' %}bg-purple-50 text-purple-700
+                  {% elif ligne.domaine == 'social' %}bg-orange-50 text-orange-700
+                  {% elif ligne.domaine == 'environnement' %}bg-green-50 text-green-700
+                  {% elif ligne.domaine == 'education' %}bg-yellow-50 text-yellow-700
+                  {% else %}bg-gray-100 text-gray-600{% endif %}">
+                  {{ ligne.domaine }}
+                </span>
+              </td>
+              <td class="px-3 py-2 text-right font-mono text-gray-700">
+                {{ "{:,.0f}".format(ligne.montant).replace(",", " ") }} €
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% if subventions_total > 0 %}
+          <tfoot>
+            <tr class="bg-gray-50 font-semibold">
+              <td colspan="2" class="px-3 py-2 text-gray-700">Total</td>
+              <td class="px-3 py-2 text-right font-mono text-gray-800">
+                {{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €
+              </td>
+            </tr>
+          </tfoot>
+          {% endif %}
+        </table>
+      </div>
+
+      <!-- Répartition par domaine -->
+      {% if subventions_totaux | length > 1 %}
+      <div>
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">Répartition par domaine</p>
+        <canvas id="chart-subventions" style="max-height:220px;"></canvas>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <!-- Note comparaison -->
 <div class="mt-6 sm:mt-8 border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
   <button onclick="this.nextElementSibling.classList.toggle('hidden')"
@@ -559,4 +649,39 @@ function exportPost(btn) {
   triggerDownload(c.toDataURL('image/png'), 'sautron-post-' + d.indId + '.png');
 }
 </script>
+
+{% if slug == 'lien_social' and subventions_totaux | length > 1 %}
+<script>
+(function() {
+  var el = document.getElementById('chart-subventions');
+  if (!el) return;
+  var COULEURS = {
+    sport: '#3b82f6', culture: '#8b5cf6', social: '#f97316',
+    environnement: '#22c55e', education: '#eab308', autre: '#9ca3af'
+  };
+  var labels  = {{ subventions_totaux | map(attribute='domaine') | list | tojson }};
+  var values  = {{ subventions_totaux | map(attribute='total')   | list | tojson }};
+  var colors  = labels.map(function(d) { return COULEURS[d] || '#9ca3af'; });
+  new Chart(el.getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }] },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 10 } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var v = ctx.parsed;
+              var total = ctx.dataset.data.reduce(function(a,b){return a+b;}, 0);
+              return ' ' + ctx.label + ' : ' + v.toLocaleString('fr-FR') + ' € (' + Math.round(v/total*100) + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

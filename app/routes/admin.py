@@ -6,6 +6,8 @@ from app.config import UPLOAD_FOLDER
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
+import app.models.pyramide as pyramide_model
+import app.models.subvention as subvention_model
 from app.database import get_db
 from app.services.scoring import calculer_score, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
@@ -384,3 +386,123 @@ def regenerer(indicateur_id, annee):
     except Exception as e:
         flash(f"Erreur : {e}", "danger")
     return redirect(url_for("admin.dashboard"))
+
+
+# ── Pyramide des âges ────────────────────────────────────────────
+
+@bp.route("/pyramide", methods=["GET", "POST"])
+@login_required
+def pyramide():
+    if request.method == "POST":
+        annee = request.form.get("annee", "").strip()
+        if not annee or not annee.isdigit():
+            flash("Année invalide.", "danger")
+            return redirect(url_for("admin.pyramide"))
+        annee = int(annee)
+        data = []
+        for tranche, ordre in pyramide_model.TRANCHES:
+            try:
+                h = int(request.form.get(f"hommes_{tranche}", 0) or 0)
+                f = int(request.form.get(f"femmes_{tranche}", 0) or 0)
+            except ValueError:
+                h, f = 0, 0
+            data.append({"tranche": tranche, "ordre": ordre, "hommes": h, "femmes": f})
+        pyramide_model.upsert_year(annee, data)
+        flash(f"Pyramide {annee} enregistrée.", "success")
+        return redirect(url_for("admin.pyramide"))
+
+    years = pyramide_model.get_years()
+    annee_sel = request.args.get("annee", years[0] if years else None)
+    rows = pyramide_model.get_by_year(annee_sel) if annee_sel else []
+    rows_by_tranche = {r["tranche"]: r for r in rows}
+    return render_template(
+        "admin/pyramide.html",
+        tranches=pyramide_model.TRANCHES,
+        years=years,
+        annee_sel=annee_sel,
+        rows_by_tranche=rows_by_tranche,
+    )
+
+
+@bp.route("/pyramide/supprimer/<int:annee>", methods=["POST"])
+@login_required
+def supprimer_pyramide(annee):
+    pyramide_model.delete_year(annee)
+    flash(f"Pyramide {annee} supprimée.", "success")
+    return redirect(url_for("admin.pyramide"))
+
+
+# ── Subventions ──────────────────────────────────────────────────
+
+@bp.route("/subventions", methods=["GET", "POST"])
+@login_required
+def subventions():
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        if action == "ajouter":
+            annee = request.form.get("annee", "").strip()
+            nom = request.form.get("nom_beneficiaire", "").strip()
+            domaine = request.form.get("domaine", "autre")
+            montant_raw = request.form.get("montant", "").replace(",", ".").strip()
+            commentaire = request.form.get("commentaire", "").strip()
+            if not annee or not annee.isdigit() or not nom or not montant_raw:
+                flash("Tous les champs obligatoires doivent être remplis.", "danger")
+                return redirect(url_for("admin.subventions"))
+            try:
+                montant = float(montant_raw)
+            except ValueError:
+                flash("Montant invalide.", "danger")
+                return redirect(url_for("admin.subventions"))
+            subvention_model.insert(int(annee), nom, domaine, montant, commentaire)
+            flash(f"Subvention ajoutée pour « {nom} ».", "success")
+
+        elif action == "importer_csv":
+            fichier = request.files.get("fichier_csv")
+            if not fichier:
+                flash("Aucun fichier sélectionné.", "danger")
+                return redirect(url_for("admin.subventions"))
+            contenu = fichier.read().decode("utf-8", errors="replace")
+            lignes = contenu.splitlines()
+            nb_ok, nb_err = 0, 0
+            for i, ligne in enumerate(lignes[1:], start=2):
+                cols = [c.strip().strip('"') for c in ligne.split(",")]
+                if len(cols) < 4:
+                    nb_err += 1
+                    continue
+                try:
+                    annee_csv = int(cols[0])
+                    nom_csv = cols[1]
+                    domaine_csv = cols[2] if cols[2] in subvention_model.DOMAINES else "autre"
+                    montant_csv = float(cols[3].replace(",", "."))
+                    commentaire_csv = cols[4] if len(cols) > 4 else ""
+                    subvention_model.insert(annee_csv, nom_csv, domaine_csv, montant_csv, commentaire_csv)
+                    nb_ok += 1
+                except (ValueError, IndexError):
+                    nb_err += 1
+            flash(f"Import CSV : {nb_ok} lignes importées, {nb_err} ignorées.", "success" if nb_err == 0 else "warning")
+
+        return redirect(url_for("admin.subventions"))
+
+    years = subvention_model.get_years()
+    annee_sel = request.args.get("annee", years[0] if years else None)
+    lignes = subvention_model.get_by_year(annee_sel) if annee_sel else []
+    total = subvention_model.get_total(annee_sel) if annee_sel else 0
+    return render_template(
+        "admin/subventions.html",
+        years=years,
+        annee_sel=annee_sel,
+        lignes=lignes,
+        total=total,
+        domaines=subvention_model.DOMAINES,
+        annee_courante=2024,
+    )
+
+
+@bp.route("/subventions/supprimer/<int:id_>", methods=["POST"])
+@login_required
+def supprimer_subvention(id_):
+    subvention_model.delete(id_)
+    flash("Subvention supprimée.", "success")
+    annee = request.form.get("annee", "")
+    return redirect(url_for("admin.subventions") + (f"?annee={annee}" if annee else ""))

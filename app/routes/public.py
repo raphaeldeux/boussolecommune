@@ -2,6 +2,8 @@ from flask import Blueprint, render_template, abort
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
+import app.models.pyramide as pyramide_model
+import app.models.subvention as subvention_model
 from app.services.scoring import (
     calculer_score, ajuster_score, calculer_score_thematique, calculer_score_global,
     calculer_tendance, SCORE_COULEURS, SCORE_VALEURS
@@ -166,6 +168,20 @@ def thematique(slug):
             phrases = [i["phrase_courte"] for i in interps if i.get("phrase_courte")]
             interpretation_them = phrases[0] if phrases else None
 
+    # Subventions (seulement pour lien_social)
+    subventions_years = []
+    subventions_lignes = []
+    subventions_totaux = []
+    subventions_total = 0
+    subventions_annee = None
+    if slug == "lien_social":
+        subventions_years = subvention_model.get_years()
+        if subventions_years:
+            subventions_annee = subventions_years[0]
+            subventions_lignes = subvention_model.get_by_year(subventions_annee)
+            subventions_totaux = subvention_model.get_totaux_par_domaine(subventions_annee)
+            subventions_total = subvention_model.get_total(subventions_annee)
+
     return render_template(
         "public/thematique.html",
         slug=slug,
@@ -177,6 +193,11 @@ def thematique(slug):
         score_couleur=SCORE_COULEURS.get(score_them),
         interpretation=interpretation_them,
         score_couleurs=SCORE_COULEURS,
+        subventions_years=subventions_years,
+        subventions_lignes=subventions_lignes,
+        subventions_totaux=subventions_totaux,
+        subventions_total=subventions_total,
+        subventions_annee=subventions_annee,
     )
 
 
@@ -194,6 +215,44 @@ def synthese():
         radar_labels=radar_labels,
         radar_values=radar_values,
         radar_colors=radar_colors,
+    )
+
+
+@bp.route("/portrait")
+def portrait():
+    portrait_inds = ind_model.get_by_thematique("portrait")
+    stats = []
+    for ind in portrait_inds:
+        donnee = donnee_model.get_latest(ind["id"])
+        pct_evolution = None
+        annee_ancienne = None
+        if donnee:
+            hist = donnee_model.get_by_indicateur(ind["id"])
+            if len(hist) > 1:
+                ancienne = hist[-1]
+                annee_ancienne = ancienne["annee"]
+                if ancienne["valeur"] and ancienne["valeur"] != 0:
+                    pct_evolution = round(
+                        (donnee["valeur"] - ancienne["valeur"]) / abs(ancienne["valeur"]) * 100, 1
+                    )
+        stats.append({**ind, "donnee": donnee, "pct_evolution": pct_evolution, "annee_ancienne": annee_ancienne})
+
+    from flask import request as _req
+    years = pyramide_model.get_years()
+    annee_sel = _req.args.get("annee", years[0] if years else None)
+    if annee_sel:
+        try:
+            annee_sel = int(annee_sel)
+        except (ValueError, TypeError):
+            annee_sel = years[0] if years else None
+    pyramide_rows = pyramide_model.get_by_year(annee_sel) if annee_sel else []
+
+    return render_template(
+        "public/portrait.html",
+        stats=stats,
+        pyramide_years=years,
+        pyramide_annee=annee_sel,
+        pyramide_rows=pyramide_rows,
     )
 
 

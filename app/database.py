@@ -54,6 +54,26 @@ def init_db():
             UNIQUE(indicateur_id, annee)
         );
 
+        CREATE TABLE IF NOT EXISTS pyramide_ages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            annee INTEGER NOT NULL,
+            tranche TEXT NOT NULL,
+            ordre INTEGER NOT NULL,
+            hommes INTEGER NOT NULL DEFAULT 0,
+            femmes INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(annee, tranche)
+        );
+
+        CREATE TABLE IF NOT EXISTS subventions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            annee INTEGER NOT NULL,
+            nom_beneficiaire TEXT NOT NULL,
+            domaine TEXT NOT NULL DEFAULT 'autre',
+            montant REAL NOT NULL,
+            commentaire TEXT,
+            date_saisie TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS imports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             fichier TEXT,
