@@ -10,12 +10,12 @@ SCORE_COULEURS = {
 }
 
 THEMATIQUE_POIDS = {
-    "humain":      0.20,
-    "lien_social": 0.15,
+    "finances":    0.25,
     "cadre_vie":   0.20,
-    "avenir":      0.25,
-    "democratie":  0.10,
-    "cooperation": 0.10,
+    "personnes":   0.20,
+    "lien_social": 0.15,
+    "democratie":  0.12,
+    "vivant":      0.08,
 }
 
 

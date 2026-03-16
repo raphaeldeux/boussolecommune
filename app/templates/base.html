@@ -34,12 +34,12 @@
       <div class="flex gap-4 text-sm">
         <a href="{{ url_for('public.dashboard') }}" class="hover:text-emerald-200 transition">Tableau de bord</a>
         {% for slug, label in [
-          ('humain',      "L'humain"),
-          ('lien_social', "Le lien social"),
-          ('cadre_vie',   "Le cadre de vie"),
-          ('avenir',      "L'avenir"),
-          ('democratie',  "La démocratie"),
-          ('cooperation', "La coopération")
+          ('finances',   "Finances"),
+          ('cadre_vie',  "Cadre de vie"),
+          ('personnes',  "Personnes"),
+          ('lien_social',"Lien social"),
+          ('democratie', "Démocratie"),
+          ('vivant',     "Vivant")
         ] %}
         <a href="{{ url_for('public.thematique', slug=slug) }}"
            class="hidden md:inline hover:text-emerald-200 transition">{{ label }}</a>

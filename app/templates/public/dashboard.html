@@ -54,7 +54,8 @@
         <span class="text-2xl">{{ carte.icon }}</span>
         <div>
           <div class="font-semibold text-gray-800">{{ carte.label }}</div>
-          <div class="text-xs text-gray-400">{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs renseignés</div>
+          <div class="text-xs text-gray-500 italic">{{ carte.question }}</div>
+          <div class="text-xs text-gray-400 mt-0.5">{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs renseignés</div>
         </div>
       </div>
       {% if carte.score %}

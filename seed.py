@@ -1,5 +1,5 @@
 """
-Initialise le référentiel des ~40 indicateurs.
+Initialise le référentiel des 38 indicateurs.
 Idempotent : n'écrase pas les indicateurs existants (sauf la thématique
 qui est mise à jour si elle a changé).
 """
@@ -13,10 +13,10 @@ load_dotenv()
 from app.database import init_db, get_db
 
 INDICATEURS = [
-    # ─── Prendre soin de l'avenir (finances + emploi) ────────────────────────
+    # ─── Soin des finances ────────────────────────────────────────────────────
     {
         "id": "fin_epargne_brute",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "La commune met-elle de l'argent de côté ?",
         "libelle_technique": "Taux d'épargne brute",
         "unite": "% recettes",
@@ -34,7 +34,7 @@ INDICATEURS = [
     },
     {
         "id": "fin_dette_habitant",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "Combien la commune doit-elle par habitant ?",
         "libelle_technique": "Encours de dette par habitant",
         "unite": "€/hab",
@@ -52,7 +52,7 @@ INDICATEURS = [
     },
     {
         "id": "fin_capacite_desendettement",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "En combien d'années pourrait-elle rembourser sa dette ?",
         "libelle_technique": "Capacité de désendettement",
         "unite": "années",
@@ -70,7 +70,7 @@ INDICATEURS = [
     },
     {
         "id": "fin_investissement_habitant",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "Combien investit-on par habitant chaque année ?",
         "libelle_technique": "Dépenses d'investissement par habitant",
         "unite": "€/hab",
@@ -88,7 +88,7 @@ INDICATEURS = [
     },
     {
         "id": "fin_rigidite_charges",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "Quelle part du budget est impossible à réduire rapidement ?",
         "libelle_technique": "Taux de rigidité des charges",
         "unite": "%",
@@ -106,7 +106,7 @@ INDICATEURS = [
     },
     {
         "id": "fin_taux_taxe_fonciere",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "Quel est le taux de la taxe foncière ?",
         "libelle_technique": "Taux de taxe foncière sur les propriétés bâties",
         "unite": "%",
@@ -123,7 +123,7 @@ INDICATEURS = [
     },
     {
         "id": "fin_masse_salariale_ratio",
-        "thematique": "avenir",
+        "thematique": "finances",
         "libelle_citoyen": "Quelle part du budget part aux salaires des agents ?",
         "libelle_technique": "Charges de personnel / dépenses de fonctionnement",
         "unite": "% dép. fonct.",
@@ -139,219 +139,8 @@ INDICATEURS = [
                        "aussi des rigidités budgétaires.",
         "source_type": "csv_ofgl",
     },
-    {
-        "id": "eco2_evolution_entreprises",
-        "thematique": "avenir",
-        "libelle_citoyen": "Le nombre d'entreprises augmente-t-il sur la commune ?",
-        "libelle_technique": "Évolution du stock d'entreprises actives",
-        "unite": "nb",
-        "sens_positif": "haut",
-        "seuil_vert": None,
-        "seuil_orange": None,
-        "seuil_rouge": None,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre total d'entreprises et d'établissements actifs domiciliés "
-                       "sur la commune (source SIRENE/INSEE). L'évolution d'une année sur "
-                       "l'autre reflète l'attractivité économique du territoire.",
-        "source_type": "csv_generique",
-    },
-    {
-        "id": "eco2_emplois_commune",
-        "thematique": "avenir",
-        "libelle_citoyen": "Combien d'emplois sur la commune ?",
-        "libelle_technique": "Nombre d'emplois salariés sur le territoire communal",
-        "unite": "nb",
-        "sens_positif": "haut",
-        "seuil_vert": None,
-        "seuil_orange": None,
-        "seuil_rouge": None,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre d'emplois salariés (hors agriculture) déclarés sur le "
-                       "territoire de la commune (source INSEE/URSSAF). L'évolution de cet "
-                       "indicateur reflète le dynamisme économique local.",
-        "source_type": "csv_generique",
-    },
 
-    # ─── Prendre soin de l'humain ─────────────────────────────────────────────
-    {
-        "id": "soc_logements_sociaux_taux",
-        "thematique": "humain",
-        "libelle_citoyen": "Quelle part de logements sociaux dans la commune ?",
-        "libelle_technique": "Taux de logements sociaux (SRU)",
-        "unite": "%",
-        "sens_positif": "haut",
-        "seuil_vert": 25.0,
-        "seuil_orange": 15.0,
-        "seuil_rouge": 10.0,
-        "valeur_reference": 25.0,
-        "libelle_reference": "Obligation légale loi SRU (25% pour communes > 3 500 hab.)",
-        "description": "Part des logements sociaux (HLM) dans le parc total de résidences "
-                       "principales. La loi SRU impose aux communes de plus de 3 500 "
-                       "habitants d'atteindre 25% de logements sociaux, sous peine de "
-                       "pénalités financières.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "soc_places_creche_attente",
-        "thematique": "humain",
-        "libelle_citoyen": "Combien d'enfants attendent une place en crèche ?",
-        "libelle_technique": "Enfants en liste d'attente en structures petite enfance",
-        "unite": "nb",
-        "sens_positif": "bas",
-        "seuil_vert": 10.0,
-        "seuil_orange": 30.0,
-        "seuil_rouge": 60.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre d'enfants inscrits sur liste d'attente dans les structures "
-                       "d'accueil petite enfance (crèches, haltes-garderies) financées ou "
-                       "gérées par la commune. Indicateur de la tension sur l'offre "
-                       "d'accueil.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "soc_tarif_cantine_evolution",
-        "thematique": "humain",
-        "libelle_citoyen": "Combien coûte un repas à la cantine (quotient moyen) ?",
-        "libelle_technique": "Tarif cantine au quotient familial médian",
-        "unite": "€/repas",
-        "sens_positif": "bas",
-        "seuil_vert": 3.0,
-        "seuil_orange": 4.5,
-        "seuil_rouge": 6.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Prix d'un repas à la cantine scolaire pour une famille au quotient "
-                       "familial médian de la commune. La tarification sociale (tarification "
-                       "au quotient) est le principal outil d'accessibilité aux services "
-                       "publics locaux.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "serv_accessibilite_pmr",
-        "thematique": "humain",
-        "libelle_citoyen": "Les équipements publics sont-ils accessibles aux personnes handicapées ?",
-        "libelle_technique": "Taux d'équipements ERP conformes accessibilité PMR",
-        "unite": "%",
-        "sens_positif": "haut",
-        "seuil_vert": 80.0,
-        "seuil_orange": 60.0,
-        "seuil_rouge": 40.0,
-        "valeur_reference": 100.0,
-        "libelle_reference": "Obligation légale loi handicap 2005 (100% ERP)",
-        "description": "Part des établissements recevant du public (ERP) communaux "
-                       "conformes aux normes d'accessibilité pour les personnes en situation "
-                       "de handicap. La loi de 2005 impose une accessibilité totale.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "soc_budget_jeunesse_habitant",
-        "thematique": "humain",
-        "libelle_citoyen": "Combien investit-on dans la jeunesse par habitant ?",
-        "libelle_technique": "Budget jeunesse et animation socioculturelle par habitant",
-        "unite": "€/hab",
-        "sens_positif": "haut",
-        "seuil_vert": 80.0,
-        "seuil_orange": 50.0,
-        "seuil_rouge": 25.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Budget consacré aux activités jeunesse, périscolaires et à "
-                       "l'animation socioculturelle, divisé par le nombre d'habitants.",
-        "source_type": "csv_generique",
-    },
-
-    # ─── Prendre soin du lien social ──────────────────────────────────────────
-    {
-        "id": "soc_associations_nb",
-        "thematique": "lien_social",
-        "libelle_citoyen": "Combien d'associations sont actives dans la commune ?",
-        "libelle_technique": "Nombre d'associations actives domiciliées",
-        "unite": "nb",
-        "sens_positif": "haut",
-        "seuil_vert": 80.0,
-        "seuil_orange": 40.0,
-        "seuil_rouge": 20.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre total d'associations déclarées et actives sur le territoire "
-                       "communal. La vitalité associative est un indicateur du tissu social "
-                       "et de l'engagement citoyen.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "soc_subventions_associations",
-        "thematique": "lien_social",
-        "libelle_citoyen": "Combien la commune verse-t-elle aux associations ?",
-        "libelle_technique": "Budget des subventions aux associations",
-        "unite": "€/an",
-        "sens_positif": "haut",
-        "seuil_vert": None,
-        "seuil_orange": None,
-        "seuil_rouge": None,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Montant total des subventions versées par la commune aux "
-                       "associations locales. Ces financements soutiennent la vie sportive, "
-                       "culturelle, sociale et citoyenne.",
-        "source_type": "csv_generique",
-    },
-    {
-        "id": "eco_part_bio_cantine",
-        "thematique": "lien_social",
-        "libelle_citoyen": "Quelle part du bio et local à la cantine scolaire ?",
-        "libelle_technique": "Part des produits bio et locaux en restauration collective",
-        "unite": "%",
-        "sens_positif": "haut",
-        "seuil_vert": 50.0,
-        "seuil_orange": 35.0,
-        "seuil_rouge": 20.0,
-        "valeur_reference": 50.0,
-        "libelle_reference": "Objectif loi EGAlim (50% bio+local dès 2022)",
-        "description": "Part des achats alimentaires de la restauration collective "
-                       "provenant de l'agriculture biologique ou de circuits courts locaux. "
-                       "La loi EGAlim de 2018 impose 50% de produits durables dont 20% bio "
-                       "depuis le 1er janvier 2022.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "eco2_marches_evenements",
-        "thematique": "lien_social",
-        "libelle_citoyen": "Combien de marchés et événements économiques par an ?",
-        "libelle_technique": "Nombre de marchés et événements à dimension économique",
-        "unite": "nb/an",
-        "sens_positif": "haut",
-        "seuil_vert": 20.0,
-        "seuil_orange": 10.0,
-        "seuil_rouge": 4.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre total de marchés hebdomadaires, foires, brocantes, forums "
-                       "économiques et autres événements à dimension commerciale organisés "
-                       "ou soutenus par la commune dans l'année.",
-        "source_type": "saisie_manuelle",
-    },
-    {
-        "id": "eco2_nb_commerces",
-        "thematique": "lien_social",
-        "libelle_citoyen": "Combien de commerces et services de proximité dans la commune ?",
-        "libelle_technique": "Nombre de commerces et services de proximité",
-        "unite": "nb",
-        "sens_positif": "haut",
-        "seuil_vert": 60.0,
-        "seuil_orange": 35.0,
-        "seuil_rouge": 15.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre total de commerces de détail, services (coiffeur, médecin, "
-                       "pharmacie…) et restaurants actifs sur le territoire communal. "
-                       "Indicateur du dynamisme commercial et de la qualité de vie.",
-        "source_type": "csv_generique",
-    },
-
-    # ─── Prendre soin du cadre de vie ─────────────────────────────────────────
+    # ─── Soin du cadre de vie ─────────────────────────────────────────────────
     {
         "id": "eco_espaces_verts_habitant",
         "thematique": "cadre_vie",
@@ -405,23 +194,6 @@ INDICATEURS = [
         "source_type": "saisie_manuelle",
     },
     {
-        "id": "serv_horaires_mairie",
-        "thematique": "cadre_vie",
-        "libelle_citoyen": "Combien d'heures la mairie est-elle ouverte par semaine ?",
-        "libelle_technique": "Heures d'ouverture de la mairie par semaine",
-        "unite": "h/sem",
-        "sens_positif": "haut",
-        "seuil_vert": 30.0,
-        "seuil_orange": 20.0,
-        "seuil_rouge": 12.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Nombre total d'heures d'ouverture au public de la mairie et de ses "
-                       "annexes par semaine. Un horaire étendu facilite l'accès aux services "
-                       "pour les actifs et les familles.",
-        "source_type": "saisie_manuelle",
-    },
-    {
         "id": "serv_delai_urbanisme",
         "thematique": "cadre_vie",
         "libelle_citoyen": "Combien de temps faut-il pour obtenir un permis de construire ?",
@@ -439,20 +211,20 @@ INDICATEURS = [
         "source_type": "saisie_manuelle",
     },
     {
-        "id": "serv_demarches_en_ligne",
+        "id": "serv_accessibilite_pmr",
         "thematique": "cadre_vie",
-        "libelle_citoyen": "Quelle part des démarches peut-on faire en ligne ?",
-        "libelle_technique": "Part des démarches administratives disponibles en ligne",
+        "libelle_citoyen": "Les équipements publics sont-ils accessibles aux personnes handicapées ?",
+        "libelle_technique": "Taux d'équipements ERP conformes accessibilité PMR",
         "unite": "%",
         "sens_positif": "haut",
-        "seuil_vert": 70.0,
-        "seuil_orange": 40.0,
-        "seuil_rouge": 20.0,
-        "valeur_reference": None,
-        "libelle_reference": None,
-        "description": "Part des démarches administratives communales accessibles via le "
-                       "portail numérique de la mairie ou le site service-public.fr. "
-                       "Indicateur de modernisation des services publics locaux.",
+        "seuil_vert": 80.0,
+        "seuil_orange": 60.0,
+        "seuil_rouge": 40.0,
+        "valeur_reference": 100.0,
+        "libelle_reference": "Obligation légale loi handicap 2005 (100% ERP)",
+        "description": "Part des établissements recevant du public (ERP) communaux "
+                       "conformes aux normes d'accessibilité pour les personnes en situation "
+                       "de handicap. La loi de 2005 impose une accessibilité totale.",
         "source_type": "saisie_manuelle",
     },
     {
@@ -473,7 +245,235 @@ INDICATEURS = [
         "source_type": "saisie_manuelle",
     },
 
-    # ─── Prendre soin de la démocratie ────────────────────────────────────────
+    # ─── Soin des personnes ───────────────────────────────────────────────────
+    {
+        "id": "soc_logements_sociaux_taux",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quelle part de logements sociaux dans la commune ?",
+        "libelle_technique": "Taux de logements sociaux (SRU)",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 25.0,
+        "seuil_orange": 15.0,
+        "seuil_rouge": 10.0,
+        "valeur_reference": 25.0,
+        "libelle_reference": "Obligation légale loi SRU (25% pour communes > 3 500 hab.)",
+        "description": "Part des logements sociaux (HLM) dans le parc total de résidences "
+                       "principales. La loi SRU impose aux communes de plus de 3 500 "
+                       "habitants d'atteindre 25% de logements sociaux, sous peine de "
+                       "pénalités financières.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "soc_places_creche_attente",
+        "thematique": "personnes",
+        "libelle_citoyen": "Combien d'enfants attendent une place en crèche ?",
+        "libelle_technique": "Enfants en liste d'attente en structures petite enfance",
+        "unite": "nb",
+        "sens_positif": "bas",
+        "seuil_vert": 10.0,
+        "seuil_orange": 30.0,
+        "seuil_rouge": 60.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre d'enfants inscrits sur liste d'attente dans les structures "
+                       "d'accueil petite enfance (crèches, haltes-garderies) financées ou "
+                       "gérées par la commune. Indicateur de la tension sur l'offre "
+                       "d'accueil.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "soc_tarif_cantine_evolution",
+        "thematique": "personnes",
+        "libelle_citoyen": "Combien coûte un repas à la cantine (quotient moyen) ?",
+        "libelle_technique": "Tarif cantine au quotient familial médian",
+        "unite": "€/repas",
+        "sens_positif": "bas",
+        "seuil_vert": 3.0,
+        "seuil_orange": 4.5,
+        "seuil_rouge": 6.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Prix d'un repas à la cantine scolaire pour une famille au quotient "
+                       "familial médian de la commune. La tarification sociale (tarification "
+                       "au quotient) est le principal outil d'accessibilité aux services "
+                       "publics locaux.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "soc_budget_jeunesse_habitant",
+        "thematique": "personnes",
+        "libelle_citoyen": "Combien investit-on dans la jeunesse par habitant ?",
+        "libelle_technique": "Budget jeunesse et animation socioculturelle par habitant",
+        "unite": "€/hab",
+        "sens_positif": "haut",
+        "seuil_vert": 80.0,
+        "seuil_orange": 50.0,
+        "seuil_rouge": 25.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Budget consacré aux activités jeunesse, périscolaires et à "
+                       "l'animation socioculturelle, divisé par le nombre d'habitants.",
+        "source_type": "csv_generique",
+    },
+    {
+        "id": "serv_horaires_mairie",
+        "thematique": "personnes",
+        "libelle_citoyen": "Combien d'heures la mairie est-elle ouverte par semaine ?",
+        "libelle_technique": "Heures d'ouverture de la mairie par semaine",
+        "unite": "h/sem",
+        "sens_positif": "haut",
+        "seuil_vert": 30.0,
+        "seuil_orange": 20.0,
+        "seuil_rouge": 12.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre total d'heures d'ouverture au public de la mairie et de ses "
+                       "annexes par semaine. Un horaire étendu facilite l'accès aux services "
+                       "pour les actifs et les familles.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "serv_demarches_en_ligne",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quelle part des démarches peut-on faire en ligne ?",
+        "libelle_technique": "Part des démarches administratives disponibles en ligne",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 70.0,
+        "seuil_orange": 40.0,
+        "seuil_rouge": 20.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Part des démarches administratives communales accessibles via le "
+                       "portail numérique de la mairie ou le site service-public.fr. "
+                       "Indicateur de modernisation des services publics locaux.",
+        "source_type": "saisie_manuelle",
+    },
+
+    # ─── Soin du lien social ──────────────────────────────────────────────────
+    {
+        "id": "soc_associations_nb",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Combien d'associations sont actives dans la commune ?",
+        "libelle_technique": "Nombre d'associations actives domiciliées",
+        "unite": "nb",
+        "sens_positif": "haut",
+        "seuil_vert": 80.0,
+        "seuil_orange": 40.0,
+        "seuil_rouge": 20.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre total d'associations déclarées et actives sur le territoire "
+                       "communal. La vitalité associative est un indicateur du tissu social "
+                       "et de l'engagement citoyen.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "soc_subventions_associations",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Combien la commune verse-t-elle aux associations ?",
+        "libelle_technique": "Budget des subventions aux associations",
+        "unite": "€/an",
+        "sens_positif": "haut",
+        "seuil_vert": None,
+        "seuil_orange": None,
+        "seuil_rouge": None,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Montant total des subventions versées par la commune aux "
+                       "associations locales. Ces financements soutiennent la vie sportive, "
+                       "culturelle, sociale et citoyenne.",
+        "source_type": "csv_generique",
+    },
+    {
+        "id": "eco_part_bio_cantine",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Quelle part du bio et local à la cantine scolaire ?",
+        "libelle_technique": "Part des produits bio et locaux en restauration collective",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 50.0,
+        "seuil_orange": 35.0,
+        "seuil_rouge": 20.0,
+        "valeur_reference": 50.0,
+        "libelle_reference": "Objectif loi EGAlim (50% bio+local dès 2022)",
+        "description": "Part des achats alimentaires de la restauration collective "
+                       "provenant de l'agriculture biologique ou de circuits courts locaux. "
+                       "La loi EGAlim de 2018 impose 50% de produits durables dont 20% bio "
+                       "depuis le 1er janvier 2022.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "eco2_nb_commerces",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Combien de commerces et services de proximité dans la commune ?",
+        "libelle_technique": "Nombre de commerces et services de proximité",
+        "unite": "nb",
+        "sens_positif": "haut",
+        "seuil_vert": 60.0,
+        "seuil_orange": 35.0,
+        "seuil_rouge": 15.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre total de commerces de détail, services (coiffeur, médecin, "
+                       "pharmacie…) et restaurants actifs sur le territoire communal. "
+                       "Indicateur du dynamisme commercial et de la qualité de vie.",
+        "source_type": "csv_generique",
+    },
+    {
+        "id": "eco2_marches_evenements",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Combien de marchés et événements locaux par an ?",
+        "libelle_technique": "Nombre de marchés et événements à dimension économique",
+        "unite": "nb/an",
+        "sens_positif": "haut",
+        "seuil_vert": 20.0,
+        "seuil_orange": 10.0,
+        "seuil_rouge": 4.0,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre total de marchés hebdomadaires, foires, brocantes, forums "
+                       "économiques et autres événements à dimension commerciale organisés "
+                       "ou soutenus par la commune dans l'année.",
+        "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "eco2_evolution_entreprises",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Le nombre d'entreprises augmente-t-il sur la commune ?",
+        "libelle_technique": "Évolution du stock d'entreprises actives",
+        "unite": "nb",
+        "sens_positif": "haut",
+        "seuil_vert": None,
+        "seuil_orange": None,
+        "seuil_rouge": None,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre total d'entreprises et d'établissements actifs domiciliés "
+                       "sur la commune (source SIRENE/INSEE). L'évolution d'une année sur "
+                       "l'autre reflète l'attractivité économique du territoire.",
+        "source_type": "csv_generique",
+    },
+    {
+        "id": "eco2_emplois_commune",
+        "thematique": "lien_social",
+        "libelle_citoyen": "Combien d'emplois sur la commune ?",
+        "libelle_technique": "Nombre d'emplois salariés sur le territoire communal",
+        "unite": "nb",
+        "sens_positif": "haut",
+        "seuil_vert": None,
+        "seuil_orange": None,
+        "seuil_rouge": None,
+        "valeur_reference": None,
+        "libelle_reference": None,
+        "description": "Nombre d'emplois salariés (hors agriculture) déclarés sur le "
+                       "territoire de la commune (source INSEE/URSSAF). L'évolution de cet "
+                       "indicateur reflète le dynamisme économique local.",
+        "source_type": "csv_generique",
+    },
+
+    # ─── Soin de la démocratie ────────────────────────────────────────────────
     {
         "id": "gouv_taux_presence_conseil",
         "thematique": "democratie",
@@ -596,10 +596,10 @@ INDICATEURS = [
         "source_type": "saisie_manuelle",
     },
 
-    # ─── Prendre soin de la coopération métropolitaine ────────────────────────
+    # ─── Soin du vivant ───────────────────────────────────────────────────────
     {
         "id": "eco_dechets_habitant",
-        "thematique": "cooperation",
+        "thematique": "vivant",
         "libelle_citoyen": "Combien de déchets produit-on par habitant ?",
         "libelle_technique": "Production de déchets ménagers par habitant",
         "unite": "kg/hab/an",
@@ -616,7 +616,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_taux_tri",
-        "thematique": "cooperation",
+        "thematique": "vivant",
         "libelle_citoyen": "Quelle part des déchets est triée et recyclée ?",
         "libelle_technique": "Taux de tri sélectif",
         "unite": "%",
@@ -634,7 +634,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_fluides_global",
-        "thematique": "cooperation",
+        "thematique": "vivant",
         "libelle_citoyen": "Combien la commune dépense-t-elle en eau et énergie ?",
         "libelle_technique": "Dépenses eau + énergie des bâtiments communaux",
         "unite": "€/an",
@@ -651,7 +651,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_dpe_batiments",
-        "thematique": "cooperation",
+        "thematique": "vivant",
         "libelle_citoyen": "Quelle est la performance énergétique des bâtiments communaux ?",
         "libelle_technique": "DPE moyen des bâtiments communaux",
         "unite": "score 1–7",
@@ -667,36 +667,47 @@ INDICATEURS = [
                        "des bâtiments publics de 40% d'ici 2030.",
         "source_type": "csv_generique",
     },
+    {
+        "id": "eco_enr_part",
+        "thematique": "vivant",
+        "libelle_citoyen": "Quelle part d'énergie renouvelable dans les bâtiments communaux ?",
+        "libelle_technique": "Part des ENR dans la consommation énergétique communale",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 30.0,
+        "seuil_orange": 15.0,
+        "seuil_rouge": 5.0,
+        "valeur_reference": None,
+        "libelle_reference": "Objectif PCAET Nantes Métropole 2030",
+        "description": "Part de l'énergie issue de sources renouvelables (panneaux solaires, "
+                       "géothermie, bois-énergie…) dans la consommation totale d'énergie des "
+                       "bâtiments communaux. Indicateur de la transition énergétique locale, "
+                       "dans le cadre du Plan Climat Air Énergie Territorial de Nantes Métropole.",
+        "source_type": "saisie_manuelle",
+    },
 ]
-
-# Correspondance ancien → nouveau slug (pour migration BDD existante)
-MIGRATION_THEMATIQUES = {
-    "finances":    "avenir",
-    "ecologie":    "cooperation",   # sera affiné par UPDATE individuel ci-dessous
-    "social":      "humain",
-    "gouvernance": "democratie",
-    "services":    "cadre_vie",
-    "economie":    "avenir",
-}
 
 
 def seed():
     init_db()
     conn = get_db()
     inserted = 0
+    updated = 0
     skipped = 0
 
     for ind in INDICATEURS:
         existing = conn.execute(
-            "SELECT id FROM indicateurs WHERE id = ?", (ind["id"],)
+            "SELECT id, thematique FROM indicateurs WHERE id = ?", (ind["id"],)
         ).fetchone()
         if existing:
-            # Mettre à jour la thématique si elle a changé
-            conn.execute(
-                "UPDATE indicateurs SET thematique = ? WHERE id = ? AND thematique != ?",
-                (ind["thematique"], ind["id"], ind["thematique"])
-            )
-            skipped += 1
+            if existing["thematique"] != ind["thematique"]:
+                conn.execute(
+                    "UPDATE indicateurs SET thematique = ? WHERE id = ?",
+                    (ind["thematique"], ind["id"])
+                )
+                updated += 1
+            else:
+                skipped += 1
             continue
         conn.execute("""
             INSERT INTO indicateurs (
@@ -713,7 +724,7 @@ def seed():
 
     conn.commit()
     conn.close()
-    print(f"Seed terminé : {inserted} indicateurs insérés, {skipped} mis à jour/déjà présents.")
+    print(f"Seed terminé : {inserted} insérés, {updated} thématiques migrées, {skipped} inchangés.")
 
 
 if __name__ == "__main__":

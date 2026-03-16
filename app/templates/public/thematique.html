@@ -8,6 +8,7 @@
   <div class="flex-1">
     <div class="flex items-center gap-3 flex-wrap">
       <h1 class="text-2xl font-bold text-gray-900">{{ label }}</h1>
+      <p class="text-gray-500 italic text-sm w-full mt-1">{{ question }}</p>
       {% if score %}
       <div class="score-badge score-badge-lg score-{{ score }}">{{ score }}</div>
       {% else %}

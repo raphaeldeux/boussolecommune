@@ -73,6 +73,7 @@ def dashboard():
         cartes.append({
             "slug": them,
             "label": ind_model.THEMATIQUE_LABELS[them],
+            "question": ind_model.THEMATIQUE_QUESTIONS[them],
             "icon": ind_model.THEMATIQUE_ICONS[them],
             "score": score_them,
             "score_couleur": SCORE_COULEURS.get(score_them),
@@ -117,6 +118,7 @@ def thematique(slug):
         "public/thematique.html",
         slug=slug,
         label=ind_model.THEMATIQUE_LABELS[slug],
+        question=ind_model.THEMATIQUE_QUESTIONS[slug],
         icon=ind_model.THEMATIQUE_ICONS[slug],
         indicateurs=enrichis,
         score=score_them,
