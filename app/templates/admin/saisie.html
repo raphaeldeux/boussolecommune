@@ -42,14 +42,14 @@
         </div>
 
         <!-- Fiche indicateur (affichée dynamiquement) -->
-        <div id="fiche-indicateur" class="hidden mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm space-y-1">
-          <div class="font-semibold text-blue-800" id="fiche-technique"></div>
-          <div class="flex flex-wrap gap-4 text-blue-700">
+        <div id="fiche-indicateur" style="display:none" class="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm">
+          <div id="fiche-technique" style="font-weight:600; color:#1e40af; margin-bottom:6px;"></div>
+          <div style="display:flex; flex-wrap:wrap; gap:16px; color:#1d4ed8; margin-bottom:6px; font-size:0.8rem;">
             <span>Unité : <strong id="fiche-unite"></strong></span>
             <span>Sens : <strong id="fiche-sens"></strong></span>
-            <span id="fiche-reference-wrap" class="hidden">Référence : <strong id="fiche-reference"></strong></span>
+            <span id="fiche-reference-wrap" style="display:none">Référence : <strong id="fiche-reference"></strong></span>
           </div>
-          <div id="fiche-description" class="text-blue-600 text-xs leading-relaxed"></div>
+          <div id="fiche-description" style="color:#3b82f6; font-size:0.75rem; line-height:1.5;"></div>
         </div>
 
         <div class="grid grid-cols-2 gap-4 mb-4">
@@ -125,7 +125,7 @@ const SENS_LABELS = { haut: '↑ Une valeur haute est meilleure', bas: '↓ Une 
 
 function updateFiche() {
   const opt = sel.options[sel.selectedIndex];
-  if (!opt || !opt.value) { fiche.classList.add('hidden'); return; }
+  if (!opt || !opt.value) { fiche.style.display = 'none'; return; }
 
   document.getElementById('fiche-technique').textContent = opt.dataset.technique || opt.value;
   document.getElementById('fiche-unite').textContent = opt.dataset.unite || '—';
@@ -137,12 +137,12 @@ function updateFiche() {
     document.getElementById('fiche-reference').textContent =
       opt.dataset.reference + (opt.dataset.unite ? ' ' + opt.dataset.unite : '') +
       (opt.dataset.libelleReference ? ' (' + opt.dataset.libelleReference + ')' : '');
-    refWrap.classList.remove('hidden');
+    refWrap.style.display = 'inline';
   } else {
-    refWrap.classList.add('hidden');
+    refWrap.style.display = 'none';
   }
 
-  fiche.classList.remove('hidden');
+  fiche.style.display = 'block';
 }
 
 sel.addEventListener('change', updateFiche);
