@@ -38,6 +38,16 @@ def update_reference(indicateur_id, valeur, libelle, annee):
     conn.close()
 
 
+def clear_reference(indicateur_id):
+    conn = get_db()
+    conn.execute(
+        "UPDATE indicateurs SET valeur_reference=NULL, libelle_reference=NULL, annee_reference=NULL WHERE id=?",
+        (indicateur_id,)
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_thematiques():
     return ["finances", "cadre_vie", "personnes", "lien_social", "democratie", "vivant"]
 

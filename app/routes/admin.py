@@ -334,6 +334,16 @@ def references():
     )
 
 
+@bp.route("/references/supprimer/<indicateur_id>", methods=["POST"])
+@login_required
+def supprimer_reference(indicateur_id):
+    ind = ind_model.get_by_id(indicateur_id)
+    ind_model.clear_reference(indicateur_id)
+    label = ind["libelle_citoyen"] if ind else indicateur_id
+    flash(f"Référence supprimée pour « {label} ».", "success")
+    return redirect(url_for("admin.references"))
+
+
 @bp.route("/supprimer/<indicateur_id>/<int:annee>", methods=["POST"])
 @login_required
 def supprimer(indicateur_id, annee):

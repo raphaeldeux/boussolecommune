@@ -101,6 +101,7 @@
             <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
             <th class="text-center px-3 py-2 text-gray-500 font-medium">Référence</th>
             <th class="text-left px-3 py-2 text-gray-500 font-medium">Source</th>
+            <th class="px-3 py-2"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
@@ -120,12 +121,28 @@
               {% endif %}
             </td>
             <td class="px-3 py-3 text-xs text-gray-500">{{ ind.libelle_reference or '—' }}</td>
+            <td class="px-3 py-3 whitespace-nowrap">
+              <div class="flex gap-1">
+                <button type="button"
+                        onclick="loadReference('{{ ind.id }}')"
+                        class="text-xs bg-violet-100 hover:bg-violet-200 text-violet-700 px-2 py-1 rounded transition">
+                  Éditer
+                </button>
+                <form method="POST" action="{{ url_for('admin.supprimer_reference', indicateur_id=ind.id) }}"
+                      onsubmit="return confirm('Supprimer la référence pour « {{ ind.libelle_citoyen | replace("'", "\\'") }} » ?')">
+                  <button type="submit"
+                          class="text-xs bg-red-50 hover:bg-red-100 text-red-600 px-2 py-1 rounded transition">
+                    Supprimer
+                  </button>
+                </form>
+              </div>
+            </td>
           </tr>
           {% endif %}
           {% endfor %}
           {% if not has_any.value %}
           <tr>
-            <td colspan="3" class="px-4 py-6 text-center text-gray-400 text-sm italic">
+            <td colspan="4" class="px-4 py-6 text-center text-gray-400 text-sm italic">
               Aucune référence saisie pour l'instant.
             </td>
           </tr>
@@ -138,7 +155,9 @@
 </div>
 
 <script>
-document.getElementById('ref-indicateur').addEventListener('change', function() {
+var selectEl = document.getElementById('ref-indicateur');
+
+selectEl.addEventListener('change', function() {
   var opt = this.options[this.selectedIndex];
   document.getElementById('ref-valeur').value = opt.dataset.valref || '';
   document.getElementById('ref-libelle').value = opt.dataset.libref || '';
@@ -146,5 +165,12 @@ document.getElementById('ref-indicateur').addEventListener('change', function() 
   var unite = opt.dataset.unite;
   document.getElementById('ref-unite').textContent = unite ? '(' + unite + ')' : '';
 });
+
+function loadReference(id) {
+  selectEl.value = id;
+  selectEl.dispatchEvent(new Event('change'));
+  selectEl.closest('div').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  selectEl.focus();
+}
 </script>
 {% endblock %}
