@@ -113,3 +113,51 @@ def calculer_tendance(valeur_actuelle, valeur_precedente):
         return "↘"
     else:
         return "→"
+
+
+def ajuster_score(score_base, tendance, valeur_sautron, valeur_reference, sens):
+    """
+    Ajuste le score issu des seuils en intégrant :
+      - la trajectoire (tendance ↗/↘/→)  : ±0.5 point
+      - l'écart avec les communes similaires : ±0.5 point
+
+    Chaque facteur est interprété selon le sens de l'indicateur
+    (haut = plus c'est élevé, mieux c'est ; bas = l'inverse).
+    Le résultat est borné entre E (1) et A (5).
+    Retourne None si score_base est None ou sens == 'neutre'.
+    """
+    if score_base is None or sens == "neutre":
+        return score_base
+
+    val = SCORE_VALEURS[score_base]
+    ajustement = 0.0
+
+    # Trajectoire
+    if tendance is not None:
+        if sens == "haut":
+            if tendance == "↗":
+                ajustement += 0.5
+            elif tendance == "↘":
+                ajustement -= 0.5
+        elif sens == "bas":
+            if tendance == "↘":
+                ajustement += 0.5
+            elif tendance == "↗":
+                ajustement -= 0.5
+
+    # Comparaison avec communes similaires
+    if valeur_sautron is not None and valeur_reference and valeur_reference != 0:
+        ecart = (valeur_sautron - valeur_reference) / abs(valeur_reference)
+        if sens == "haut":
+            if ecart > 0.10:
+                ajustement += 0.5
+            elif ecart < -0.10:
+                ajustement -= 0.5
+        elif sens == "bas":
+            if ecart < -0.10:
+                ajustement += 0.5
+            elif ecart > 0.10:
+                ajustement -= 0.5
+
+    val_ajuste = max(1, min(5, val + ajustement))
+    return valeur_vers_score(round(val_ajuste))

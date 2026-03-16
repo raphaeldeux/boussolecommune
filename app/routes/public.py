@@ -3,7 +3,7 @@ import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
 from app.services.scoring import (
-    calculer_score, calculer_score_thematique, calculer_score_global,
+    calculer_score, ajuster_score, calculer_score_thematique, calculer_score_global,
     calculer_tendance, SCORE_COULEURS
 )
 
@@ -38,6 +38,8 @@ def _enrichir_indicateur(ind, annee=None):
             (donnee_courante["valeur"] - valeur_ancienne) / abs(valeur_ancienne) * 100, 1
         )
 
+    tendance = calculer_tendance(donnee_courante["valeur"], valeur_ancienne)
+
     score = calculer_score(
         donnee_courante["valeur"],
         ind.get("seuil_vert"),
@@ -45,12 +47,17 @@ def _enrichir_indicateur(ind, annee=None):
         ind.get("seuil_rouge"),
         ind.get("sens_positif", "neutre"),
     )
+    score = ajuster_score(
+        score,
+        tendance,
+        donnee_courante["valeur"],
+        ind.get("valeur_reference"),
+        ind.get("sens_positif", "neutre"),
+    )
 
     interpretation = interp_model.get(ind["id"], donnee_courante["annee"])
     if interpretation and interpretation.get("score"):
         score = interpretation["score"]
-
-    tendance = calculer_tendance(donnee_courante["valeur"], valeur_ancienne)
 
     return {
         **ind,
