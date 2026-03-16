@@ -49,8 +49,8 @@ def _enrichir_indicateur(ind, annee=None):
     )
     score = ajuster_score(
         score,
-        tendance,
         donnee_courante["valeur"],
+        valeur_ancienne,
         ind.get("valeur_reference"),
         ind.get("sens_positif", "neutre"),
     )

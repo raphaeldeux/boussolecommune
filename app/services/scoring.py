@@ -115,15 +115,21 @@ def calculer_tendance(valeur_actuelle, valeur_precedente):
         return "→"
 
 
-def ajuster_score(score_base, tendance, valeur_sautron, valeur_reference, sens):
+def ajuster_score(score_base, valeur_actuelle, valeur_ancienne, valeur_reference, sens):
     """
     Ajuste le score issu des seuils en intégrant :
-      - la trajectoire (tendance ↗/↘/→)  : ±0.5 point
-      - l'écart avec les communes similaires : ±0.5 point
+      - la trajectoire (magnitude réelle de l'évolution)
+      - l'écart avec les communes similaires
 
-    Chaque facteur est interprété selon le sens de l'indicateur
-    (haut = plus c'est élevé, mieux c'est ; bas = l'inverse).
-    Le résultat est borné entre E (1) et A (5).
+    Barème trajectoire (sens-aware) :
+      mauvais sens  2–10%  → −0.5 | 10–25% → −1.0 | >25% → −1.5
+      bon sens      2–25%  → +0.5 | >25%   → +1.0
+
+    Barème comparaison (sens-aware) :
+      mauvais sens  10–25% → −0.5 | 25–50% → −1.0 | >50% → −1.5
+      bon sens      >10%   → +0.5
+
+    Résultat borné entre E (1) et A (5).
     Retourne None si score_base est None ou sens == 'neutre'.
     """
     if score_base is None or sens == "neutre":
@@ -133,31 +139,33 @@ def ajuster_score(score_base, tendance, valeur_sautron, valeur_reference, sens):
     ajustement = 0.0
 
     # Trajectoire
-    if tendance is not None:
-        if sens == "haut":
-            if tendance == "↗":
-                ajustement += 0.5
-            elif tendance == "↘":
-                ajustement -= 0.5
-        elif sens == "bas":
-            if tendance == "↘":
-                ajustement += 0.5
-            elif tendance == "↗":
-                ajustement -= 0.5
+    if valeur_actuelle is not None and valeur_ancienne is not None and valeur_ancienne != 0:
+        pct = (valeur_actuelle - valeur_ancienne) / abs(valeur_ancienne)
+        # delta positif = évolution dans le bon sens selon le sens de l'indicateur
+        delta = pct if sens == "haut" else -pct
+        if delta > 0.25:
+            ajustement += 1.0
+        elif delta > 0.02:
+            ajustement += 0.5
+        elif delta < -0.25:
+            ajustement -= 1.5
+        elif delta < -0.10:
+            ajustement -= 1.0
+        elif delta < -0.02:
+            ajustement -= 0.5
 
     # Comparaison avec communes similaires
-    if valeur_sautron is not None and valeur_reference and valeur_reference != 0:
-        ecart = (valeur_sautron - valeur_reference) / abs(valeur_reference)
-        if sens == "haut":
-            if ecart > 0.10:
-                ajustement += 0.5
-            elif ecart < -0.10:
-                ajustement -= 0.5
-        elif sens == "bas":
-            if ecart < -0.10:
-                ajustement += 0.5
-            elif ecart > 0.10:
-                ajustement -= 0.5
+    if valeur_actuelle is not None and valeur_reference and valeur_reference != 0:
+        ecart = (valeur_actuelle - valeur_reference) / abs(valeur_reference)
+        delta_ref = ecart if sens == "haut" else -ecart
+        if delta_ref > 0.10:
+            ajustement += 0.5
+        elif delta_ref < -0.50:
+            ajustement -= 1.5
+        elif delta_ref < -0.25:
+            ajustement -= 1.0
+        elif delta_ref < -0.10:
+            ajustement -= 0.5
 
     val_ajuste = max(1, min(5, val + ajustement))
     return valeur_vers_score(round(val_ajuste))
