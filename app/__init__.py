@@ -17,10 +17,13 @@ def create_app():
         nb = conn.execute("SELECT COUNT(*) FROM indicateurs").fetchone()[0]
         conn.close()
         if nb == 0:
-            import sys
-            sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-            from seed import seed
-            seed()
+            try:
+                import sys
+                sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+                from seed import seed
+                seed()
+            except Exception as e:
+                print(f"[ERREUR] Auto-seed échoué : {e}", flush=True)
 
     from app.routes.public import bp as public_bp
     from app.routes.admin import bp as admin_bp
