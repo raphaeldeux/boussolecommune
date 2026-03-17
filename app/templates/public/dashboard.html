@@ -67,7 +67,7 @@
   {% for carte in cartes %}
   <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
      class="carte-theme bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 active:scale-[0.99] transition-all flex flex-col group"
-     data-search="{{ carte.label | lower }} {{ carte.question | lower }} {% for ind in carte.indicateurs_cles %}{{ ind.libelle_citoyen | lower }} {% endfor %}">
+     data-slug="{{ carte.slug }}">
 
     <!-- En-tête carte -->
     <div class="p-4 sm:p-5 border-b border-gray-100">
@@ -135,16 +135,35 @@
 (function() {
   var input = document.getElementById('recherche');
   var cartes = document.querySelectorAll('.carte-theme');
-  var vide = document.getElementById('recherche-vide');
-  input.addEventListener('input', function() {
-    var q = this.value.trim().toLowerCase();
+  var vide  = document.getElementById('recherche-vide');
+  var timer = null;
+
+  function showAll() {
+    cartes.forEach(function(c) { c.parentElement.style.display = ''; });
+    vide.classList.add('hidden');
+  }
+
+  function applyResults(slugs) {
     var nb = 0;
     cartes.forEach(function(c) {
-      var match = !q || c.dataset.search.includes(q);
-      c.parentElement.style.display = match ? '' : 'none';
-      if (match) nb++;
+      var show = slugs.includes(c.dataset.slug);
+      c.parentElement.style.display = show ? '' : 'none';
+      if (show) nb++;
     });
-    vide.classList.toggle('hidden', !q || nb > 0);
+    vide.classList.toggle('hidden', nb > 0);
+  }
+
+  input.addEventListener('input', function() {
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if (!q) { showAll(); return; }
+
+    timer = setTimeout(function() {
+      fetch('/api/search?q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) { applyResults(data.thematiques || []); })
+        .catch(function() { showAll(); });
+    }, 280);
   });
 })();
 </script>

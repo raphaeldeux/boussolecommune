@@ -231,6 +231,59 @@ def portrait():
     )
 
 
+@bp.route("/api/search")
+def search():
+    from flask import request, jsonify
+    import unicodedata
+    import difflib
+
+    q = (request.args.get("q") or "").strip()[:100]
+    if not q:
+        return jsonify({"thematiques": list(ind_model.get_thematiques())})
+
+    def _norm(text):
+        text = (text or "").lower()
+        text = unicodedata.normalize("NFD", text)
+        return "".join(c for c in text if unicodedata.category(c) != "Mn")
+
+    def _score(q_words, haystack):
+        """Retourne un score [0..1] : fraction de mots de la requête ayant une correspondance."""
+        h_words = _norm(haystack).split()
+        if not h_words:
+            return 0.0
+        matched = 0
+        for qw in q_words:
+            # préfixe exact
+            if any(hw.startswith(qw) for hw in h_words):
+                matched += 1
+                continue
+            # correspondance floue (seuil 0.72)
+            if difflib.get_close_matches(qw, h_words, n=1, cutoff=0.72):
+                matched += 1
+        return matched / len(q_words)
+
+    q_words = _norm(q).split()
+    SEUIL = 0.5  # au moins la moitié des mots doivent correspondre
+
+    # Score par thématique
+    scores = {}
+    for them in ind_model.get_thematiques():
+        label = ind_model.THEMATIQUE_LABELS[them]
+        question = ind_model.THEMATIQUE_QUESTIONS.get(them, "")
+        # Score sur le nom et la question de la thématique
+        s = max(_score(q_words, label), _score(q_words, question))
+        # Score sur tous les indicateurs de la thématique
+        for ind in ind_model.get_by_thematique(them):
+            texte = f"{ind['libelle_citoyen']} {ind.get('description') or ''}"
+            s = max(s, _score(q_words, texte))
+        if s >= SEUIL:
+            scores[them] = s
+
+    # Trier par score décroissant
+    matched = sorted(scores, key=lambda k: scores[k], reverse=True)
+    return jsonify({"thematiques": matched})
+
+
 @bp.route("/api/chat", methods=["POST"])
 def chat():
     from flask import request, jsonify
