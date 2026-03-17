@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}CommuneSanté — Tableau de bord · Sautron{% endblock %}
+{% block title %}CommuneSanté — Sautron{% endblock %}
 
 {% block content %}
 <!-- En-tête -->
 <div class="mb-6 sm:mb-8">
   <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">CommuneSanté <span class="text-emerald-600">Sautron</span></h1>
-  <p class="text-gray-500 mt-1 text-sm sm:text-base">Observatoire citoyen de la commune de Sautron (Loire-Atlantique, ~8 600 hab.)</p>
+  <p class="text-gray-500 mt-1 text-sm sm:text-base">Un regard citoyen sur la vie de la commune — Sautron, Loire-Atlantique (~8 600 hab.)</p>
   {% if derniere_maj %}
-  <p class="text-xs text-gray-400 mt-1">Dernière mise à jour : {{ derniere_maj | format_date }}</p>
+  <p class="text-xs text-gray-400 mt-1">Données mises à jour le {{ derniere_maj | format_date }}</p>
   {% endif %}
 </div>
 
@@ -29,22 +29,22 @@
     </div>
     <!-- Texte -->
     <div class="text-center sm:text-left">
-      <div class="text-base sm:text-lg font-semibold text-gray-700">Score global de la commune</div>
+      <div class="text-base sm:text-lg font-semibold text-gray-700">Comment se porte Sautron ?</div>
       <div class="text-sm text-gray-500 mt-1">
-        Évaluation agrégée sur 6 thématiques, pondérée selon leur importance.
+        Cette note résume la situation de la commune sur 6 grands sujets du quotidien.
       </div>
       <div class="flex flex-wrap justify-center sm:justify-start gap-1.5 mt-3">
         {% for lettre, couleur in [('A','#16a34a'),('B','#65a30d'),('C','#d97706'),('D','#dc2626'),('E','#7f1d1d')] %}
         <span class="px-2 py-0.5 rounded text-white font-bold text-sm" style="background:{{ couleur }}">{{ lettre }}</span>
         {% endfor %}
-        <span class="text-gray-400 text-xs self-center">A = excellent · E = critique</span>
+        <span class="text-gray-400 text-xs self-center">A = très bien · E = préoccupant</span>
       </div>
     </div>
   </div>
 </div>
 {% else %}
 <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-8 text-gray-500 text-sm">
-  Le score global sera calculé dès que suffisamment de données seront disponibles.
+  La note globale apparaîtra dès que suffisamment de données seront saisies.
 </div>
 {% endif %}
 
@@ -56,7 +56,7 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
       </svg>
     </span>
-    <input id="recherche" type="search" placeholder="Rechercher une thématique ou un indicateur…"
+    <input id="recherche" type="search" placeholder="Chercher un sujet (ex : budget, déchets, logement…)"
            class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition">
   </div>
   <p id="recherche-vide" class="hidden mt-4 text-sm text-gray-400 italic">Aucun résultat pour cette recherche.</p>
@@ -67,7 +67,7 @@
   {% for carte in cartes %}
   <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
      class="carte-theme bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 active:scale-[0.99] transition-all flex flex-col group"
-     data-slug="{{ carte.slug }}">
+     data-search="{{ carte.label | lower }} {{ carte.question | lower }} {% for ind in carte.indicateurs_cles %}{{ ind.libelle_citoyen | lower }} {% endfor %}">
 
     <!-- En-tête carte -->
     <div class="p-4 sm:p-5 border-b border-gray-100">
@@ -88,9 +88,9 @@
         </div>
       </div>
       <div class="text-xs text-gray-400 mt-2 ml-9">
-        {{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs renseignés
+        {{ carte.nb_renseignes }}/{{ carte.nb_total }} chiffres disponibles
         {% if carte.nb_renseignes < 3 %}
-        · <span class="text-amber-500">score insuffisant</span>
+        · <span class="text-amber-500">pas encore assez pour noter</span>
         {% endif %}
       </div>
     </div>
@@ -114,7 +114,7 @@
         </div>
         {% endfor %}
       {% else %}
-      <p class="text-gray-400 text-xs sm:text-sm italic">Données insuffisantes pour afficher les indicateurs clés.</p>
+      <p class="text-gray-400 text-xs sm:text-sm italic">Pas encore de chiffres disponibles pour ce sujet.</p>
       {% endif %}
     </div>
 
@@ -135,35 +135,16 @@
 (function() {
   var input = document.getElementById('recherche');
   var cartes = document.querySelectorAll('.carte-theme');
-  var vide  = document.getElementById('recherche-vide');
-  var timer = null;
-
-  function showAll() {
-    cartes.forEach(function(c) { c.parentElement.style.display = ''; });
-    vide.classList.add('hidden');
-  }
-
-  function applyResults(slugs) {
+  var vide = document.getElementById('recherche-vide');
+  input.addEventListener('input', function() {
+    var q = this.value.trim().toLowerCase();
     var nb = 0;
     cartes.forEach(function(c) {
-      var show = slugs.includes(c.dataset.slug);
-      c.parentElement.style.display = show ? '' : 'none';
-      if (show) nb++;
+      var match = !q || c.dataset.search.includes(q);
+      c.parentElement.style.display = match ? '' : 'none';
+      if (match) nb++;
     });
-    vide.classList.toggle('hidden', nb > 0);
-  }
-
-  input.addEventListener('input', function() {
-    clearTimeout(timer);
-    var q = this.value.trim();
-    if (!q) { showAll(); return; }
-
-    timer = setTimeout(function() {
-      fetch('/api/search?q=' + encodeURIComponent(q))
-        .then(function(r) { return r.json(); })
-        .then(function(data) { applyResults(data.thematiques || []); })
-        .catch(function() { showAll(); });
-    }, 280);
+    vide.classList.toggle('hidden', !q || nb > 0);
   });
 })();
 </script>
