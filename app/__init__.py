@@ -1,10 +1,11 @@
+import logging
 import secrets as _secrets
 from datetime import timedelta
 from flask import Flask, request, session, abort
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 
 def create_app():
@@ -53,6 +54,8 @@ def create_app():
                 seed()
             except Exception as e:
                 print(f"[ERREUR] Auto-seed échoué : {e}", flush=True)
+
+    logging.basicConfig(level=logging.INFO)
 
     from app.routes.public import bp as public_bp
     from app.routes.admin import bp as admin_bp

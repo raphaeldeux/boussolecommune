@@ -1,9 +1,12 @@
 import json
+import logging
 import os
 import re
 import time
 import app.models.interpretation as interp_model
 import app.models.donnee as donnee_model
+
+log = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """Tu es un expert en politiques publiques locales françaises, spécialisé dans \
 l'analyse des communes de taille moyenne (5 000 à 20 000 habitants).
@@ -75,7 +78,7 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
     """Génère et met en cache l'interprétation via OpenRouter ou Anthropic."""
     client, model = _get_client()
     if not client:
-        print("[claude] Aucune clé API configurée.", flush=True)
+        log.error("[claude] Aucune clé API configurée (OPENROUTER_API_KEY manquante).")
         return None
 
     donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1)
@@ -101,7 +104,7 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
             interp_model.upsert(indicateur["id"], annee, score, phrase_courte, phrase_longue)
             return {"score": score, "phrase_courte": phrase_courte, "phrase_longue": phrase_longue}
         except Exception as e:
-            print(f"[claude] Tentative {tentative + 1} échouée : {e}", flush=True)
+            log.error("[claude] Tentative %d échouée : %s", tentative + 1, e)
             if tentative == 0:
                 time.sleep(5)
             else:
