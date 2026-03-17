@@ -83,6 +83,7 @@ def _build_cartes():
     thematiques = ind_model.get_thematiques()
     cartes = []
     scores_thematiques = {}
+    tous_enrichis = []
 
     for them in thematiques:
         indicateurs = ind_model.get_by_thematique(them)
@@ -94,6 +95,10 @@ def _build_cartes():
         ])
         scores_thematiques[them] = score_them
 
+        annee_max = max((e["donnee"]["annee"] for e in renseignes), default=None)
+        for e in renseignes:
+            tous_enrichis.append({**e, "_them_label": ind_model.THEMATIQUE_LABELS[them]})
+
         cartes.append({
             "slug": them,
             "label": ind_model.THEMATIQUE_LABELS[them],
@@ -104,15 +109,24 @@ def _build_cartes():
             "indicateurs_cles": renseignes[:3],
             "nb_renseignes": len(renseignes),
             "nb_total": len(indicateurs),
+            "annee_max": annee_max,
         })
 
     score_global = calculer_score_global(scores_thematiques)
-    return cartes, score_global
+
+    ORDRE = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
+    scored = [e for e in tous_enrichis if e.get("score") in ORDRE]
+    meilleur = max(scored, key=lambda e: ORDRE[e["score"]], default=None)
+    pire = min(scored, key=lambda e: ORDRE[e["score"]], default=None)
+    if meilleur and pire and meilleur["id"] == pire["id"]:
+        pire = None
+
+    return cartes, score_global, meilleur, pire
 
 
 @bp.route("/")
 def dashboard():
-    cartes, score_global = _build_cartes()
+    cartes, score_global, meilleur, pire = _build_cartes()
     derniere_maj = donnee_model.get_derniere_maj()
     return render_template(
         "public/dashboard.html",
@@ -120,6 +134,8 @@ def dashboard():
         score_global=score_global,
         score_global_couleur=SCORE_COULEURS.get(score_global),
         derniere_maj=derniere_maj,
+        meilleur=meilleur,
+        pire=pire,
     )
 
 
@@ -178,7 +194,7 @@ def thematique(slug):
 
 @bp.route("/synthese")
 def synthese():
-    cartes, score_global = _build_cartes()
+    cartes, score_global, _, _ = _build_cartes()
     radar_labels = [c["label"] for c in cartes]
     radar_values = [SCORE_VALEURS.get(c["score"], 0) for c in cartes]
     radar_colors = [c["score_couleur"] for c in cartes]
