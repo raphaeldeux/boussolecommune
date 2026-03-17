@@ -173,6 +173,15 @@ def thematique(slug):
             subventions_totaux = subvention_model.get_totaux_par_domaine(subventions_annee)
             subventions_total = subvention_model.get_total(subventions_annee)
 
+    nav_thematiques = [
+        {
+            "slug": s,
+            "label": ind_model.THEMATIQUE_LABELS[s],
+            "icon": ind_model.THEMATIQUE_ICONS[s],
+        }
+        for s in ind_model.get_thematiques()
+    ]
+
     return render_template(
         "public/thematique.html",
         slug=slug,
@@ -184,6 +193,7 @@ def thematique(slug):
         score_couleur=SCORE_COULEURS.get(score_them),
         interpretation=interpretation_them,
         score_couleurs=SCORE_COULEURS,
+        nav_thematiques=nav_thematiques,
         subventions_years=subventions_years,
         subventions_lignes=subventions_lignes,
         subventions_totaux=subventions_totaux,

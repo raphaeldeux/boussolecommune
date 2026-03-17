@@ -9,6 +9,22 @@
   </a>
 </div>
 
+<!-- Navigation entre thématiques -->
+<div class="flex flex-wrap gap-2 mb-5">
+  {% for t in nav_thematiques %}
+  <a href="{{ url_for('public.thematique', slug=t.slug) }}"
+     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition
+            {% if t.slug == slug %}
+              bg-emerald-600 text-white
+            {% else %}
+              bg-gray-100 text-gray-600 hover:bg-gray-200
+            {% endif %}">
+    <span>{{ t.icon }}</span>
+    <span>{{ t.label }}</span>
+  </a>
+  {% endfor %}
+</div>
+
 <!-- En-tête thématique -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 mb-6">
   <div class="flex items-start gap-4">
@@ -108,8 +124,8 @@
         </div>
         <!-- Référence -->
         <div class="flex items-center gap-2">
-          <span class="w-16 sm:w-20 text-xs text-gray-400 text-right flex-shrink-0 leading-tight">
-            {{ ind.libelle_reference | truncate(16) if ind.libelle_reference else 'Référence' }}
+          <span class="w-24 sm:w-32 text-xs text-gray-400 text-right flex-shrink-0 leading-tight">
+            {{ ind.libelle_reference if ind.libelle_reference else 'Référence' }}
           </span>
           <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
             <div class="h-2 rounded-full bg-gray-400" style="width: {{ pct_r }}%"></div>
@@ -147,17 +163,23 @@
         var data = {{ ind.historique | map(attribute='valeur') | list | tojson }};
         labels = labels.slice().reverse();
         data = data.slice().reverse();
+        var isTimeSeries = labels.length > 2;
         new Chart(ctx, {
-          type: 'bar',
+          type: isTimeSeries ? 'line' : 'bar',
           data: {
             labels: labels,
             datasets: [{
               label: '{{ ind.unite }}',
               data: data,
-              backgroundColor: '{{ ind.score_couleur or "#10b981" }}33',
+              backgroundColor: isTimeSeries ? 'transparent' : '{{ ind.score_couleur or "#10b981" }}33',
               borderColor: '{{ ind.score_couleur or "#10b981" }}',
               borderWidth: 2,
-              borderRadius: 4,
+              borderRadius: isTimeSeries ? 0 : 4,
+              pointRadius: isTimeSeries ? 4 : 0,
+              pointBackgroundColor: '{{ ind.score_couleur or "#10b981" }}',
+              tension: 0.3,
+              fill: isTimeSeries,
+              backgroundColor: isTimeSeries ? '{{ ind.score_couleur or "#10b981" }}18' : '{{ ind.score_couleur or "#10b981" }}33',
             }]
           },
           options: {
