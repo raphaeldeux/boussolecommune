@@ -63,7 +63,7 @@ def _get_client():
         return OpenAI(
             api_key=openrouter_key,
             base_url="https://openrouter.ai/api/v1",
-        ), "google/gemma-3n-e2b-it:free"
+        ), "google/gemma-3-27b-it:free"
     if anthropic_key:
         return OpenAI(
             api_key=anthropic_key,
