@@ -55,15 +55,25 @@ def _build_prompt(indicateur, annee, valeur, valeur_n1=None):
 
 
 def _get_client():
-    """Retourne un client OpenAI-compatible selon la clé disponible (lu depuis os.environ)."""
+    """Retourne un client OpenAI-compatible selon la clé disponible (lu depuis os.environ).
+
+    Priorité : Ollama (local) > OpenRouter > Anthropic
+    """
     from openai import OpenAI
+    ollama_url = os.environ.get("OLLAMA_BASE_URL", "")
+    if ollama_url:
+        model = os.environ.get("OLLAMA_MODEL", "mistral")
+        return OpenAI(
+            api_key="ollama",
+            base_url=ollama_url.rstrip("/") + "/v1",
+        ), model
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if openrouter_key:
         return OpenAI(
             api_key=openrouter_key,
             base_url="https://openrouter.ai/api/v1",
         ), "google/gemma-3-27b-it:free"
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if anthropic_key:
         return OpenAI(
             api_key=anthropic_key,
@@ -83,10 +93,10 @@ def _parse_json(texte):
 
 
 def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
-    """Génère et met en cache l'interprétation via OpenRouter ou Anthropic."""
+    """Génère et met en cache l'interprétation via Ollama, OpenRouter ou Anthropic."""
     client, model = _get_client()
     if not client:
-        _log("error", "[claude] Aucune clé API configurée (OPENROUTER_API_KEY manquante).")
+        _log("error", "[claude] Aucune source LLM configurée (OLLAMA_BASE_URL, OPENROUTER_API_KEY ou ANTHROPIC_API_KEY manquante).")
         return None
 
     donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1)
