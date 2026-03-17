@@ -1,6 +1,6 @@
 import json
 import time
-from app.config import ANTHROPIC_API_KEY
+from app.config import ANTHROPIC_API_KEY, OPENROUTER_API_KEY
 import app.models.interpretation as interp_model
 import app.models.donnee as donnee_model
 
@@ -42,9 +42,26 @@ def _build_prompt(indicateur, annee, valeur, valeur_n1=None):
     return "\n".join(lignes)
 
 
+def _get_client():
+    """Retourne un client OpenAI-compatible selon la clé disponible."""
+    from openai import OpenAI
+    if OPENROUTER_API_KEY:
+        return OpenAI(
+            api_key=OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+        ), "mistralai/mistral-7b-instruct:free"
+    if ANTHROPIC_API_KEY:
+        return OpenAI(
+            api_key=ANTHROPIC_API_KEY,
+            base_url="https://api.anthropic.com/v1/",
+        ), "claude-sonnet-4-5"
+    return None, None
+
+
 def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
-    """Génère et met en cache l'interprétation Claude."""
-    if not ANTHROPIC_API_KEY:
+    """Génère et met en cache l'interprétation via OpenRouter ou Anthropic."""
+    client, model = _get_client()
+    if not client:
         return None
 
     donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1)
@@ -54,15 +71,15 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
 
     for tentative in range(2):
         try:
-            import anthropic
-            client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-            message = client.messages.create(
-                model="claude-sonnet-4-5",
+            response = client.chat.completions.create(
+                model=model,
                 max_tokens=512,
-                system=SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
             )
-            texte = message.content[0].text.strip()
+            texte = response.choices[0].message.content.strip()
             data = json.loads(texte)
             score = data.get("score") or score_calcule
             phrase_courte = data.get("phrase_courte", "")
