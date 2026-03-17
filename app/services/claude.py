@@ -1,6 +1,7 @@
 import json
+import os
+import re
 import time
-from app.config import ANTHROPIC_API_KEY, OPENROUTER_API_KEY
 import app.models.interpretation as interp_model
 import app.models.donnee as donnee_model
 
@@ -43,25 +44,38 @@ def _build_prompt(indicateur, annee, valeur, valeur_n1=None):
 
 
 def _get_client():
-    """Retourne un client OpenAI-compatible selon la clé disponible."""
+    """Retourne un client OpenAI-compatible selon la clé disponible (lu depuis os.environ)."""
     from openai import OpenAI
-    if OPENROUTER_API_KEY:
+    openrouter_key = os.environ.get("OPENROUTER_API_KEY", "")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if openrouter_key:
         return OpenAI(
-            api_key=OPENROUTER_API_KEY,
+            api_key=openrouter_key,
             base_url="https://openrouter.ai/api/v1",
         ), "mistralai/mistral-7b-instruct:free"
-    if ANTHROPIC_API_KEY:
+    if anthropic_key:
         return OpenAI(
-            api_key=ANTHROPIC_API_KEY,
+            api_key=anthropic_key,
             base_url="https://api.anthropic.com/v1/",
         ), "claude-sonnet-4-5"
     return None, None
+
+
+def _parse_json(texte):
+    """Extrait le JSON même si le modèle l'a entouré de blocs markdown."""
+    texte = texte.strip()
+    # Retire les blocs ```json ... ``` ou ``` ... ```
+    match = re.search(r"```(?:json)?\s*([\s\S]+?)\s*```", texte)
+    if match:
+        texte = match.group(1)
+    return json.loads(texte)
 
 
 def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
     """Génère et met en cache l'interprétation via OpenRouter ou Anthropic."""
     client, model = _get_client()
     if not client:
+        print("[claude] Aucune clé API configurée.", flush=True)
         return None
 
     donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1)
@@ -80,16 +94,16 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
                 ],
             )
             texte = response.choices[0].message.content.strip()
-            data = json.loads(texte)
+            data = _parse_json(texte)
             score = data.get("score") or score_calcule
             phrase_courte = data.get("phrase_courte", "")
             phrase_longue = data.get("phrase_longue", "")
             interp_model.upsert(indicateur["id"], annee, score, phrase_courte, phrase_longue)
             return {"score": score, "phrase_courte": phrase_courte, "phrase_longue": phrase_longue}
-        except Exception:
+        except Exception as e:
+            print(f"[claude] Tentative {tentative + 1} échouée : {e}", flush=True)
             if tentative == 0:
                 time.sleep(5)
             else:
-                interp_model.upsert(indicateur["id"], annee, score_calcule, None, None)
                 return None
     return None
