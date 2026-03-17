@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
 from app.auth import check_password, login_required, is_rate_limited, record_attempt
 from app.config import UPLOAD_FOLDER
 import app.models.indicateur as ind_model
@@ -378,12 +378,15 @@ def regenerer(indicateur_id, annee):
         ind.get("seuil_rouge"), ind.get("sens_positif", "neutre")
     )
     try:
+        current_app.logger.info("[claude] Appel generer_interpretation ind=%s annee=%s", indicateur_id, annee)
         result = generer_interpretation(ind, annee, donnee["valeur"], score)
+        current_app.logger.info("[claude] Résultat : %s", result)
         if result:
             flash("Interprétation régénérée.", "success")
         else:
             flash("Erreur lors de la génération.", "warning")
     except Exception as e:
+        current_app.logger.error("[claude] Exception : %s", e, exc_info=True)
         flash(f"Erreur : {e}", "danger")
     return redirect(url_for("admin.dashboard"))
 

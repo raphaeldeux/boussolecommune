@@ -6,7 +6,15 @@ import time
 import app.models.interpretation as interp_model
 import app.models.donnee as donnee_model
 
-log = logging.getLogger(__name__)
+# Utilise le logger Flask (capturé par gunicorn) avec fallback sur le logger module
+try:
+    from flask import current_app
+    def _log(level, msg, *args):
+        getattr(current_app.logger, level)(msg, *args)
+except Exception:
+    _logger = logging.getLogger(__name__)
+    def _log(level, msg, *args):
+        getattr(_logger, level)(msg, *args)
 
 SYSTEM_PROMPT = """Tu es un expert en politiques publiques locales françaises, spécialisé dans \
 l'analyse des communes de taille moyenne (5 000 à 20 000 habitants).
@@ -78,7 +86,7 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
     """Génère et met en cache l'interprétation via OpenRouter ou Anthropic."""
     client, model = _get_client()
     if not client:
-        log.error("[claude] Aucune clé API configurée (OPENROUTER_API_KEY manquante).")
+        _log("error", "[claude] Aucune clé API configurée (OPENROUTER_API_KEY manquante).")
         return None
 
     donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1)
@@ -104,7 +112,7 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
             interp_model.upsert(indicateur["id"], annee, score, phrase_courte, phrase_longue)
             return {"score": score, "phrase_courte": phrase_courte, "phrase_longue": phrase_longue}
         except Exception as e:
-            log.error("[claude] Tentative %d échouée : %s", tentative + 1, e)
+            _log("error", "[claude] Tentative %d échouée : %s", tentative + 1, e)
             if tentative == 0:
                 time.sleep(5)
             else:
