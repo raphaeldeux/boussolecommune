@@ -45,33 +45,53 @@
       <!-- Séparateur -->
       <span class="text-emerald-600 hidden sm:inline select-none flex-shrink-0">·</span>
 
-      <!-- Nom de la ville + score -->
-      {% if ville is defined and ville %}
-      <div class="flex items-center gap-2 flex-1 min-w-0 justify-center sm:justify-start">
-        <span class="font-semibold text-white truncate">{{ ville.nom }}</span>
-        {% if ville.departement_code is defined and ville.departement_code %}
-        <span class="text-xs text-emerald-300 flex-shrink-0">({{ ville.departement_code }})</span>
+      <!-- Centre : nom de ville OU champ de recherche inline (flex-1) -->
+      <div class="flex-1 min-w-0 relative self-stretch flex items-center">
+
+        <!-- Nom de la ville + score (masqué quand recherche active) -->
+        {% if ville is defined and ville %}
+        <div id="city-info" class="flex items-center gap-2 min-w-0 justify-center sm:justify-start w-full">
+          <span class="font-semibold text-white truncate">{{ ville.nom }}</span>
+          {% if ville.departement_code is defined and ville.departement_code %}
+          <span class="text-xs text-emerald-300 flex-shrink-0">({{ ville.departement_code }})</span>
+          {% endif %}
+          {% if score_global is defined and score_global %}
+          <span class="score-badge score-{{ score_global }} flex-shrink-0"
+                style="width:1.5rem;height:1.5rem;font-size:.7rem;border-radius:.25rem"
+                title="Score global : {{ score_global }}">{{ score_global }}</span>
+          {% endif %}
+        </div>
+        {% else %}
+        <div id="city-info" class="flex-1"></div>
         {% endif %}
-        {% if score_global is defined and score_global %}
-        <span class="score-badge score-{{ score_global }} flex-shrink-0"
-              style="width:1.5rem;height:1.5rem;font-size:.7rem;border-radius:.25rem"
-              title="Score global : {{ score_global }}">{{ score_global }}</span>
-        {% endif %}
+
+        <!-- Champ de recherche inline (affiché à la place du nom de ville) -->
+        <div id="search-inline" class="hidden absolute inset-0 flex items-center">
+          <input id="nav-search-input"
+                 type="text"
+                 placeholder="Rechercher une commune…"
+                 autocomplete="off"
+                 class="w-full px-3 py-1.5 rounded-lg bg-emerald-800 border border-emerald-500 text-white placeholder-emerald-300 text-sm focus:outline-none focus:ring-1 focus:ring-white">
+          <ul id="nav-autocomplete"
+              role="listbox"
+              class="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 z-50 hidden text-sm divide-y divide-gray-100 overflow-hidden">
+          </ul>
+        </div>
       </div>
-      {% else %}
-      <div class="flex-1"></div>
-      {% endif %}
 
       <!-- Droite : loupe + Admin + hamburger -->
       <div class="flex items-center gap-1 flex-shrink-0">
 
-        <!-- Icône loupe → expand search -->
+        <!-- Loupe / Croix selon l'état de la recherche -->
         <button id="search-toggle"
                 aria-label="Rechercher une commune"
                 aria-expanded="false"
                 class="p-1.5 rounded-md text-emerald-200 hover:text-white hover:bg-emerald-600 transition">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg id="icon-search-open" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
+          </svg>
+          <svg id="icon-search-close" class="w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         </button>
 
@@ -96,21 +116,6 @@
       </div>
     </div>
 
-    <!-- Search expand panel -->
-    <div id="search-panel"
-         class="hidden border-t border-emerald-600 bg-emerald-800 px-4 py-2.5">
-      <div class="max-w-xl mx-auto relative">
-        <input id="nav-search-input"
-               type="text"
-               placeholder="Rechercher une commune… (ex: Lyon, Nantes)"
-               autocomplete="off"
-               class="w-full px-4 py-2 rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-        <ul id="nav-autocomplete"
-            role="listbox"
-            class="absolute left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-200 z-50 hidden text-sm divide-y divide-gray-100 overflow-hidden">
-        </ul>
-      </div>
-    </div>
   </header>
 
   <!-- ── Barre 2 : navigation ville (tabs) ─────────────────────────── -->
@@ -315,10 +320,10 @@
     if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
       toggleMobileMenu();
     }
-    // Ferme search si clic hors du panel
-    var panel = document.getElementById('search-panel');
+    // Ferme search si clic hors de la zone inline
+    var inline = document.getElementById('search-inline');
     var toggle = document.getElementById('search-toggle');
-    if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && toggle && !toggle.contains(e.target)) {
+    if (inline && !inline.classList.contains('hidden') && !inline.contains(e.target) && toggle && !toggle.contains(e.target)) {
       closeSearchPanel();
     }
   });
@@ -329,10 +334,14 @@
   var _navActiveIdx = -1;
 
   document.getElementById('search-toggle').addEventListener('click', function() {
-    var panel = document.getElementById('search-panel');
-    var open = panel.classList.toggle('hidden');
-    this.setAttribute('aria-expanded', String(!open));
-    if (!open) {
+    var inline = document.getElementById('search-inline');
+    if (inline.classList.contains('hidden')) {
+      // Ouvrir
+      document.getElementById('city-info').classList.add('hidden');
+      inline.classList.remove('hidden');
+      document.getElementById('icon-search-open').classList.add('hidden');
+      document.getElementById('icon-search-close').classList.remove('hidden');
+      this.setAttribute('aria-expanded', 'true');
       setTimeout(function() { document.getElementById('nav-search-input').focus(); }, 50);
     } else {
       closeSearchPanel();
@@ -340,8 +349,10 @@
   });
 
   function closeSearchPanel() {
-    var panel = document.getElementById('search-panel');
-    panel.classList.add('hidden');
+    document.getElementById('search-inline').classList.add('hidden');
+    document.getElementById('city-info').classList.remove('hidden');
+    document.getElementById('icon-search-open').classList.remove('hidden');
+    document.getElementById('icon-search-close').classList.add('hidden');
     document.getElementById('search-toggle').setAttribute('aria-expanded', 'false');
     document.getElementById('nav-autocomplete').classList.add('hidden');
     document.getElementById('nav-search-input').value = '';
