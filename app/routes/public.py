@@ -263,6 +263,9 @@ def dashboard(ville_slug):
     ville = _get_ville_or_404(ville_slug)
     cartes, score_global, meilleur, pire = _build_cartes(ville["id"])
     derniere_maj = donnee_model.get_derniere_maj(ville["id"])
+    nb_forts   = sum(1 for c in cartes if c.get("score") in ("A", "B"))
+    nb_defis   = sum(1 for c in cartes if c.get("score") in ("D", "E"))
+    nb_neutres = len(cartes) - nb_forts - nb_defis
     return render_template(
         "public/dashboard.html",
         ville=ville,
@@ -272,6 +275,9 @@ def dashboard(ville_slug):
         derniere_maj=derniere_maj,
         meilleur=meilleur,
         pire=pire,
+        nb_forts=nb_forts,
+        nb_defis=nb_defis,
+        nb_neutres=nb_neutres,
     )
 
 
