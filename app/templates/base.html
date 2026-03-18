@@ -265,19 +265,11 @@
 
   <!-- Footer -->
   <footer class="bg-white border-t border-gray-100 mt-8">
-    <div class="max-w-6xl mx-auto px-4 py-5 text-sm text-gray-500 space-y-4">
-      <div class="text-gray-600">
-        <strong class="text-gray-800 block mb-1">À propos de la méthode</strong>
-        Les scores sont calculés automatiquement à partir de données publiques (OFGL, INSEE, préfecture) et de
-        saisies vérifiées. Les interprétations sont rédigées par des contributeurs humains dans un langage
-        accessible aux citoyens. Ce site est édité par l'association <strong>Sautron Autrement</strong>.
-      </div>
-      <div class="flex flex-col sm:flex-row justify-between gap-3 pt-3 border-t border-gray-100">
-        <div><strong class="text-gray-700">CommuneSanté</strong> · Observatoire citoyen indépendant · Données publiques</div>
-        <div class="flex flex-wrap gap-x-4 gap-y-1">
-          <a href="{{ url_for('public.methodologie') }}" class="text-emerald-600 hover:underline">Note méthodologique</a>
-          <a href="mailto:contact@sautronautrement.fr" class="text-emerald-600 hover:underline">Nous contacter</a>
-        </div>
+    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-gray-400">
+      <span>CommuneSanté · Observatoire citoyen indépendant</span>
+      <div class="flex gap-4">
+        <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
+        <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
       </div>
     </div>
   </footer>
