@@ -45,14 +45,6 @@
       </ul>
     </form>
 
-    <!-- Géolocalisation -->
-    <div class="mt-3">
-      <button type="button" id="geo-btn"
-              class="text-sm text-emerald-600 hover:text-emerald-800 underline underline-offset-2 transition">
-        📍 Utiliser ma position
-      </button>
-      <span id="geo-status" class="text-xs text-gray-400 ml-2 hidden"></span>
-    </div>
   </div>
 
   <!-- Compteur -->
@@ -102,8 +94,6 @@
   var input = document.getElementById('search-input');
   var list  = document.getElementById('autocomplete-list');
   var clearBtn = document.getElementById('clear-btn');
-  var geoBtn   = document.getElementById('geo-btn');
-  var geoStatus = document.getElementById('geo-status');
   var activeIdx = -1;
   var lastQuery = '';
   var debounceTimer = null;
@@ -205,43 +195,6 @@
     if (!document.getElementById('search-container').contains(e.target)) hideSuggestions();
   });
 
-  // Géolocalisation
-  if (geoBtn) {
-    geoBtn.addEventListener('click', function() {
-      if (!navigator.geolocation) {
-        geoStatus.textContent = 'Non supporté par votre navigateur.';
-        geoStatus.classList.remove('hidden');
-        return;
-      }
-      geoStatus.textContent = 'Localisation en cours…';
-      geoStatus.classList.remove('hidden');
-      geoBtn.disabled = true;
-      navigator.geolocation.getCurrentPosition(function(pos) {
-        var lat = pos.coords.latitude;
-        var lon = pos.coords.longitude;
-        fetch('https://geo.api.gouv.fr/communes?lat=' + lat + '&lon=' + lon + '&fields=nom,code,departement&format=json&geometry=centre')
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
-            geoBtn.disabled = false;
-            if (data && data.length > 0) {
-              var c = data[0];
-              geoStatus.classList.add('hidden');
-              // Navigate to commune page using code INSEE
-              window.location.href = '/recherche?q=' + encodeURIComponent(c.nom);
-            } else {
-              geoStatus.textContent = 'Commune introuvable.';
-            }
-          })
-          .catch(function() {
-            geoBtn.disabled = false;
-            geoStatus.textContent = 'Erreur lors de la localisation.';
-          });
-      }, function() {
-        geoBtn.disabled = false;
-        geoStatus.textContent = 'Localisation refusée.';
-      });
-    });
-  }
 })();
 </script>
 {% endblock %}
