@@ -56,6 +56,20 @@ def create_app():
             except Exception as e:
                 print(f"[ERREUR] Auto-seed échoué : {e}", flush=True)
 
+        # Sync villes.code_insee depuis communes (après seed_communes)
+        conn = get_db()
+        conn.execute("""
+            UPDATE villes SET code_insee = (
+                SELECT c.code_insee FROM communes c
+                WHERE REPLACE(c.nom_normalise, ' ', '-') = villes.slug
+                LIMIT 1
+            )
+            WHERE code_insee IS NULL
+              AND EXISTS (SELECT 1 FROM communes LIMIT 1)
+        """)
+        conn.commit()
+        conn.close()
+
         # Créer le super-admin par défaut si aucun utilisateur n'existe
         conn = get_db()
         nb_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
