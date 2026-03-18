@@ -222,6 +222,10 @@ def commune(slug):
     """Page d'une commune : redirige vers dashboard si gérée, sinon page 'bientôt'."""
     commune_data = commune_model.get_by_slug(slug)
     if not commune_data:
+        # Fallback : slug provenant de villes (avant seed_communes)
+        ville = ville_model.get_by_slug(slug)
+        if ville:
+            return redirect(url_for("public.dashboard", ville_slug=ville["slug"]))
         abort(404)
     # Vérifier si la commune a une ville gérée associée
     ville = None

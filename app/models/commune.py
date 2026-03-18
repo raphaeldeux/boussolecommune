@@ -24,7 +24,8 @@ def search(q: str, limit: int = 8) -> list:
     rows = conn.execute("""
         SELECT c.code_insee, c.nom, c.departement_code, c.departement_nom, c.slug,
                sg.score,
-               CASE WHEN v.id IS NOT NULL THEN 1 ELSE 0 END AS dans_la_base
+               CASE WHEN v.id IS NOT NULL THEN 1 ELSE 0 END AS dans_la_base,
+               v.slug AS ville_slug
         FROM communes c
         LEFT JOIN scores_globaux sg ON sg.code_insee = c.code_insee
         LEFT JOIN villes v ON v.code_insee = c.code_insee
@@ -55,6 +56,7 @@ def search_fallback(q: str, limit: int = 8) -> list:
             "departement_code": "",
             "departement_nom": "",
             "slug": r["slug"],
+            "ville_slug": r["slug"],
             "score": None,
             "dans_la_base": 1,
         })
