@@ -217,6 +217,19 @@ def api_recherche():
     return jsonify(resultats)
 
 
+def _sync_ville_code_insee(ville_id: int, code_insee: str) -> None:
+    """Met à jour villes.code_insee depuis le référentiel communes (une seule fois)."""
+    try:
+        from app.database import get_db
+        conn = get_db()
+        conn.execute("UPDATE villes SET code_insee = ? WHERE id = ? AND code_insee IS NULL",
+                     (code_insee, ville_id))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 @bp.route("/commune/<slug>")
 def commune(slug):
     """Page d'une commune : redirige vers dashboard si gérée, sinon page 'bientôt'."""
@@ -231,6 +244,14 @@ def commune(slug):
     ville = None
     if commune_data.get("code_insee"):
         ville = ville_model.get_by_code_insee(commune_data["code_insee"])
+    if not ville:
+        # Fallback : chercher par slug dérivé du nom (villes créées avant seed_communes)
+        from app.models.commune import normaliser as _norm
+        nom_slug = _norm(commune_data["nom"]).replace(" ", "-")
+        ville = ville_model.get_by_slug(nom_slug)
+        if ville and commune_data.get("code_insee"):
+            # Mettre à jour code_insee pour les prochaines requêtes
+            _sync_ville_code_insee(ville["id"], commune_data["code_insee"])
     if ville:
         return redirect(url_for("public.dashboard", ville_slug=ville["slug"]))
     # Commune présente dans le référentiel mais pas encore gérée
