@@ -89,4 +89,14 @@ def create_app():
             return "—"
         return str(d)[:10]
 
+    @app.template_filter("from_json")
+    def from_json_filter(s):
+        import json
+        if not s:
+            return []
+        try:
+            return json.loads(s)
+        except Exception:
+            return []
+
     return app

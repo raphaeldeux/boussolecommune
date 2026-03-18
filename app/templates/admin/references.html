@@ -1,14 +1,12 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
 {% block title %}Références — Admin CommuneSanté{% endblock %}
+{% block breadcrumb %} › <span class="text-gray-800 font-medium">Références</span>{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-  <div class="flex items-center gap-3">
-    <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">Références — {{ ville.nom }}</h1>
-      <p class="text-sm text-gray-500 mt-0.5">Choisissez une référence de la banque pour chaque indicateur.</p>
-    </div>
+<div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Références — {{ ville.nom }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Choisissez une référence de la banque pour chaque indicateur.</p>
   </div>
   {% if session.get('user_role') == 'super_admin' %}
   <a href="{{ url_for('admin.banque_references') }}"

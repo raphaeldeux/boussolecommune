@@ -92,52 +92,12 @@
           </a>
           {% endif %}
 
-          <!-- Bouton connexion / admin -->
+          <!-- Bouton Admin (si connecté) -->
           {% if session.get('user_id') %}
-          <div class="relative ml-2" id="admin-dropdown-wrapper">
-            <button onclick="toggleAdminDropdown()"
-                    class="px-2.5 py-1.5 rounded-md bg-emerald-900 hover:bg-emerald-800 transition text-emerald-200 text-xs font-medium flex items-center gap-1">
-              ⚙️ {{ session.get('username', 'Admin') }}
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-              </svg>
-            </button>
-            <div id="admin-dropdown"
-                 class="hidden absolute right-0 mt-1 w-52 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 text-gray-700 text-sm">
-              <a href="{{ url_for('admin.dashboard') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
-                ⚙️ Administration
-              </a>
-              <a href="{{ url_for('admin.pyramide') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
-                🏘️ Pyramide des âges
-              </a>
-              <a href="{{ url_for('admin.subventions') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
-                🤝 Subventions
-              </a>
-              {% if session.get('user_role') == 'super_admin' %}
-              <div class="border-t border-gray-100 my-1"></div>
-              <a href="{{ url_for('admin.villes') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
-                🏙️ Gérer les villes
-              </a>
-              <a href="{{ url_for('admin.users') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
-                👥 Gérer les utilisateurs
-              </a>
-              <a href="{{ url_for('admin.banque_references') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition">
-                📊 Banque de références
-              </a>
-              {% endif %}
-              <div class="border-t border-gray-100 my-1"></div>
-              <a href="{{ url_for('admin.logout') }}"
-                 class="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 transition text-red-500">
-                Déconnexion
-              </a>
-            </div>
-          </div>
+          <a href="{{ url_for('admin.dashboard') }}"
+             class="ml-2 px-2.5 py-1.5 rounded-md bg-emerald-900 hover:bg-emerald-800 transition text-emerald-200 text-xs font-medium">
+            ⚙ Admin
+          </a>
           {% else %}
           <a href="{{ url_for('admin.login') }}"
              class="ml-2 px-2.5 py-1.5 rounded-md border border-emerald-400 hover:bg-emerald-600 transition text-xs font-medium">
@@ -247,9 +207,6 @@
       iconMenu.classList.toggle('hidden', !isOpen);
       iconClose.classList.toggle('hidden', isOpen);
     }
-    function toggleAdminDropdown() {
-      document.getElementById('admin-dropdown').classList.toggle('hidden');
-    }
     function toggleThemDropdown() {
       document.getElementById('them-dropdown').classList.toggle('hidden');
     }
@@ -264,11 +221,6 @@
       var btn = document.getElementById('hamburger-btn');
       if (!menu.classList.contains('hidden') && !menu.contains(e.target) && !btn.contains(e.target)) {
         toggleMobileMenu();
-      }
-      var dropdown = document.getElementById('admin-dropdown');
-      var wrapper = document.getElementById('admin-dropdown-wrapper');
-      if (dropdown && !dropdown.classList.contains('hidden') && wrapper && !wrapper.contains(e.target)) {
-        dropdown.classList.add('hidden');
       }
       var themDropdown = document.getElementById('them-dropdown');
       var themWrapper = document.getElementById('them-dropdown-wrapper');

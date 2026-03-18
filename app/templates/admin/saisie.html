@@ -1,11 +1,20 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
 {% block title %}Saisie manuelle — Admin CommuneSanté{% endblock %}
+{% block breadcrumb %} › <span class="text-gray-800 font-medium">Saisie</span>{% endblock %}
 
 {% block content %}
-<div class="flex items-center gap-3 mb-6">
-  <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
-  <h1 class="text-2xl font-bold text-gray-900">Saisie manuelle</h1>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Saisie manuelle</h1>
+
+<!-- Bannière post-enregistrement (US9) -->
+{% if request.args.get('saved_ind') and request.args.get('saved_annee') %}
+<div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6 flex items-center justify-between gap-3 flex-wrap">
+  <span class="text-emerald-800 text-sm">✓ Valeur enregistrée avec succès.</span>
+  <a href="{{ url_for('admin.interpretation', indicateur_id=request.args.get('saved_ind'), annee=request.args.get('saved_annee')) }}"
+     class="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline shrink-0">
+    → Rédiger l'interprétation maintenant
+  </a>
 </div>
+{% endif %}
 
 <!-- Ligne principale : formulaire + fiche d'aide -->
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -13,14 +22,16 @@
   <!-- Formulaire (2/3) -->
   <div class="lg:col-span-2">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <form method="POST">
+      <form method="POST" id="saisie-form">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <!-- Sélecteur indicateur -->
+
+        <!-- Recherche + sélecteur indicateur -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Indicateur *</label>
-          <select name="indicateur_id" required
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  id="sel-indicateur">
+          <input type="text" id="search-indicateur" placeholder="Rechercher un indicateur…"
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-gray-50">
+          <select name="indicateur_id" required id="sel-indicateur"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <option value="">-- Sélectionner un indicateur --</option>
             {% set current_them = namespace(val=None) %}
             {% for ind in indicateurs %}
@@ -30,7 +41,8 @@
                 {% set current_them.val = ind.them_label %}
               {% endif %}
               <option value="{{ ind.id }}"
-                {% if request.args.get('ind') == ind.id %}selected{% endif %}>
+                {% if request.args.get('ind') == ind.id %}selected{% endif %}
+                data-label="{{ ind.libelle_citoyen | lower }}">
                 {{ ind.libelle_citoyen }}
               </option>
             {% endfor %}
@@ -42,27 +54,31 @@
           <!-- Année -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Année *</label>
-            <input type="number" name="annee" required min="2000" max="2030"
+            <input type="number" name="annee" required min="2000" max="2030" id="input-annee"
                    value="{{ fv.annee }}"
                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
           <!-- Valeur -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Valeur *</label>
-            <input type="text" name="valeur" required placeholder="Ex: 42.5"
+            <input type="text" name="valeur" required placeholder="Ex: 42.5" id="input-valeur"
                    value="{{ fv.valeur }}"
                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           </div>
         </div>
 
-        <!-- Source (publique) -->
+        <!-- Avertissement valeur existante (US9) -->
+        <div id="warning-existant" class="hidden bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-sm text-amber-800">
+          ⚠️ <span id="warning-texte"></span>
+        </div>
+
+        <!-- Source -->
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Source <span class="text-gray-400 font-normal">(affichée publiquement)</span>
           </label>
-          <input type="text" name="source"
-                 value="{{ fv.source }}"
-                 placeholder="Ex: Rapport annuel commune 2024, Délibération n°2024-..."
+          <input type="text" name="source" value="{{ fv.source }}"
+                 placeholder="Ex: Rapport annuel commune 2024"
                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
 
@@ -72,7 +88,7 @@
             Commentaire interne <span class="text-gray-400 font-normal">(non affiché)</span>
           </label>
           <textarea name="commentaire" rows="2"
-                    placeholder="Notes internes sur cette saisie…"
+                    placeholder="Notes internes…"
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">{{ fv.commentaire }}</textarea>
         </div>
 
@@ -85,18 +101,17 @@
   </div>
 
   <!-- Fiche d'aide indicateur (1/3, sticky) -->
-  <div class="lg:sticky lg:top-6 self-start">
-    <!-- Placeholder quand rien n'est sélectionné -->
+  <div class="lg:sticky lg:top-16 self-start space-y-4">
+    <!-- Placeholder -->
     <div id="fiche-placeholder" class="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-6 text-center text-gray-400">
       <div class="text-3xl mb-2">📋</div>
-      <div class="text-sm">Sélectionnez un indicateur pour afficher sa fiche d'aide</div>
+      <div class="text-sm">Sélectionnez un indicateur pour afficher sa fiche</div>
     </div>
 
-    <!-- Fiche indicateur (masquée par défaut) -->
+    <!-- Fiche indicateur -->
     <div id="fiche-indicateur" style="display:none" class="bg-blue-50 border border-blue-100 rounded-xl p-5">
       <div id="fiche-technique" class="font-semibold text-blue-900 text-base mb-3 leading-snug"></div>
-
-      <div class="space-y-2 mb-4">
+      <div class="space-y-1.5 mb-3">
         <div class="flex items-center gap-2">
           <span class="text-xs font-medium text-blue-700 uppercase tracking-wide w-20 shrink-0">Unité</span>
           <span id="fiche-unite" class="text-sm text-blue-900 font-medium"></span>
@@ -110,16 +125,21 @@
           <span id="fiche-reference" class="text-sm text-blue-900 font-medium"></span>
         </div>
       </div>
-
       <div class="border-t border-blue-200 pt-3">
         <div class="text-xs font-medium text-blue-700 uppercase tracking-wide mb-1.5">Description</div>
         <div id="fiche-description" class="text-sm text-blue-800 leading-relaxed"></div>
       </div>
     </div>
+
+    <!-- Mini-graphique historique (US9) -->
+    <div id="fiche-chart-wrap" style="display:none" class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+      <div class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Historique</div>
+      <canvas id="mini-chart" height="100"></canvas>
+    </div>
   </div>
 </div>
 
-<!-- Saisies récentes (en bas, pleine largeur) -->
+<!-- Saisies récentes -->
 <div>
   <h2 class="text-base font-semibold text-gray-700 mb-3">Saisies récentes</h2>
   {% if recentes %}
@@ -130,8 +150,8 @@
           <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
-          <th class="text-left px-3 py-2 text-gray-500 font-medium">Source</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Saisie le</th>
+          <th class="text-left px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Source</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Saisie le</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium"></th>
         </tr>
       </thead>
@@ -139,17 +159,17 @@
         {% for d in recentes %}
         <tr class="hover:bg-gray-50">
           <td class="px-4 py-2">
-            <div class="font-medium text-gray-700 truncate max-w-xs" title="{{ d.libelle_citoyen }}">
-              {{ d.libelle_citoyen | truncate(50) }}
+            <div class="font-medium text-gray-700 truncate max-w-xs text-xs" title="{{ d.libelle_citoyen }}">
+              {{ d.libelle_citoyen | truncate(45) }}
             </div>
             <div class="text-xs text-gray-400">{{ d.indicateur_id }}</div>
           </td>
-          <td class="px-3 py-2 text-center font-mono text-gray-700 whitespace-nowrap">
+          <td class="px-3 py-2 text-center font-mono text-gray-700 text-xs whitespace-nowrap">
             {{ d.valeur | format_valeur }} {{ d.unite }}
           </td>
-          <td class="px-3 py-2 text-center text-gray-500">{{ d.annee }}</td>
-          <td class="px-3 py-2 text-gray-400 text-xs max-w-xs truncate">{{ d.source or '—' }}</td>
-          <td class="px-3 py-2 text-center text-gray-400 text-xs whitespace-nowrap">{{ d.date_saisie | format_date }}</td>
+          <td class="px-3 py-2 text-center text-gray-500 text-xs">{{ d.annee }}</td>
+          <td class="px-3 py-2 text-gray-400 text-xs max-w-xs truncate hidden sm:table-cell">{{ d.source or '—' }}</td>
+          <td class="px-3 py-2 text-center text-gray-400 text-xs whitespace-nowrap hidden sm:table-cell">{{ d.date_saisie | format_date }}</td>
           <td class="px-3 py-2 text-center">
             <a href="{{ url_for('admin.saisie') }}?ind={{ d.indicateur_id }}&annee={{ d.annee }}"
                class="text-amber-600 hover:underline text-xs">Modifier</a>
@@ -178,30 +198,51 @@ var INDICATEURS = {
   {% endfor %}
 };
 
+var HISTORIQUE = {{ historique_by_ind | tojson }};
+
 var SENS_LABELS = {
-  haut: '\u2191 Une valeur haute est meilleure',
-  bas: '\u2193 Une valeur basse est meilleure',
-  neutre: '\u2192 Interpr\u00e9tation qualitative'
+  haut: '↑ Une valeur haute est meilleure',
+  bas: '↓ Une valeur basse est meilleure',
+  neutre: '→ Interprétation qualitative'
 };
 
 var sel = document.getElementById('sel-indicateur');
+var search = document.getElementById('search-indicateur');
 var fiche = document.getElementById('fiche-indicateur');
 var placeholder = document.getElementById('fiche-placeholder');
+var miniChartWrap = document.getElementById('fiche-chart-wrap');
+var miniChartCanvas = document.getElementById('mini-chart');
+var miniChartInstance = null;
+
+// Recherche en temps réel dans le sélecteur (US9)
+search.addEventListener('input', function() {
+  var q = this.value.toLowerCase().trim();
+  var options = sel.querySelectorAll('option');
+  options.forEach(function(opt) {
+    if (!opt.value) return; // placeholder
+    var label = (opt.dataset.label || opt.textContent.toLowerCase());
+    opt.style.display = (!q || label.includes(q)) ? '' : 'none';
+  });
+  // Gérer les optgroups
+  sel.querySelectorAll('optgroup').forEach(function(og) {
+    var visibles = Array.from(og.querySelectorAll('option')).filter(o => o.style.display !== 'none');
+    og.style.display = visibles.length ? '' : 'none';
+  });
+});
 
 function updateFiche() {
   var id = sel.value;
   if (!id || !INDICATEURS[id]) {
     fiche.style.display = 'none';
     placeholder.style.display = 'block';
+    miniChartWrap.style.display = 'none';
     return;
   }
   var d = INDICATEURS[id];
-
   document.getElementById('fiche-technique').textContent = d.technique || id;
   document.getElementById('fiche-unite').textContent = d.unite || '—';
   document.getElementById('fiche-sens').textContent = SENS_LABELS[d.sens] || d.sens || '—';
   document.getElementById('fiche-description').textContent = d.description || '';
-
   var refWrap = document.getElementById('fiche-reference-wrap');
   if (d.reference) {
     var refText = d.reference + (d.unite ? '\u00a0' + d.unite : '') + (d.libelleReference ? ' (' + d.libelleReference + ')' : '');
@@ -210,12 +251,77 @@ function updateFiche() {
   } else {
     refWrap.style.display = 'none';
   }
-
   placeholder.style.display = 'none';
   fiche.style.display = 'block';
+
+  // Mini-graphique (US9)
+  var hist = HISTORIQUE[id];
+  if (hist && hist.length >= 2) {
+    miniChartWrap.style.display = 'block';
+    var labels = hist.map(h => h.annee);
+    var values = hist.map(h => h.valeur);
+    if (miniChartInstance) miniChartInstance.destroy();
+    miniChartInstance = new Chart(miniChartCanvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16,185,129,0.08)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#10b981',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { grid: { color: '#f3f4f6' }, ticks: { font: { size: 10 } } }
+        },
+        animation: false
+      }
+    });
+  } else {
+    miniChartWrap.style.display = 'none';
+  }
+
+  // Vérifier valeur existante
+  checkExistingValue();
+}
+
+// Vérification inline valeur existante (US9)
+var checkTimer = null;
+function scheduleCheck() {
+  clearTimeout(checkTimer);
+  checkTimer = setTimeout(checkExistingValue, 400);
+}
+
+async function checkExistingValue() {
+  var id = sel.value;
+  var annee = document.getElementById('input-annee').value;
+  var warning = document.getElementById('warning-existant');
+  var warningTxt = document.getElementById('warning-texte');
+  if (!id || !annee) { warning.classList.add('hidden'); return; }
+  try {
+    var resp = await fetch('/admin/api/check-donnee?ind=' + encodeURIComponent(id) + '&annee=' + encodeURIComponent(annee));
+    var data = await resp.json();
+    if (data.exists) {
+      warningTxt.textContent = 'Cette saisie écrasera la valeur existante\u00a0: ' + data.valeur + (data.unite ? '\u00a0' + data.unite : '') + ' (' + data.annee + ')';
+      warning.classList.remove('hidden');
+    } else {
+      warning.classList.add('hidden');
+    }
+  } catch(e) {
+    warning.classList.add('hidden');
+  }
 }
 
 sel.addEventListener('change', updateFiche);
+document.getElementById('input-annee').addEventListener('input', scheduleCheck);
 if (sel.value) updateFiche();
 </script>
 {% endblock %}

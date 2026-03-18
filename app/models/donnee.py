@@ -75,6 +75,17 @@ def delete(indicateur_id, annee, ville_id=1):
     conn.close()
 
 
+def get_all_for_ville(ville_id):
+    """Retourne toutes les données d'une ville, triées par indicateur et année."""
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT indicateur_id, annee, valeur FROM donnees WHERE ville_id = ? ORDER BY indicateur_id, annee",
+        (ville_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def get_derniere_maj(ville_id=1):
     conn = get_db()
     row = conn.execute(

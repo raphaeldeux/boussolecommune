@@ -1,11 +1,9 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
 {% block title %}Modifier utilisateur — Admin CommuneSanté{% endblock %}
+{% block breadcrumb %} › <a href="{{ url_for('admin.users') }}" class="hover:text-gray-600">Utilisateurs</a> › <span class="text-gray-800 font-medium">Modifier</span>{% endblock %}
 
 {% block content %}
-<div class="flex items-center gap-3 mb-6">
-  <a href="{{ url_for('admin.users') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
-  <h1 class="text-2xl font-bold text-gray-900">Modifier « {{ user.username }} »</h1>
-</div>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Modifier « {{ user.username }} »</h1>
 
 <div class="max-w-lg">
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

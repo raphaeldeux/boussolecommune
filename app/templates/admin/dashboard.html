@@ -1,120 +1,232 @@
-{% extends "base.html" %}
-{% block title %}Dashboard admin — CommuneSanté{% endblock %}
+{% extends "admin_base.html" %}
+{% block title %}Tableau de bord — Admin CommuneSanté{% endblock %}
+{% block breadcrumb %}{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+
+<!-- En-tête + progression globale -->
+<div class="flex items-start justify-between mb-6 flex-wrap gap-4">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Administration</h1>
-    {% if ville %}
-    <p class="text-sm text-gray-500 mt-0.5">Ville : <strong>{{ ville.nom }}</strong></p>
-    {% endif %}
+    <h1 class="text-2xl font-bold text-gray-900">Tableau de bord</h1>
+    {% if ville %}<p class="text-sm text-gray-500 mt-0.5">{{ ville.nom }}</p>{% endif %}
   </div>
   <div class="flex gap-2 flex-wrap">
     <a href="{{ url_for('admin.saisie') }}"
-       class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-      ✏️ Saisir une valeur
+       class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">
+      ✏️ Saisir
     </a>
     <a href="{{ url_for('admin.upload') }}"
-       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-      📤 Uploader un CSV
-    </a>
-    <a href="{{ url_for('admin.references') }}"
-       class="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-      📊 Références
-    </a>
-    <a href="{{ url_for('admin.logout') }}"
-       class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-      Déconnexion
+       class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition">
+      📤 Import CSV
     </a>
   </div>
 </div>
 
-<!-- Sélecteur de ville (si plusieurs disponibles) -->
-{% if user_villes and user_villes|length > 1 %}
-<div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 flex items-center gap-3 flex-wrap">
-  <span class="text-sm text-blue-700 font-medium">Changer de ville :</span>
-  {% for v in user_villes %}
-  <form method="POST" action="{{ url_for('admin.set_ville', ville_id=v.id) }}" class="inline">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <button type="submit"
-            class="px-3 py-1.5 rounded-lg text-sm border transition
-              {% if ville and v.id == ville.id %}bg-blue-700 text-white border-blue-700{% else %}bg-white text-blue-700 border-blue-200 hover:bg-blue-100{% endif %}">
-      {{ v.nom }}
-    </button>
-  </form>
-  {% endfor %}
+<!-- Barre de progression globale -->
+{% if global_stats %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mb-6">
+  <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+    <span class="text-sm font-semibold text-gray-700">Progression globale</span>
+    <div class="flex gap-4 text-sm text-gray-500">
+      <span>
+        <strong class="text-gray-800">{{ global_stats.donnees }}</strong>/{{ global_stats.donnees_max }} données saisies
+      </span>
+      <span>
+        <strong class="text-gray-800">{{ global_stats.interp_ok }}</strong>/{{ global_stats.interp_needed }} interprétations rédigées
+      </span>
+    </div>
+  </div>
+  <div class="space-y-2">
+    <div>
+      <div class="flex justify-between text-xs text-gray-400 mb-0.5">
+        <span>Données</span>
+        <span>{{ ((global_stats.donnees / global_stats.donnees_max * 100) | round(0) | int) if global_stats.donnees_max else 0 }}%</span>
+      </div>
+      <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full bg-emerald-500 rounded-full transition-all"
+             style="width: {{ ((global_stats.donnees / global_stats.donnees_max * 100) | round(1)) if global_stats.donnees_max else 0 }}%"></div>
+      </div>
+    </div>
+    <div>
+      <div class="flex justify-between text-xs text-gray-400 mb-0.5">
+        <span>Interprétations</span>
+        <span>{{ ((global_stats.interp_ok / global_stats.interp_needed * 100) | round(0) | int) if global_stats.interp_needed else 0 }}%</span>
+      </div>
+      <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full bg-blue-500 rounded-full transition-all"
+             style="width: {{ ((global_stats.interp_ok / global_stats.interp_needed * 100) | round(1)) if global_stats.interp_needed else 0 }}%"></div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endif %}
 
-{% for them in stats %}
-<div class="mb-8">
-  <div class="flex items-center gap-2 mb-3">
-    <h2 class="text-lg font-semibold text-gray-700">{{ them.label }}</h2>
-    <span class="text-sm text-gray-400">{{ them.nb_renseignes }}/{{ them.nb_total }} renseignés</span>
-  </div>
-
-  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 border-b border-gray-100">
-        <tr>
-          <th class="text-left px-4 py-2 text-gray-500 font-medium w-1/2">Indicateur</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Score</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Interprétation</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-50">
-        {% for ind in them.indicateurs %}
-        <tr class="hover:bg-gray-50 {% if not ind.donnee %}opacity-50{% endif %}">
-          <td class="px-4 py-3">
-            <div class="font-medium text-gray-700" title="{{ ind.libelle_citoyen }}">{{ ind.libelle_citoyen | truncate(32) }}</div>
-            <div class="text-xs text-gray-400 mt-0.5">{{ ind.libelle_technique if ind.libelle_technique else ind.id }}</div>
-          </td>
-          <td class="px-3 py-3 text-center text-gray-700 font-mono whitespace-nowrap">
-            {% if ind.donnee %}{{ ind.donnee.valeur | format_valeur }} {{ ind.unite }}{% else %}—{% endif %}
-          </td>
-          <td class="px-3 py-3 text-center text-gray-500">
-            {{ ind.donnee.annee if ind.donnee else '—' }}
-          </td>
-          <td class="px-3 py-3 text-center">
-            {% if ind.score %}
-            <span class="score-badge score-{{ ind.score }}">{{ ind.score }}</span>
-            {% else %}
-            <span class="text-gray-300">—</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 text-center">
-            {% if ind.interp_statut == 'ok' %}
-            <span class="text-green-600 text-xs">✓ Rédigée</span>
-            {% elif ind.interp_statut == 'en_attente' %}
-            <span class="text-amber-500 text-xs">⏳ À rédiger</span>
-            {% else %}
-            <span class="text-gray-300 text-xs">—</span>
-            {% endif %}
-          </td>
-          <td class="px-3 py-3 text-center whitespace-nowrap">
-            {% if ind.donnee %}
-            <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}&annee={{ ind.donnee.annee }}"
-               class="text-amber-600 hover:underline text-xs mr-2">Modifier</a>
-            <a href="{{ url_for('admin.interpretation', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
-               class="text-blue-500 hover:underline text-xs mr-2">Interprétation</a>
-            <form method="POST" action="{{ url_for('admin.supprimer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
-                  class="inline" onsubmit="return confirm('Supprimer la donnée {{ ind.donnee.annee }} pour « {{ ind.libelle_citoyen | truncate(30) }} » ? Cette action est irréversible.')">
-              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-              <button type="submit" class="text-red-400 hover:text-red-600 hover:underline text-xs">Supprimer</button>
-            </form>
-            {% else %}
-            <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}"
-               class="text-emerald-600 hover:underline text-xs">Saisir</a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<!-- Filtre À compléter -->
+<div class="flex items-center gap-3 mb-4">
+  <label class="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-600">
+    <input type="checkbox" id="filtre-completer" class="rounded" onchange="toggleFiltreCompleter(this)">
+    Afficher uniquement les indicateurs <strong>à compléter</strong>
+  </label>
+  <span id="compteur-restants" class="text-xs text-gray-400"></span>
 </div>
-{% endfor %}
+
+<!-- Cartes thématiques -->
+<div id="interp-section" class="space-y-3">
+  {% for them in stats %}
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden them-card"
+       data-nb-complets="{{ them.indicateurs | selectattr('interp_statut', 'equalto', 'ok') | list | length }}"
+       data-nb-total="{{ them.nb_total }}">
+
+    <!-- En-tête de la carte (cliquable) -->
+    <button type="button"
+            onclick="toggleCard('card-{{ them.slug }}')"
+            class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition text-left">
+      <div class="flex items-center gap-3 min-w-0">
+        <span class="text-2xl shrink-0">{{ them.icon }}</span>
+        <div class="min-w-0">
+          <div class="font-semibold text-gray-900 text-sm leading-tight">{{ them.label }}</div>
+          <div class="text-xs text-gray-400 mt-0.5">
+            {{ them.nb_renseignes }}/{{ them.nb_total }} données
+            · {{ them.nb_interp_ok }}/{{ them.nb_renseignes if them.nb_renseignes else 0 }} interprétations
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        {% if them.thematic_score %}
+        <span class="score-badge score-{{ them.thematic_score }}" title="Score thématique">{{ them.thematic_score }}</span>
+        {% else %}
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-gray-100 text-gray-400 text-xs font-bold">—</span>
+        {% endif %}
+        <!-- Mini barre de complétion -->
+        <div class="hidden sm:flex flex-col gap-1 w-20">
+          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-emerald-400 rounded-full"
+                 style="width: {{ ((them.nb_renseignes / them.nb_total * 100) | round(1)) if them.nb_total else 0 }}%"></div>
+          </div>
+          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div class="h-full bg-blue-400 rounded-full"
+                 style="width: {{ ((them.nb_interp_ok / them.nb_renseignes * 100) | round(1)) if them.nb_renseignes else 0 }}%"></div>
+          </div>
+        </div>
+        <svg id="chevron-{{ them.slug }}" class="w-4 h-4 text-gray-400 transition-transform duration-200"
+             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+    </button>
+
+    <!-- Tableau dépliable (replié par défaut) -->
+    <div id="card-{{ them.slug }}" class="hidden border-t border-gray-50">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b border-gray-100">
+          <tr>
+            <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Valeur</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Score</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium">Interprétation</th>
+            <th class="text-center px-3 py-2 text-gray-500 font-medium">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-50">
+          {% for ind in them.indicateurs %}
+          <tr class="hover:bg-gray-50 ind-row
+               {% if ind.interp_statut == 'ok' %}row-complet{% else %}row-incomplet{% endif %}"
+              data-statut="{{ ind.interp_statut }}">
+            <td class="px-4 py-3">
+              <div class="font-medium text-gray-700 text-xs" title="{{ ind.libelle_citoyen }}">{{ ind.libelle_citoyen | truncate(40) }}</div>
+              {% if ind.donnee %}
+              <div class="text-xs text-gray-400 mt-0.5">{{ ind.donnee.annee }}</div>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-center text-gray-700 font-mono text-xs whitespace-nowrap hidden sm:table-cell">
+              {% if ind.donnee %}{{ ind.donnee.valeur | format_valeur }} {{ ind.unite }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+            </td>
+            <td class="px-3 py-3 text-center hidden sm:table-cell">
+              {% if ind.score %}
+              <span class="score-badge score-{{ ind.score }}" style="width:1.5rem;height:1.5rem;font-size:0.75rem">{{ ind.score }}</span>
+              {% else %}
+              <span class="text-gray-300 text-xs">—</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-center">
+              {% if ind.interp_statut == 'ok' %}
+              <span class="text-green-600 text-xs">✓</span>
+              {% elif ind.interp_statut == 'en_attente' %}
+              <span class="text-amber-500 text-xs">⏳</span>
+              {% else %}
+              <span class="text-gray-300 text-xs">—</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-center whitespace-nowrap">
+              {% if not ind.donnee %}
+              <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}"
+                 class="text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-2 py-1 rounded transition">
+                + Saisir
+              </a>
+              {% elif ind.interp_statut == 'en_attente' %}
+              <a href="{{ url_for('admin.interpretation', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
+                 class="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-2 py-1 rounded transition">
+                Rédiger
+              </a>
+              {% else %}
+              <div class="flex items-center justify-center gap-1.5">
+                <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}&annee={{ ind.donnee.annee }}"
+                   class="text-xs text-amber-600 hover:underline">Modifier</a>
+                <a href="{{ url_for('admin.interpretation', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
+                   class="text-xs text-blue-500 hover:underline">Interp.</a>
+                <form method="POST" action="{{ url_for('admin.supprimer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
+                      class="inline" onsubmit="return confirm('Supprimer cette donnée ?')">
+                  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                  <button type="submit" class="text-xs text-red-400 hover:underline">Suppr.</button>
+                </form>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+function toggleCard(id) {
+  var el = document.getElementById(id);
+  var slug = id.replace('card-', '');
+  var chevron = document.getElementById('chevron-' + slug);
+  el.classList.toggle('hidden');
+  chevron.classList.toggle('rotate-180');
+}
+
+function toggleFiltreCompleter(cb) {
+  var rows = document.querySelectorAll('.ind-row');
+  var count = 0;
+  rows.forEach(function(row) {
+    if (cb.checked && row.dataset.statut === 'ok') {
+      row.style.display = 'none';
+    } else {
+      row.style.display = '';
+      if (row.dataset.statut !== 'ok') count++;
+    }
+  });
+  document.getElementById('compteur-restants').textContent = cb.checked ? ('(' + count + ' à compléter)') : '';
+  // Si filtre actif : ouvrir toutes les cartes qui ont des incomplets
+  if (cb.checked) {
+    document.querySelectorAll('.them-card').forEach(function(card) {
+      var incomplets = card.querySelectorAll('.row-incomplet:not([style*="display: none"])');
+      var slug = card.querySelector('[id^="card-"]') ? card.querySelector('[id^="card-"]').id.replace('card-', '') : null;
+      if (slug) {
+        var panel = document.getElementById('card-' + slug);
+        var chevron = document.getElementById('chevron-' + slug);
+        if (incomplets.length > 0) {
+          panel.classList.remove('hidden');
+          chevron.classList.add('rotate-180');
+        }
+      }
+    });
+  }
+}
+</script>
 {% endblock %}

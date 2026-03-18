@@ -92,6 +92,17 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Migration: ajouter colonne format_csv à imports si absente (US10)
+    conn = get_db()
+    import_cols = [r[1] for r in conn.execute("PRAGMA table_info(imports)").fetchall()]
+    if 'format_csv' not in import_cols:
+        try:
+            conn.execute("ALTER TABLE imports ADD COLUMN format_csv TEXT")
+            conn.commit()
+        except Exception:
+            pass
+    conn.close()
+
     # Migration: recréer donnees avec ville_id si nécessaire
     conn = get_db()
     cols = [r[1] for r in conn.execute("PRAGMA table_info(donnees)").fetchall()]

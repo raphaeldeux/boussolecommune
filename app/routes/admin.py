@@ -1,6 +1,6 @@
 import json
 import os
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response
 from app.auth import login_required, super_admin_required, is_rate_limited, record_attempt
 from app.config import UPLOAD_FOLDER
 import app.models.indicateur as ind_model
@@ -20,6 +20,17 @@ bp = Blueprint("admin", __name__, url_prefix="/admin")
 
 INTERP_LIMIT_COURTE = 200
 INTERP_LIMIT_LONGUE = 1000
+
+
+@bp.context_processor
+def inject_admin_context():
+    """Injecte la ville courante et les villes accessibles dans tous les templates admin."""
+    if session.get("user_id"):
+        return {
+            "admin_current_ville": _get_current_ville(),
+            "admin_user_villes": _get_user_villes(),
+        }
+    return {"admin_current_ville": None, "admin_user_villes": []}
 
 
 def _get_current_ville():
@@ -120,9 +131,17 @@ def dashboard():
     user_villes = _get_user_villes()
     thematiques = ind_model.get_thematiques() + ["portrait"]
     stats = []
+    score_num = {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5}
+    score_let = ["A", "B", "C", "D", "E"]
+    total_donnees = 0
+    total_donnees_max = 0
+    total_interp_ok = 0
+    total_interp_needed = 0
     for them in thematiques:
         indicateurs = ind_model.get_by_thematique(them)
         nb_renseignes = 0
+        nb_interp_ok = 0
+        scores = []
         rows = []
         for ind in indicateurs:
             donnee = donnee_model.get_latest(ind["id"], ville["id"])
@@ -138,6 +157,10 @@ def dashboard():
                 interp = interp_model.get(ind["id"], donnee["annee"], ville["id"])
                 if interp and interp.get("score"):
                     score = interp["score"]
+                if score:
+                    scores.append(score)
+                if interp and interp.get("phrase_courte"):
+                    nb_interp_ok += 1
             rows.append({
                 **ind,
                 "donnee": donnee,
@@ -147,18 +170,37 @@ def dashboard():
                     "en_attente" if donnee else "absent"
                 ),
             })
+        # Score thématique : moyenne des scores individuels
+        thematic_score = None
+        if scores:
+            avg = sum(score_num[s] for s in scores) / len(scores)
+            thematic_score = score_let[min(4, round(avg) - 1)]
+        total_donnees += nb_renseignes
+        total_donnees_max += len(indicateurs)
+        total_interp_ok += nb_interp_ok
+        total_interp_needed += nb_renseignes
         stats.append({
             "slug": them,
             "label": ind_model.THEMATIQUE_LABELS[them],
+            "icon": ind_model.THEMATIQUE_ICONS.get(them, "📊"),
             "indicateurs": rows,
             "nb_renseignes": nb_renseignes,
             "nb_total": len(indicateurs),
+            "nb_interp_ok": nb_interp_ok,
+            "thematic_score": thematic_score,
         })
+    global_stats = {
+        "donnees": total_donnees,
+        "donnees_max": total_donnees_max,
+        "interp_ok": total_interp_ok,
+        "interp_needed": total_interp_needed,
+    }
     return render_template(
         "admin/dashboard.html",
         stats=stats,
         ville=ville,
         user_villes=user_villes,
+        global_stats=global_stats,
     )
 
 
@@ -234,7 +276,7 @@ def saisie():
         else:
             donnee_model.upsert(indicateur_id, annee, valeur, source, commentaire, "manuel", ville["id"])
             flash(f"Valeur enregistrée pour « {ind['libelle_citoyen']} » ({annee}).", "success")
-            return redirect(url_for("admin.saisie"))
+            return redirect(url_for("admin.saisie", saved_ind=indicateur_id, saved_annee=annee))
 
     if request.method == "POST":
         fv = {
@@ -245,6 +287,14 @@ def saisie():
         }
 
     recentes = donnee_model.get_recentes(15, ville["id"])
+    # Historique pour mini-graphiques (US9)
+    historique_raw = donnee_model.get_all_for_ville(ville["id"])
+    historique_by_ind = {}
+    for d in historique_raw:
+        ind_id = d["indicateur_id"]
+        if ind_id not in historique_by_ind:
+            historique_by_ind[ind_id] = []
+        historique_by_ind[ind_id].append({"annee": d["annee"], "valeur": d["valeur"]})
     return render_template(
         "admin/saisie.html",
         indicateurs=tous_indicateurs,
@@ -253,7 +303,34 @@ def saisie():
         recentes=recentes,
         fv=fv,
         ville=ville,
+        historique_by_ind=historique_by_ind,
     )
+
+
+# ── API : vérification donnée existante (US9) ─────────────────────────────
+
+@bp.route("/api/check-donnee")
+@login_required
+def api_check_donnee():
+    ville = _get_current_ville()
+    ind_id = request.args.get("ind", "").strip()
+    annee_str = request.args.get("annee", "").strip()
+    if not ind_id or not annee_str or not ville:
+        return jsonify({"exists": False})
+    try:
+        annee = int(annee_str)
+    except ValueError:
+        return jsonify({"exists": False})
+    donnee = donnee_model.get_by_indicateur_annee(ind_id, annee, ville["id"])
+    if donnee:
+        ind = ind_model.get_by_id(ind_id)
+        return jsonify({
+            "exists": True,
+            "valeur": donnee["valeur"],
+            "unite": ind["unite"] if ind else "",
+            "annee": annee,
+        })
+    return jsonify({"exists": False})
 
 
 # ── Interprétation manuelle ───────────────────────────────────────────────
@@ -371,10 +448,11 @@ def upload():
 
             conn = get_db()
             conn.execute("""
-                INSERT INTO imports (fichier, nb_lignes_traitees, nb_lignes_importees, nb_erreurs, rapport, statut)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO imports (fichier, format_csv, nb_lignes_traitees, nb_lignes_importees, nb_erreurs, rapport, statut)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 nom_fichier,
+                format_csv,
                 len(lignes_valides) + len(erreurs),
                 nb_importes,
                 len(erreurs),
@@ -392,14 +470,51 @@ def upload():
                 f"{nb_importes} valeur(s) importée(s), {len(erreurs)} erreur(s).",
                 "success" if nb_importes > 0 else "warning"
             )
-            return redirect(url_for("admin.dashboard"))
+            return redirect(url_for("admin.upload"))
 
+    # Historique des imports (US10)
+    conn = get_db()
+    imports_hist = conn.execute(
+        "SELECT * FROM imports ORDER BY date_import DESC LIMIT 30"
+    ).fetchall()
+    conn.close()
     return render_template(
         "admin/upload.html",
         apercu=apercu,
         erreurs=erreurs,
         format_csv=format_csv or "generique",
         ville=ville,
+        imports_hist=[dict(r) for r in imports_hist],
+    )
+
+
+# ── Modèles CSV téléchargeables (US10) ────────────────────────────────────
+
+@bp.route("/upload/modele/<format_csv>")
+@login_required
+def modele_csv(format_csv):
+    if format_csv == "ofgl":
+        contenu = (
+            "code_commune;libelle_commune;annee;libelle_compte;montant\n"
+            "# Exemple : remplacez les valeurs ci-dessous par vos données\n"
+            "44202;Sautron;2023;Épargne brute;1250000\n"
+            "44202;Sautron;2023;Encours de dette;8400000\n"
+            "44202;Sautron;2023;Dépenses de fonctionnement;12500000\n"
+        )
+        filename = "modele_ofgl.csv"
+    else:
+        contenu = (
+            "annee,indicateur_id,valeur,source\n"
+            "# Exemple : remplacez les valeurs ci-dessous par vos données\n"
+            "2024,fin_epargne_brute_par_hab,142.5,\"Rapport financier commune 2024\"\n"
+            "2024,eco_part_bio_cantine,42,\"Rapport DRAAF Pays de la Loire 2024\"\n"
+            "2024,soc_logements_sociaux_taux,18.3,\"Bilan SRU préfecture 2024\"\n"
+        )
+        filename = "modele_generique.csv"
+    return Response(
+        contenu,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 

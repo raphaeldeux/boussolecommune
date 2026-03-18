@@ -1,23 +1,9 @@
-{% extends "base.html" %}
+{% extends "admin_base.html" %}
 {% block title %}Subventions — Admin{% endblock %}
+{% block breadcrumb %} › <span class="text-gray-800 font-medium">Subventions</span>{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-  <h1 class="text-2xl font-bold text-gray-900">Subventions aux associations</h1>
-  <a href="{{ url_for('admin.dashboard') }}"
-     class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-    ← Retour
-  </a>
-</div>
-
-{% with messages = get_flashed_messages(with_categories=true) %}
-{% for cat, msg in messages %}
-<div class="mb-4 px-4 py-3 rounded-lg text-sm
-  {% if cat == 'success' %}bg-green-50 text-green-800 border border-green-200
-  {% elif cat == 'danger' %}bg-red-50 text-red-800 border border-red-200
-  {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">{{ msg }}</div>
-{% endfor %}
-{% endwith %}
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Subventions aux associations</h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 

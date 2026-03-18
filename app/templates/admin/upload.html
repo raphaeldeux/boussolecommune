@@ -1,15 +1,25 @@
-{% extends "base.html" %}
-{% block title %}Upload CSV — Admin CommuneSanté{% endblock %}
+{% extends "admin_base.html" %}
+{% block title %}Import CSV — Admin CommuneSanté{% endblock %}
+{% block breadcrumb %} › <span class="text-gray-800 font-medium">Import CSV</span>{% endblock %}
 
 {% block content %}
-<div class="flex items-center gap-3 mb-6">
-  <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
-  <h1 class="text-2xl font-bold text-gray-900">Import CSV</h1>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Import CSV</h1>
+
+<!-- Boutons Télécharger modèle (US10) -->
+<div class="flex gap-3 mb-6 flex-wrap">
+  <a href="{{ url_for('admin.modele_csv', format_csv='generique') }}"
+     class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition shadow-sm">
+    ⬇️ Modèle générique (.csv)
+  </a>
+  <a href="{{ url_for('admin.modele_csv', format_csv='ofgl') }}"
+     class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition shadow-sm">
+    ⬇️ Modèle OFGL (.csv)
+  </a>
 </div>
 
 <!-- Formulaire upload -->
 {% if not apercu %}
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl">
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mb-8">
   <form method="POST" enctype="multipart/form-data">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="apercu">
@@ -67,7 +77,7 @@
 
 {% else %}
 <!-- Aperçu -->
-<div class="space-y-6">
+<div class="space-y-6 mb-8">
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="text-lg font-semibold text-gray-800 mb-4">
       Aperçu — {{ apercu | length }} ligne(s) valide(s)
@@ -113,7 +123,6 @@
     </div>
     {% endif %}
 
-    <!-- Boutons confirmation / annulation -->
     {% if apercu %}
     <div class="flex gap-3">
       <form method="POST">
@@ -141,6 +150,92 @@
 </div>
 {% endif %}
 
+<!-- Historique des imports (US10) -->
+<div>
+  <h2 class="text-lg font-semibold text-gray-700 mb-3">Historique des imports</h2>
+  {% if imports_hist %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-100">
+        <tr>
+          <th class="text-left px-4 py-2 text-gray-500 font-medium">Date</th>
+          <th class="text-left px-3 py-2 text-gray-500 font-medium">Fichier</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Format</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Importées</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Erreurs</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Statut</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium w-8"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for imp in imports_hist %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">
+            {{ imp.date_import | format_date if imp.date_import else '—' }}
+          </td>
+          <td class="px-3 py-2.5 text-gray-700 text-xs max-w-xs truncate" title="{{ imp.fichier }}">
+            {{ imp.fichier or '—' }}
+          </td>
+          <td class="px-3 py-2.5 text-center text-xs text-gray-500 hidden sm:table-cell">
+            {{ imp.format_csv or imp.thematique or '—' }}
+          </td>
+          <td class="px-3 py-2.5 text-center text-xs hidden sm:table-cell">
+            <span class="text-emerald-700 font-medium">{{ imp.nb_lignes_importees or 0 }}</span>
+            <span class="text-gray-400">/{{ imp.nb_lignes_traitees or 0 }}</span>
+          </td>
+          <td class="px-3 py-2.5 text-center text-xs hidden sm:table-cell">
+            {% if imp.nb_erreurs %}
+            <span class="text-red-500 font-medium">{{ imp.nb_erreurs }}</span>
+            {% else %}
+            <span class="text-gray-300">0</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-center">
+            {% if imp.statut == 'succes' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">succès</span>
+            {% elif imp.statut == 'partiel' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">partiel</span>
+            {% elif imp.statut == 'echec' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">échec</span>
+            {% else %}
+            <span class="text-gray-400 text-xs">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-center">
+            {% if imp.rapport and imp.nb_erreurs %}
+            <button type="button" onclick="toggleRapport('rapport-{{ imp.id }}')"
+                    class="text-gray-400 hover:text-gray-600 transition text-xs">▶</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% if imp.rapport and imp.nb_erreurs %}
+        <tr id="rapport-{{ imp.id }}" class="hidden bg-red-50">
+          <td colspan="7" class="px-4 py-3">
+            <div class="text-xs text-red-700 font-medium mb-1">Détail des erreurs :</div>
+            <ul class="text-xs text-red-600 space-y-0.5">
+              {% set rapport = imp.rapport | from_json %}
+              {% for e in rapport %}
+              <li>
+                {% if e is mapping %}
+                  Ligne {{ e.get('ligne', '?') }} : {{ e.get('message', e) }}
+                {% else %}
+                  {{ e }}
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-gray-400 text-sm italic">Aucun import pour l'instant.</p>
+  {% endif %}
+</div>
+
 <script>
 // Drag & drop et affichage nom fichier
 const dropZone = document.getElementById('drop-zone');
@@ -162,6 +257,13 @@ if (dropZone) {
       fileName.textContent = e.dataTransfer.files[0].name;
     }
   });
+}
+
+function toggleRapport(id) {
+  var el = document.getElementById(id);
+  var btn = el.previousElementSibling.querySelector('button');
+  el.classList.toggle('hidden');
+  if (btn) btn.textContent = el.classList.contains('hidden') ? '▶' : '▼';
 }
 </script>
 {% endblock %}
