@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CommuneSanté{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .score-A { background-color: #16a34a; }
+    .score-B { background-color: #65a30d; }
+    .score-C { background-color: #d97706; }
+    .score-D { background-color: #dc2626; }
+    .score-E { background-color: #7f1d1d; }
+    .score-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 2rem; height: 2rem; border-radius: 0.375rem;
+      font-weight: 700; font-size: 1rem; color: white;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- Topbar minimale -->
+  <header class="bg-emerald-700 text-white h-12 flex items-center px-4 sticky top-0 z-40 shadow">
+    <a href="{{ url_for('public.index') }}"
+       class="font-bold text-base tracking-tight flex items-center gap-1.5 mr-auto">
+      🏡 <span>CommuneSanté</span>
+    </a>
+    <div class="flex items-center gap-1 text-sm">
+      <a href="{{ url_for('public.comparer') }}"
+         class="px-2.5 py-1.5 rounded-md text-emerald-200 hover:text-white hover:bg-emerald-600 transition text-xs hidden md:inline-flex items-center gap-1">
+        ⚖️ Comparer
+      </a>
+      <a href="{{ url_for('public.methodologie') }}"
+         class="px-2.5 py-1.5 rounded-md text-emerald-200 hover:text-white hover:bg-emerald-600 transition text-xs hidden md:inline-flex">
+        Méthode
+      </a>
+      {% if session.get('user_id') %}
+      <a href="{{ url_for('admin.dashboard') }}"
+         class="ml-2 px-2.5 py-1.5 rounded-md bg-emerald-900 hover:bg-emerald-800 text-emerald-200 text-xs font-medium">
+        ⚙ Admin
+      </a>
+      {% else %}
+      <a href="{{ url_for('admin.login') }}"
+         class="ml-2 px-2.5 py-1.5 rounded-md border border-emerald-500 hover:bg-emerald-600 transition text-xs text-emerald-100">
+        Connexion
+      </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="max-w-3xl mx-auto px-4 mt-4 w-full space-y-2">
+      {% for cat, msg in messages %}
+      <div class="px-4 py-3 rounded-lg text-sm
+        {% if cat == 'success' %}bg-green-50 text-green-800 border border-green-200
+        {% elif cat == 'danger' %}bg-red-50 text-red-800 border border-red-200
+        {% elif cat == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+        {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
+        {{ msg }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Contenu -->
+  <main class="flex-1 w-full">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer minimaliste -->
+  <footer class="bg-white border-t border-gray-100 mt-12">
+    <div class="max-w-3xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-gray-400">
+      <span>🏡 CommuneSanté · Observatoire citoyen indépendant</span>
+      <div class="flex gap-4">
+        <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
+        <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>
