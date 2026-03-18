@@ -11,39 +11,43 @@ TRANCHES = [
 ]
 
 
-def get_years():
+def get_years(ville_id=1):
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT DISTINCT annee FROM pyramide_ages ORDER BY annee DESC"
+            "SELECT DISTINCT annee FROM pyramide_ages WHERE ville_id = ? ORDER BY annee DESC",
+            (ville_id,)
         ).fetchall()
     return [r["annee"] for r in rows]
 
 
-def get_by_year(annee):
+def get_by_year(annee, ville_id=1):
     with get_db() as conn:
         rows = conn.execute(
             "SELECT tranche, ordre, hommes, femmes FROM pyramide_ages "
-            "WHERE annee = ? ORDER BY ordre",
-            (annee,),
+            "WHERE annee = ? AND ville_id = ? ORDER BY ordre",
+            (annee, ville_id),
         ).fetchall()
     return [dict(r) for r in rows]
 
 
-def upsert_year(annee, data):
+def upsert_year(annee, data, ville_id=1):
     """data : liste de dicts {tranche, ordre, hommes, femmes}."""
     with get_db() as conn:
         for row in data:
             conn.execute(
-                "INSERT INTO pyramide_ages (annee, tranche, ordre, hommes, femmes) "
-                "VALUES (?, ?, ?, ?, ?) "
-                "ON CONFLICT(annee, tranche) DO UPDATE SET "
+                "INSERT INTO pyramide_ages (ville_id, annee, tranche, ordre, hommes, femmes) "
+                "VALUES (?, ?, ?, ?, ?, ?) "
+                "ON CONFLICT(ville_id, annee, tranche) DO UPDATE SET "
                 "hommes=excluded.hommes, femmes=excluded.femmes",
-                (annee, row["tranche"], row["ordre"], row["hommes"], row["femmes"]),
+                (ville_id, annee, row["tranche"], row["ordre"], row["hommes"], row["femmes"]),
             )
         conn.commit()
 
 
-def delete_year(annee):
+def delete_year(annee, ville_id=1):
     with get_db() as conn:
-        conn.execute("DELETE FROM pyramide_ages WHERE annee = ?", (annee,))
+        conn.execute(
+            "DELETE FROM pyramide_ages WHERE annee = ? AND ville_id = ?",
+            (annee, ville_id)
+        )
         conn.commit()

@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Interprétation — Admin CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
+  <h1 class="text-2xl font-bold text-gray-900">Interprétation manuelle</h1>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+  <!-- Formulaire (2/3) -->
+  <div class="lg:col-span-2">
+    <!-- Contexte indicateur -->
+    <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-5">
+      <div class="font-semibold text-blue-900 mb-1">{{ ind.libelle_citoyen }}</div>
+      <div class="text-xs text-blue-600 mb-3">{{ ind.libelle_technique or ind.id }} · {{ ville.nom }} · {{ annee }}</div>
+      <div class="flex gap-6 text-sm text-blue-800">
+        <span><strong>Valeur :</strong> {{ donnee.valeur | format_valeur }} {{ ind.unite }}</span>
+        <span><strong>Année :</strong> {{ annee }}</span>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <form method="POST">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+        <!-- Score -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Score <span class="text-gray-400 font-normal">(optionnel — laissez vide pour utiliser le calcul automatique)</span></label>
+          <div class="flex gap-2">
+            {% for lettre, couleur in [('A','#16a34a'),('B','#65a30d'),('C','#d97706'),('D','#dc2626'),('E','#7f1d1d')] %}
+            <label class="cursor-pointer">
+              <input type="radio" name="score" value="{{ lettre }}"
+                     {% if interp and interp.score == lettre %}checked{% endif %}
+                     class="sr-only peer">
+              <span class="score-badge score-{{ lettre }} peer-checked:ring-2 peer-checked:ring-offset-1 peer-checked:ring-gray-800">{{ lettre }}</span>
+            </label>
+            {% endfor %}
+            <label class="cursor-pointer flex items-center">
+              <input type="radio" name="score" value=""
+                     {% if not interp or not interp.score %}checked{% endif %}
+                     class="sr-only peer">
+              <span class="px-3 py-1 rounded-lg bg-gray-100 text-gray-500 text-sm peer-checked:ring-2 peer-checked:ring-gray-400">Auto</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Phrase courte -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Phrase courte <span class="text-gray-400 font-normal">(max {{ limit_courte }} caractères)</span>
+          </label>
+          <input type="text" name="phrase_courte" id="input-courte"
+                 maxlength="{{ limit_courte }}"
+                 value="{{ interp.phrase_courte if interp and interp.phrase_courte else '' }}"
+                 placeholder="Résumé en une phrase de la situation…"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <div class="text-right text-xs text-gray-400 mt-0.5">
+            <span id="count-courte">{{ (interp.phrase_courte | length) if interp and interp.phrase_courte else 0 }}</span>/{{ limit_courte }}
+          </div>
+        </div>
+
+        <!-- Phrase longue -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Interprétation complète <span class="text-gray-400 font-normal">(max {{ limit_longue }} caractères)</span>
+          </label>
+          <textarea name="phrase_longue" id="input-longue" rows="6"
+                    maxlength="{{ limit_longue }}"
+                    placeholder="Explication détaillée, contexte, comparaison avec la référence…"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y">{{ interp.phrase_longue if interp and interp.phrase_longue else '' }}</textarea>
+          <div class="text-right text-xs text-gray-400 mt-0.5">
+            <span id="count-longue">{{ (interp.phrase_longue | length) if interp and interp.phrase_longue else 0 }}</span>/{{ limit_longue }}
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="submit"
+                  class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition">
+            💾 Enregistrer
+          </button>
+          {% if interp %}
+          <button type="submit" name="phrase_courte" value=""
+                  onclick="document.getElementById('input-courte').value=''; document.getElementById('input-longue').value='';"
+                  class="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium px-4 py-2.5 rounded-lg text-sm transition">
+            Supprimer l'interprétation
+          </button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Aide -->
+  <div class="self-start bg-amber-50 border border-amber-100 rounded-xl p-5">
+    <div class="font-semibold text-amber-900 mb-3">Guide de rédaction</div>
+    <ul class="text-sm text-amber-800 space-y-2 list-disc list-inside">
+      <li>Restez factuel et neutre, sans jugement politique</li>
+      <li>Comparez avec la référence si disponible</li>
+      <li>Utilisez un langage accessible aux non-experts</li>
+      <li>La phrase courte résume en une ligne</li>
+      <li>L'interprétation complète peut contextualiser et expliquer les tendances</li>
+    </ul>
+    {% if interp %}
+    <div class="mt-4 pt-4 border-t border-amber-200">
+      <div class="text-xs text-amber-700">Dernière modification : {{ interp.date_generation | format_date }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  document.getElementById('input-courte').addEventListener('input', function() {
+    document.getElementById('count-courte').textContent = this.value.length;
+  });
+  document.getElementById('input-longue').addEventListener('input', function() {
+    document.getElementById('count-longue').textContent = this.value.length;
+  });
+</script>
+{% endblock %}

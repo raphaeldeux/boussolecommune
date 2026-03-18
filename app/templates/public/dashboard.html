@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}CommuneSanté — Sautron{% endblock %}
+{% block title %}CommuneSanté — {{ ville.nom }}{% endblock %}
 
 {% block content %}
 
 <!-- En-tête -->
 <div class="mb-6 sm:mb-8">
-  <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">CommuneSanté <span class="text-emerald-600">Sautron</span></h1>
+  <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">CommuneSanté <span class="text-emerald-600">{{ ville.nom }}</span></h1>
   <p class="text-gray-600 mt-1 text-sm sm:text-base">
     CommuneSanté est un observatoire citoyen pour suivre en toute transparence la santé communale,
     à partir de données publiques, lisibles par toutes et tous.
@@ -15,15 +15,19 @@
   {% endif %}
 </div>
 
-<!-- Raccourcis portrait + synthèse -->
+<!-- Raccourcis portrait + synthèse + comparer -->
 <div class="flex flex-wrap gap-3 mb-7">
-  <a href="{{ url_for('public.portrait') }}"
+  <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
      class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-emerald-300 hover:text-emerald-700 shadow-sm transition-all">
     🏘️ Portrait de la commune
   </a>
-  <a href="{{ url_for('public.synthese') }}"
+  <a href="{{ url_for('public.synthese', ville_slug=ville.slug) }}"
      class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-emerald-300 hover:text-emerald-700 shadow-sm transition-all">
     📊 Synthèse comparée
+  </a>
+  <a href="{{ url_for('public.comparer') }}"
+     class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:border-emerald-300 hover:text-emerald-700 shadow-sm transition-all">
+    ⚖️ Comparer avec d'autres villes
   </a>
 </div>
 
@@ -45,7 +49,7 @@
     </div>
     <!-- Texte -->
     <div class="text-center sm:text-left flex-1">
-      <div class="text-base sm:text-lg font-semibold text-gray-700">Comment se porte Sautron ?</div>
+      <div class="text-base sm:text-lg font-semibold text-gray-700">Comment se porte {{ ville.nom }} ?</div>
       <div class="text-sm text-gray-500 mt-1">
         Cette note résume la situation de la commune sur 6 grands sujets du quotidien.
       </div>
@@ -55,12 +59,11 @@
         {% endfor %}
         <span class="text-gray-400 text-xs self-center">A = excellent · E = critique</span>
       </div>
-      <!-- Explication dépliable -->
       <details class="mt-3 text-left">
         <summary class="text-xs text-emerald-600 cursor-pointer hover:text-emerald-800 select-none">Comment cette note est-elle calculée ?</summary>
         <div class="mt-2 text-xs text-gray-500 space-y-1 leading-relaxed bg-gray-50 rounded-lg p-3">
-          <p>Chaque indicateur est comparé à des seuils de référence (nationaux ou locaux) et reçoit une note de A à E.</p>
-          <p>Les notes des indicateurs d'une même thématique sont agrégées en une note de thématique, puis les 6 notes de thématique sont pondérées pour former la note globale.</p>
+          <p>Chaque indicateur est comparé à des seuils de référence et reçoit une note de A à E.</p>
+          <p>Les notes des indicateurs d'une même thématique sont agrégées, puis les 6 notes de thématique sont pondérées pour former la note globale.</p>
           <p>Les thématiques finances et cadre de vie ont un poids plus élevé car elles reflètent des responsabilités directes de la commune.</p>
         </div>
       </details>
@@ -108,10 +111,9 @@
 <!-- Grille des 6 thématiques -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
   {% for carte in cartes %}
-  <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
+  <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
      class="carte-theme bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 active:scale-[0.99] transition-all flex flex-col group">
 
-    <!-- En-tête carte -->
     <div class="p-4 sm:p-5 border-b border-gray-100">
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-2.5 min-w-0">
@@ -140,7 +142,6 @@
       </div>
     </div>
 
-    <!-- Indicateurs clés -->
     <div class="px-4 sm:px-5 py-4 flex-1 space-y-3">
       {% if carte.indicateurs_cles %}
         {% for ind in carte.indicateurs_cles %}
@@ -163,7 +164,6 @@
       {% endif %}
     </div>
 
-    <!-- Footer carte -->
     <div class="px-4 sm:px-5 py-3 border-t border-gray-100">
       <span class="text-sm text-emerald-600 group-hover:text-emerald-800 font-medium transition-colors">
         Voir le détail →

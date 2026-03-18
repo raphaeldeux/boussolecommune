@@ -28,12 +28,12 @@ def create_app():
 
     app.jinja_env.globals["csrf_token"] = _csrf_token
 
-    # Vérification CSRF sur tous les POST admin (sauf login géré séparément)
+    # Vérification CSRF sur tous les POST admin (sauf login)
     @app.before_request
     def _check_csrf():
         if request.method == "POST" and request.endpoint and request.endpoint.startswith("admin."):
             if request.endpoint == "admin.login":
-                return  # le login n'a pas encore de session CSRF
+                return
             form_token = request.form.get("_csrf")
             session_token = session.get("_csrf")
             if not form_token or not session_token or form_token != session_token:
@@ -42,7 +42,8 @@ def create_app():
     from app.database import init_db, get_db
     with app.app_context():
         init_db()
-        # Seed automatique au premier démarrage si la table est vide
+
+        # Seed auto des indicateurs si table vide
         conn = get_db()
         nb = conn.execute("SELECT COUNT(*) FROM indicateurs").fetchone()[0]
         conn.close()
@@ -54,6 +55,16 @@ def create_app():
                 seed()
             except Exception as e:
                 print(f"[ERREUR] Auto-seed échoué : {e}", flush=True)
+
+        # Créer le super-admin par défaut si aucun utilisateur n'existe
+        conn = get_db()
+        nb_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        conn.close()
+        if nb_users == 0:
+            from app.config import ADMIN_USERNAME, ADMIN_PASSWORD
+            from app.models.user import create as create_user
+            create_user(ADMIN_USERNAME, ADMIN_PASSWORD, "super_admin")
+            print(f"[INFO] Super-admin créé : {ADMIN_USERNAME}", flush=True)
 
     logging.basicConfig(level=logging.INFO)
 

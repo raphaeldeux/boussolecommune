@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, redirect, url_for, session, request
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
 import app.models.pyramide as pyramide_model
 import app.models.subvention as subvention_model
+import app.models.ville as ville_model
 from app.services.scoring import (
     calculer_score, ajuster_score, calculer_score_thematique, calculer_score_global,
     calculer_tendance, SCORE_COULEURS, SCORE_VALEURS
@@ -12,28 +13,48 @@ from app.services.scoring import (
 bp = Blueprint("public", __name__)
 
 
-def _enrichir_indicateur(ind, annee=None):
+def _get_ville_or_404(slug=None):
+    """Retourne la ville courante depuis le slug ou la session."""
+    if slug:
+        ville = ville_model.get_by_slug(slug)
+        if not ville:
+            abort(404)
+        session["public_ville_id"] = ville["id"]
+        return ville
+
+    # Depuis la session
+    ville_id = session.get("public_ville_id")
+    if ville_id:
+        ville = ville_model.get_by_id(ville_id)
+        if ville and ville["actif"]:
+            return ville
+
+    # Défaut : première ville active
+    ville = ville_model.get_first_active()
+    if ville:
+        session["public_ville_id"] = ville["id"]
+    return ville
+
+
+def _enrichir_indicateur(ind, ville_id=1, annee=None):
     """Ajoute valeur, score, interprétation, tendance à un indicateur."""
-    donnee = donnee_model.get_latest(ind["id"])
+    donnee = donnee_model.get_latest(ind["id"], ville_id)
     if not donnee:
         return {**ind, "donnee": None, "score": None, "interpretation": None, "tendance": None}
 
     annee_donnee = annee or donnee["annee"]
-    donnee_courante = donnee_model.get_by_indicateur_annee(ind["id"], annee_donnee)
+    donnee_courante = donnee_model.get_by_indicateur_annee(ind["id"], annee_donnee, ville_id)
     if not donnee_courante:
         donnee_courante = donnee
 
-    # Pour la tendance, on compare la donnée la plus récente avec la plus ancienne disponible
-    historique = donnee_model.get_by_indicateur(ind["id"])  # trié DESC
+    historique = donnee_model.get_by_indicateur(ind["id"], ville_id)
     donnee_ancienne = historique[-1] if len(historique) > 1 else None
     valeur_ancienne = donnee_ancienne["valeur"] if donnee_ancienne else None
     annee_ancienne = donnee_ancienne["annee"] if donnee_ancienne else None
 
-    # Conserver valeur_n1 pour le service Claude (contexte IA)
-    donnee_n1 = donnee_model.get_by_indicateur_annee(ind["id"], donnee_courante["annee"] - 1)
+    donnee_n1 = donnee_model.get_by_indicateur_annee(ind["id"], donnee_courante["annee"] - 1, ville_id)
     valeur_n1 = donnee_n1["valeur"] if donnee_n1 else None
 
-    # % d'évolution entre la plus ancienne et la plus récente
     pct_evolution = None
     if valeur_ancienne is not None and valeur_ancienne != 0:
         pct_evolution = round(
@@ -41,6 +62,11 @@ def _enrichir_indicateur(ind, annee=None):
         )
 
     tendance = calculer_tendance(donnee_courante["valeur"], valeur_ancienne)
+
+    # Utiliser la référence ville si disponible, sinon la référence globale de l'indicateur
+    from app.models.banque_reference import get_ref_for_indicateur_ville
+    ref_ville = get_ref_for_indicateur_ville(ind["id"], ville_id)
+    valeur_ref = ref_ville["valeur"] if ref_ville else ind.get("valeur_reference")
 
     score = calculer_score(
         donnee_courante["valeur"],
@@ -53,13 +79,11 @@ def _enrichir_indicateur(ind, annee=None):
         score,
         donnee_courante["valeur"],
         valeur_ancienne,
-        ind.get("valeur_reference"),
+        valeur_ref,
         ind.get("sens_positif", "neutre"),
     )
 
-    interpretation = interp_model.get(ind["id"], donnee_courante["annee"])
-    # L'interprétation IA ne remplace le score algorithmique que si celui-ci
-    # est None (sens neutre ou seuils absents).
+    interpretation = interp_model.get(ind["id"], donnee_courante["annee"], ville_id)
     if score is None and interpretation and interpretation.get("score"):
         score = interpretation["score"]
 
@@ -75,11 +99,13 @@ def _enrichir_indicateur(ind, annee=None):
         "annee_ancienne": annee_ancienne,
         "pct_evolution": pct_evolution,
         "historique": historique,
+        "valeur_reference": valeur_ref,
+        "ref_ville": ref_ville,
     }
 
 
-def _build_cartes():
-    """Construit la liste des cartes thématiques enrichies (partagée par dashboard et synthese)."""
+def _build_cartes(ville_id=1):
+    """Construit la liste des cartes thématiques enrichies."""
     thematiques = ind_model.get_thematiques()
     cartes = []
     scores_thematiques = {}
@@ -87,7 +113,7 @@ def _build_cartes():
 
     for them in thematiques:
         indicateurs = ind_model.get_by_thematique(them)
-        enrichis = [_enrichir_indicateur(i) for i in indicateurs]
+        enrichis = [_enrichir_indicateur(i, ville_id) for i in indicateurs]
         renseignes = [e for e in enrichis if e["donnee"]]
 
         score_them = calculer_score_thematique([
@@ -124,12 +150,49 @@ def _build_cartes():
     return cartes, score_global, meilleur, pire
 
 
+# ── Page de sélection des villes ────────────────────────────────────────
+
+@bp.route("/villes")
+def villes():
+    villes_list = ville_model.get_all()
+    # Enrichir avec score global
+    villes_enrichies = []
+    for v in villes_list:
+        _, score_global, _, _ = _build_cartes(v["id"])
+        villes_enrichies.append({
+            **v,
+            "score_global": score_global,
+            "score_couleur": SCORE_COULEURS.get(score_global) or "#9ca3af",
+            "has_data": ville_model.has_data(v["id"]),
+        })
+    return render_template("public/villes.html", villes=villes_enrichies)
+
+
+# ── Dashboard principal ──────────────────────────────────────────────────
+
 @bp.route("/")
-def dashboard():
-    cartes, score_global, meilleur, pire = _build_cartes()
-    derniere_maj = donnee_model.get_derniere_maj()
+def index():
+    """Redirige vers la ville par défaut ou la sélection."""
+    villes_list = ville_model.get_all()
+    if not villes_list:
+        return render_template("public/villes.html", villes=[])
+    if len(villes_list) == 1:
+        return redirect(url_for("public.dashboard", ville_slug=villes_list[0]["slug"]))
+    # Plusieurs villes : utiliser la session ou afficher la sélection
+    ville = _get_ville_or_404()
+    if ville:
+        return redirect(url_for("public.dashboard", ville_slug=ville["slug"]))
+    return redirect(url_for("public.villes"))
+
+
+@bp.route("/v/<ville_slug>/")
+def dashboard(ville_slug):
+    ville = _get_ville_or_404(ville_slug)
+    cartes, score_global, meilleur, pire = _build_cartes(ville["id"])
+    derniere_maj = donnee_model.get_derniere_maj(ville["id"])
     return render_template(
         "public/dashboard.html",
+        ville=ville,
         cartes=cartes,
         score_global=score_global,
         score_global_couleur=SCORE_COULEURS.get(score_global),
@@ -139,14 +202,15 @@ def dashboard():
     )
 
 
-@bp.route("/thematique/<slug>")
-def thematique(slug):
+@bp.route("/v/<ville_slug>/thematique/<slug>")
+def thematique(ville_slug, slug):
+    ville = _get_ville_or_404(ville_slug)
     thematiques_valides = ind_model.get_thematiques()
     if slug not in thematiques_valides:
         abort(404)
 
     indicateurs = ind_model.get_by_thematique(slug)
-    enrichis = [_enrichir_indicateur(i) for i in indicateurs]
+    enrichis = [_enrichir_indicateur(i, ville["id"]) for i in indicateurs]
     renseignes = [e for e in enrichis if e["donnee"]]
 
     score_them = calculer_score_thematique([{"score": e["score"]} for e in renseignes])
@@ -154,24 +218,23 @@ def thematique(slug):
     interpretation_them = None
     if renseignes:
         derniere_annee = max(e["donnee"]["annee"] for e in renseignes)
-        interps = interp_model.get_all_for_thematique(slug, derniere_annee)
+        interps = interp_model.get_all_for_thematique(slug, derniere_annee, ville["id"])
         if interps:
             phrases = [i["phrase_courte"] for i in interps if i.get("phrase_courte")]
             interpretation_them = phrases[0] if phrases else None
 
-    # Subventions (seulement pour lien_social)
     subventions_years = []
     subventions_lignes = []
     subventions_totaux = []
     subventions_total = 0
     subventions_annee = None
     if slug == "lien_social":
-        subventions_years = subvention_model.get_years()
+        subventions_years = subvention_model.get_years(ville["id"])
         if subventions_years:
             subventions_annee = subventions_years[0]
-            subventions_lignes = subvention_model.get_by_year(subventions_annee)
-            subventions_totaux = subvention_model.get_totaux_par_domaine(subventions_annee)
-            subventions_total = subvention_model.get_total(subventions_annee)
+            subventions_lignes = subvention_model.get_by_year(subventions_annee, ville["id"])
+            subventions_totaux = subvention_model.get_totaux_par_domaine(subventions_annee, ville["id"])
+            subventions_total = subvention_model.get_total(subventions_annee, ville["id"])
 
     nav_thematiques = [
         {
@@ -184,6 +247,7 @@ def thematique(slug):
 
     return render_template(
         "public/thematique.html",
+        ville=ville,
         slug=slug,
         label=ind_model.THEMATIQUE_LABELS[slug],
         question=ind_model.THEMATIQUE_QUESTIONS[slug],
@@ -202,14 +266,16 @@ def thematique(slug):
     )
 
 
-@bp.route("/synthese")
-def synthese():
-    cartes, score_global, _, _ = _build_cartes()
+@bp.route("/v/<ville_slug>/synthese")
+def synthese(ville_slug):
+    ville = _get_ville_or_404(ville_slug)
+    cartes, score_global, _, _ = _build_cartes(ville["id"])
     radar_labels = [c["label"] for c in cartes]
     radar_values = [SCORE_VALEURS.get(c["score"], 0) for c in cartes]
     radar_colors = [c["score_couleur"] for c in cartes]
     return render_template(
         "public/synthese.html",
+        ville=ville,
         cartes=cartes,
         score_global=score_global,
         score_global_couleur=SCORE_COULEURS.get(score_global) or "#9ca3af",
@@ -219,16 +285,17 @@ def synthese():
     )
 
 
-@bp.route("/portrait")
-def portrait():
+@bp.route("/v/<ville_slug>/portrait")
+def portrait(ville_slug):
+    ville = _get_ville_or_404(ville_slug)
     portrait_inds = ind_model.get_by_thematique("portrait")
     stats = []
     for ind in portrait_inds:
-        donnee = donnee_model.get_latest(ind["id"])
+        donnee = donnee_model.get_latest(ind["id"], ville["id"])
         pct_evolution = None
         annee_ancienne = None
         if donnee:
-            hist = donnee_model.get_by_indicateur(ind["id"])
+            hist = donnee_model.get_by_indicateur(ind["id"], ville["id"])
             if len(hist) > 1:
                 ancienne = hist[-1]
                 annee_ancienne = ancienne["annee"]
@@ -238,18 +305,18 @@ def portrait():
                     )
         stats.append({**ind, "donnee": donnee, "pct_evolution": pct_evolution, "annee_ancienne": annee_ancienne})
 
-    from flask import request as _req
-    years = pyramide_model.get_years()
-    annee_sel = _req.args.get("annee", years[0] if years else None)
+    years = pyramide_model.get_years(ville["id"])
+    annee_sel = request.args.get("annee", years[0] if years else None)
     if annee_sel:
         try:
             annee_sel = int(annee_sel)
         except (ValueError, TypeError):
             annee_sel = years[0] if years else None
-    pyramide_rows = pyramide_model.get_by_year(annee_sel) if annee_sel else []
+    pyramide_rows = pyramide_model.get_by_year(annee_sel, ville["id"]) if annee_sel else []
 
     return render_template(
         "public/portrait.html",
+        ville=ville,
         stats=stats,
         pyramide_years=years,
         pyramide_annee=annee_sel,
@@ -257,62 +324,46 @@ def portrait():
     )
 
 
+# ── Comparaison entre villes ────────────────────────────────────────────
 
-@bp.route("/api/chat", methods=["POST"])
-def chat():
-    from flask import request, jsonify
-    from app.config import ANTHROPIC_API_KEY
+@bp.route("/comparer")
+def comparer():
+    villes_list = ville_model.get_all()
+    # Filtrer les villes avec données
+    villes_avec_data = [v for v in villes_list if ville_model.has_data(v["id"])]
 
-    if not ANTHROPIC_API_KEY:
-        return jsonify({"error": "Service non disponible"}), 503
+    slugs_sel = request.args.getlist("v")
+    villes_sel = []
+    comparaison = []
 
-    payload = request.get_json(silent=True)
-    if not payload or not payload.get("message"):
-        return jsonify({"error": "Message requis"}), 400
+    if slugs_sel:
+        for slug in slugs_sel[:4]:  # max 4 villes
+            v = ville_model.get_by_slug(slug)
+            if v and ville_model.has_data(v["id"]):
+                villes_sel.append(v)
 
-    message = payload["message"].strip()[:600]
-    history = payload.get("history", [])
-    # Garde au plus les 6 derniers messages (3 échanges)
-    history = [h for h in history if h.get("role") in ("user", "assistant")][-6:]
+    if len(villes_sel) >= 2:
+        thematiques = ind_model.get_thematiques()
+        # Score global par ville
+        for v in villes_sel:
+            cartes, score_global, _, _ = _build_cartes(v["id"])
+            scores_them = {c["slug"]: {"score": c["score"], "couleur": c["score_couleur"]} for c in cartes}
+            comparaison.append({
+                "ville": v,
+                "score_global": score_global,
+                "score_global_couleur": SCORE_COULEURS.get(score_global) or "#9ca3af",
+                "scores_thematiques": scores_them,
+            })
 
-    # Contexte : tous les indicateurs avec leur dernière valeur
-    lignes_ctx = [
-        "Données actuelles de la commune de Sautron (Loire-Atlantique, ~8 600 hab.) :\n"
-    ]
-    for them in ind_model.get_thematiques():
-        lignes_ctx.append(f"### {ind_model.THEMATIQUE_LABELS[them]}")
-        for ind in ind_model.get_by_thematique(them):
-            d = donnee_model.get_latest(ind["id"])
-            if d:
-                ligne = f"- {ind['libelle_citoyen']} : {d['valeur']} {ind.get('unite','')} ({d['annee']})"
-                interp = interp_model.get(ind["id"], d["annee"])
-                if interp and interp.get("phrase_courte"):
-                    ligne += f" → {interp['phrase_courte']}"
-                lignes_ctx.append(ligne)
-            else:
-                lignes_ctx.append(f"- {ind['libelle_citoyen']} : donnée non disponible")
-        lignes_ctx.append("")
-
-    system = (
-        "Tu es un assistant citoyen pour la commune de Sautron (Loire-Atlantique). "
-        "Tu réponds aux questions des citoyens sur la gestion et les indicateurs de leur commune. "
-        "Ton ton est simple, accessible et bienveillant. Tu es honnête sur les limites des données. "
-        "Tu ne portes aucun jugement politique. Tu réponds en français, de façon concise.\n\n"
-        + "\n".join(lignes_ctx)
+    return render_template(
+        "public/comparer.html",
+        villes=villes_avec_data,
+        villes_sel=villes_sel,
+        comparaison=comparaison,
+        thematiques=ind_model.get_thematiques(),
+        thematique_labels=ind_model.THEMATIQUE_LABELS,
+        thematique_icons=ind_model.THEMATIQUE_ICONS,
     )
-
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        resp = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=512,
-            system=system,
-            messages=history + [{"role": "user", "content": message}],
-        )
-        return jsonify({"response": resp.content[0].text})
-    except Exception:
-        return jsonify({"error": "Erreur lors de la génération de la réponse."}), 500
 
 
 @bp.route("/methodologie")

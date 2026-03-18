@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Synthèse · CommuneSanté Sautron{% endblock %}
+{% block title %}Synthèse · CommuneSanté {{ ville.nom }}{% endblock %}
 
 {% block content %}
 <!-- En-tête -->
@@ -44,7 +44,7 @@
 <!-- Grille des 6 cartes thématiques -->
 <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
   {% for carte in cartes %}
-  <a href="{{ url_for('public.thematique', slug=carte.slug) }}"
+  <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
      class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 flex flex-col items-center text-center gap-3 hover:shadow-md hover:border-gray-200 transition group">
 
     <!-- Icône -->

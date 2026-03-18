@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Choisir une ville — CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="mb-8 text-center">
+  <h1 class="text-3xl font-bold text-gray-900 mb-2">CommuneSanté</h1>
+  <p class="text-gray-500">Sélectionnez une commune pour consulter ses indicateurs de santé communale.</p>
+</div>
+
+{% if villes %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+  {% for v in villes %}
+  <a href="{{ url_for('public.dashboard', ville_slug=v.slug) }}"
+     class="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md hover:border-emerald-200 transition-all p-6 flex flex-col">
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <div>
+        <div class="font-bold text-gray-900 text-lg">{{ v.nom }}</div>
+        {% if v.population %}
+        <div class="text-sm text-gray-400 mt-0.5">{{ v.population | format_valeur }} habitants</div>
+        {% endif %}
+      </div>
+      {% if v.score_global %}
+      <div class="score-badge score-badge-lg score-{{ v.score_global }} flex-shrink-0">{{ v.score_global }}</div>
+      {% else %}
+      <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold flex-shrink-0">—</div>
+      {% endif %}
+    </div>
+    {% if not v.has_data %}
+    <div class="text-xs text-amber-500 italic mt-auto">Données à venir</div>
+    {% else %}
+    <div class="text-sm text-emerald-600 font-medium mt-auto">Voir les indicateurs →</div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div class="text-center py-16 text-gray-400">
+  <div class="text-5xl mb-4">🏙️</div>
+  <p>Aucune commune n'est encore configurée.</p>
+</div>
+{% endif %}
+
+<div class="mt-8 text-center">
+  <a href="{{ url_for('public.comparer') }}"
+     class="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition-all">
+    ⚖️ Comparer des communes
+  </a>
+</div>
+{% endblock %}

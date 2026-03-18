@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Gestion des villes — Admin CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <div class="flex items-center gap-3">
+    <a href="{{ url_for('admin.dashboard') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
+    <h1 class="text-2xl font-bold text-gray-900">Gestion des villes</h1>
+  </div>
+  <a href="{{ url_for('admin.nouvelle_ville') }}"
+     class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+    + Nouvelle ville
+  </a>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr>
+        <th class="text-left px-4 py-3 text-gray-500 font-medium">Nom</th>
+        <th class="text-left px-4 py-3 text-gray-500 font-medium">Slug</th>
+        <th class="text-center px-3 py-3 text-gray-500 font-medium">Population</th>
+        <th class="text-center px-3 py-3 text-gray-500 font-medium">Statut</th>
+        <th class="text-center px-3 py-3 text-gray-500 font-medium">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for v in villes %}
+      <tr class="hover:bg-gray-50 {% if not v.actif %}opacity-50{% endif %}">
+        <td class="px-4 py-3 font-medium text-gray-800">{{ v.nom }}</td>
+        <td class="px-4 py-3 text-gray-500 font-mono text-xs">{{ v.slug }}</td>
+        <td class="px-3 py-3 text-center text-gray-600">
+          {{ v.population | format_valeur if v.population else '—' }} hab.
+        </td>
+        <td class="px-3 py-3 text-center">
+          {% if v.actif %}
+          <span class="text-green-600 text-xs bg-green-50 px-2 py-0.5 rounded-full">Active</span>
+          {% else %}
+          <span class="text-gray-400 text-xs bg-gray-100 px-2 py-0.5 rounded-full">Inactive</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-center">
+          <a href="{{ url_for('admin.modifier_ville', ville_id=v.id) }}"
+             class="text-blue-500 hover:underline text-xs">Modifier</a>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="5" class="px-4 py-8 text-center text-gray-400">Aucune ville configurée.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

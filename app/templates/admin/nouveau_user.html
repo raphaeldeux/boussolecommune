@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Nouvel utilisateur — Admin CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="{{ url_for('admin.users') }}" class="text-gray-400 hover:text-gray-600">← Retour</a>
+  <h1 class="text-2xl font-bold text-gray-900">Nouvel utilisateur</h1>
+</div>
+
+<div class="max-w-lg">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <form method="POST">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nom d'utilisateur *</label>
+        <input type="text" name="username" required
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe *</label>
+        <input type="password" name="password" required minlength="6"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Rôle *</label>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="role" value="gestionnaire" checked class="text-emerald-600">
+            <span class="text-sm text-gray-700">Gestionnaire de ville</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="role" value="super_admin" class="text-emerald-600">
+            <span class="text-sm text-gray-700">Super administrateur</span>
+          </label>
+        </div>
+      </div>
+      <div class="mb-6" id="villes-section">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Villes assignées</label>
+        <div class="space-y-2">
+          {% for v in villes %}
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" name="ville_ids" value="{{ v.id }}" class="text-emerald-600 rounded">
+            <span class="text-sm text-gray-700">{{ v.nom }}</span>
+          </label>
+          {% else %}
+          <p class="text-sm text-gray-400">Aucune ville disponible. <a href="{{ url_for('admin.nouvelle_ville') }}" class="text-emerald-600 hover:underline">Créer une ville</a></p>
+          {% endfor %}
+        </div>
+      </div>
+      <button type="submit"
+              class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+        Créer l'utilisateur
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('input[name="role"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      document.getElementById('villes-section').style.display =
+        this.value === 'gestionnaire' ? 'block' : 'none';
+    });
+  });
+</script>
+{% endblock %}

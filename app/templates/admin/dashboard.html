@@ -2,8 +2,13 @@
 {% block title %}Dashboard admin — CommuneSanté{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-  <h1 class="text-2xl font-bold text-gray-900">Administration</h1>
+<div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Administration</h1>
+    {% if ville %}
+    <p class="text-sm text-gray-500 mt-0.5">Ville : <strong>{{ ville.nom }}</strong></p>
+    {% endif %}
+  </div>
   <div class="flex gap-2 flex-wrap">
     <a href="{{ url_for('admin.saisie') }}"
        class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
@@ -24,6 +29,23 @@
   </div>
 </div>
 
+<!-- Sélecteur de ville (si plusieurs disponibles) -->
+{% if user_villes and user_villes|length > 1 %}
+<div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 flex items-center gap-3 flex-wrap">
+  <span class="text-sm text-blue-700 font-medium">Changer de ville :</span>
+  {% for v in user_villes %}
+  <form method="POST" action="{{ url_for('admin.set_ville', ville_id=v.id) }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit"
+            class="px-3 py-1.5 rounded-lg text-sm border transition
+              {% if ville and v.id == ville.id %}bg-blue-700 text-white border-blue-700{% else %}bg-white text-blue-700 border-blue-200 hover:bg-blue-100{% endif %}">
+      {{ v.nom }}
+    </button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+
 {% for them in stats %}
 <div class="mb-8">
   <div class="flex items-center gap-2 mb-3">
@@ -39,7 +61,7 @@
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Score</th>
-          <th class="text-center px-3 py-2 text-gray-500 font-medium">Claude</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Interprétation</th>
           <th class="text-center px-3 py-2 text-gray-500 font-medium">Actions</th>
         </tr>
       </thead>
@@ -65,9 +87,9 @@
           </td>
           <td class="px-3 py-3 text-center">
             {% if ind.interp_statut == 'ok' %}
-            <span class="text-green-600 text-xs">✓ OK</span>
+            <span class="text-green-600 text-xs">✓ Rédigée</span>
             {% elif ind.interp_statut == 'en_attente' %}
-            <span class="text-amber-500 text-xs">⏳ En attente</span>
+            <span class="text-amber-500 text-xs">⏳ À rédiger</span>
             {% else %}
             <span class="text-gray-300 text-xs">—</span>
             {% endif %}
@@ -76,13 +98,10 @@
             {% if ind.donnee %}
             <a href="{{ url_for('admin.saisie') }}?ind={{ ind.id }}&annee={{ ind.donnee.annee }}"
                class="text-amber-600 hover:underline text-xs mr-2">Modifier</a>
-            <form method="POST" action="{{ url_for('admin.regenerer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
-                  class="inline" onsubmit="return confirm('Régénérer l\'interprétation ?')">
-              <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-              <button type="submit" class="text-blue-500 hover:underline text-xs">Régénérer</button>
-            </form>
+            <a href="{{ url_for('admin.interpretation', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
+               class="text-blue-500 hover:underline text-xs mr-2">Interprétation</a>
             <form method="POST" action="{{ url_for('admin.supprimer', indicateur_id=ind.id, annee=ind.donnee.annee) }}"
-                  class="inline ml-2" onsubmit="return confirm('Supprimer la donnée {{ ind.donnee.annee }} pour « {{ ind.libelle_citoyen | truncate(30) }} » ? Cette action est irréversible.')">
+                  class="inline" onsubmit="return confirm('Supprimer la donnée {{ ind.donnee.annee }} pour « {{ ind.libelle_citoyen | truncate(30) }} » ? Cette action est irréversible.')">
               <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
               <button type="submit" class="text-red-400 hover:text-red-600 hover:underline text-xs">Supprimer</button>
             </form>

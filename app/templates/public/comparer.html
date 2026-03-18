@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Comparer des communes — CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Comparer des communes</h1>
+  <p class="text-gray-500 text-sm mt-1">Sélectionnez 2 à 4 communes pour comparer leurs indicateurs côte à côte.</p>
+</div>
+
+<!-- Sélecteur de villes -->
+<form method="GET" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+    {% for v in villes %}
+    <label class="flex items-center gap-2 cursor-pointer p-3 rounded-lg border border-gray-100 hover:border-emerald-200 transition">
+      <input type="checkbox" name="v" value="{{ v.slug }}"
+             {% if v in villes_sel %}checked{% endif %}
+             class="text-emerald-600 rounded">
+      <span class="text-sm font-medium text-gray-700">{{ v.nom }}</span>
+    </label>
+    {% else %}
+    <p class="text-gray-400 text-sm col-span-4">Aucune commune avec des données disponibles.</p>
+    {% endfor %}
+  </div>
+  <button type="submit"
+          class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-medium transition">
+    Comparer
+  </button>
+</form>
+
+{% if villes_sel and villes_sel|length < 2 %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700">
+  Veuillez sélectionner au moins 2 communes pour afficher la comparaison.
+</div>
+{% endif %}
+
+{% if comparaison and comparaison|length >= 2 %}
+
+<!-- Score global -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-5">
+  <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+    <h2 class="font-semibold text-gray-700">Score global</h2>
+  </div>
+  <div class="p-5 grid gap-4" style="grid-template-columns: repeat({{ comparaison|length }}, minmax(0,1fr))">
+    {% for c in comparaison %}
+    <div class="text-center">
+      <div class="font-bold text-gray-900 mb-2">{{ c.ville.nom }}</div>
+      {% if c.score_global %}
+      <div class="score-badge score-badge-lg score-{{ c.score_global }} mx-auto">{{ c.score_global }}</div>
+      {% else %}
+      <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold mx-auto">—</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Scores par thématique -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+    <h2 class="font-semibold text-gray-700">Scores par thématique</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-100">
+        <tr>
+          <th class="text-left px-4 py-3 text-gray-500 font-medium w-48">Thématique</th>
+          {% for c in comparaison %}
+          <th class="text-center px-4 py-3 text-gray-500 font-medium">{{ c.ville.nom }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for them in thematiques %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 font-medium text-gray-700">
+            {{ thematique_icons[them] }} {{ thematique_labels[them] }}
+          </td>
+          {% for c in comparaison %}
+          <td class="px-4 py-3 text-center">
+            {% set s = c.scores_thematiques.get(them) %}
+            {% if s and s.score %}
+            <span class="score-badge score-{{ s.score }}">{{ s.score }}</span>
+            {% else %}
+            <span class="text-gray-300">—</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Liens vers chaque ville -->
+<div class="mt-5 flex flex-wrap gap-3">
+  {% for c in comparaison %}
+  <a href="{{ url_for('public.dashboard', ville_slug=c.ville.slug) }}"
+     class="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition">
+    Voir {{ c.ville.nom }} en détail →
+  </a>
+  {% endfor %}
+</div>
+
+{% endif %}
+{% endblock %}
