@@ -80,6 +80,32 @@ def init_db():
             date_import TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             statut TEXT CHECK(statut IN ('succes','partiel','echec'))
         );
+
+        -- Référentiel COG INSEE (~35 000 communes)
+        CREATE TABLE IF NOT EXISTS communes (
+            code_insee      TEXT PRIMARY KEY,
+            nom             TEXT NOT NULL,
+            nom_normalise   TEXT NOT NULL,
+            departement_code TEXT,
+            departement_nom  TEXT,
+            population      INTEGER,
+            slug            TEXT UNIQUE
+        );
+
+        -- Score global dénormalisé pour l'autocomplétion
+        CREATE TABLE IF NOT EXISTS scores_globaux (
+            code_insee  TEXT PRIMARY KEY REFERENCES communes(code_insee) ON DELETE CASCADE,
+            score       TEXT CHECK(score IN ('A','B','C','D','E')),
+            date_calcul TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        -- Communes mises en avant sur la page d'accueil
+        CREATE TABLE IF NOT EXISTS communes_vedette (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            code_insee  TEXT REFERENCES communes(code_insee) ON DELETE CASCADE,
+            ordre       INTEGER DEFAULT 0,
+            actif       INTEGER DEFAULT 1
+        );
     """)
     conn.commit()
     conn.close()
@@ -89,6 +115,23 @@ def init_db():
     conn.execute(
         "INSERT OR IGNORE INTO villes (id, nom, slug, population) VALUES (1, 'Sautron', 'sautron', 8600)"
     )
+    conn.commit()
+    conn.close()
+
+    # Migration: ajouter code_insee à villes (US-001)
+    conn = get_db()
+    villes_cols = [r[1] for r in conn.execute("PRAGMA table_info(villes)").fetchall()]
+    if 'code_insee' not in villes_cols:
+        try:
+            conn.execute("ALTER TABLE villes ADD COLUMN code_insee TEXT")
+            conn.commit()
+        except Exception:
+            pass
+    conn.close()
+
+    # Index perf pour l'autocomplétion (US-001)
+    conn = get_db()
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_communes_nom ON communes(nom_normalise)")
     conn.commit()
     conn.close()
 

@@ -1,10 +1,11 @@
-from flask import Blueprint, render_template, abort, redirect, url_for, session, request
+from flask import Blueprint, render_template, abort, redirect, url_for, session, request, jsonify
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
 import app.models.pyramide as pyramide_model
 import app.models.subvention as subvention_model
 import app.models.ville as ville_model
+import app.models.commune as commune_model
 from app.services.scoring import (
     calculer_score, ajuster_score, calculer_score_thematique, calculer_score_global,
     calculer_tendance, SCORE_COULEURS, SCORE_VALEURS
@@ -172,17 +173,64 @@ def villes():
 
 @bp.route("/")
 def index():
-    """Redirige vers la ville par défaut ou la sélection."""
-    villes_list = ville_model.get_all()
-    if not villes_list:
-        return render_template("public/villes.html", villes=[])
-    if len(villes_list) == 1:
-        return redirect(url_for("public.dashboard", ville_slug=villes_list[0]["slug"]))
-    # Plusieurs villes : utiliser la session ou afficher la sélection
-    ville = _get_ville_or_404()
+    """Page d'accueil avec recherche de communes."""
+    vedettes = commune_model.get_vedettes()
+    nb_communes = commune_model.count_dans_base()
+    nb_indicateurs = commune_model.count_indicateurs()
+    return render_template(
+        "public/index.html",
+        vedettes=vedettes,
+        nb_communes=nb_communes,
+        nb_indicateurs=nb_indicateurs,
+        score_couleurs=SCORE_COULEURS,
+    )
+
+
+@bp.route("/recherche")
+def recherche():
+    """Recherche de communes sans JS (fallback GET form)."""
+    q = request.args.get("q", "").strip()
+    resultats = []
+    if len(q) >= 2:
+        if commune_model.is_empty():
+            resultats = commune_model.search_fallback(q, limit=20)
+        else:
+            resultats = commune_model.search(q, limit=20)
+    return render_template(
+        "public/recherche.html",
+        q=q,
+        resultats=resultats,
+        score_couleurs=SCORE_COULEURS,
+    )
+
+
+@bp.route("/api/recherche")
+def api_recherche():
+    """API JSON pour l'autocomplétion."""
+    q = request.args.get("q", "").strip()
+    if len(q) < 2:
+        return jsonify([])
+    if commune_model.is_empty():
+        resultats = commune_model.search_fallback(q)
+    else:
+        resultats = commune_model.search(q)
+    return jsonify(resultats)
+
+
+@bp.route("/commune/<slug>")
+def commune(slug):
+    """Page d'une commune : redirige vers dashboard si gérée, sinon page 'bientôt'."""
+    commune_data = commune_model.get_by_slug(slug)
+    if not commune_data:
+        abort(404)
+    # Vérifier si la commune a une ville gérée associée
+    ville = None
+    if commune_data.get("code_insee"):
+        ville = ville_model.get_by_code_insee(commune_data["code_insee"])
     if ville:
         return redirect(url_for("public.dashboard", ville_slug=ville["slug"]))
-    return redirect(url_for("public.villes"))
+    # Commune présente dans le référentiel mais pas encore gérée
+    return render_template("public/commune_bientot.html", commune=commune_data)
 
 
 @bp.route("/v/<ville_slug>/")

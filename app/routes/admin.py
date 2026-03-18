@@ -919,3 +919,29 @@ def supprimer_banque_reference(ref_id):
         banque_ref_model.delete(ref_id)
         flash(f"Référence « {ref['nom']} » supprimée.", "success")
     return redirect(url_for("admin.banque_references"))
+
+
+# ── Communes en vedette (super_admin) ─────────────────────────────────────
+
+import app.models.commune as commune_model
+
+
+@bp.route("/communes-vedette", methods=["GET", "POST"])
+@super_admin_required
+def communes_vedette():
+    if request.method == "POST":
+        codes = [
+            request.form.get("code_1", "").strip(),
+            request.form.get("code_2", "").strip(),
+            request.form.get("code_3", "").strip(),
+        ]
+        commune_model.set_vedettes([c for c in codes if c])
+        flash("Communes en vedette mises à jour.", "success")
+        return redirect(url_for("admin.communes_vedette"))
+
+    vedettes = commune_model.get_all_vedettes()
+    # Pré-remplir les 3 emplacements
+    slots = [None, None, None]
+    for i, v in enumerate(vedettes[:3]):
+        slots[i] = v
+    return render_template("admin/communes_vedette.html", slots=slots)

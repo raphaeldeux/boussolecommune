@@ -53,6 +53,13 @@ def get_first_active():
     return dict(row) if row else None
 
 
+def get_by_code_insee(code_insee: str):
+    conn = get_db()
+    row = conn.execute("SELECT * FROM villes WHERE code_insee = ? AND actif = 1", (code_insee,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
 def has_data(ville_id):
     """Vérifie si une ville a des données publiées."""
     conn = get_db()

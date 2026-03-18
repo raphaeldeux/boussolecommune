@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ commune.nom }} — CommuneSanté{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-16 text-center">
+  <div class="text-5xl mb-4">🏗️</div>
+  <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ commune.nom }}</h1>
+  {% if commune.departement_nom %}
+  <p class="text-gray-400 text-sm mb-6">{{ commune.departement_nom }}{% if commune.departement_code %} ({{ commune.departement_code }}){% endif %}</p>
+  {% endif %}
+
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-left">
+    <h2 class="text-lg font-semibold text-gray-800 mb-2">Données à venir</h2>
+    <p class="text-gray-500 text-sm">
+      Les indicateurs de santé et de bien-être pour <strong>{{ commune.nom }}</strong>
+      ne sont pas encore disponibles sur CommuneSanté.
+    </p>
+    <p class="text-gray-500 text-sm mt-3">
+      Vous êtes un élu ou un agent de cette commune ?
+      <a href="mailto:contact@communesante.fr" class="text-emerald-600 hover:underline">Contactez-nous</a>
+      pour intégrer votre commune à la plateforme.
+    </p>
+  </div>
+
+  <div class="mt-8 flex justify-center gap-4">
+    <a href="{{ url_for('public.index') }}"
+       class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition">
+      ← Retour à l'accueil
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -163,6 +163,11 @@
                {% if request.endpoint in ('admin.banque_references',) %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             🏛️ Banque de réf.
           </a>
+          <a href="{{ url_for('admin.communes_vedette') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.communes_vedette' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            ⭐ Communes vedette
+          </a>
         </div>
         {% endif %}
 

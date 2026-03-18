@@ -1,0 +1,67 @@
+{% extends "admin_base.html" %}
+{% block title %}Communes en vedette — Admin CommuneSanté{% endblock %}
+{% block breadcrumb %} › <span class="text-gray-800 font-medium">Communes en vedette</span>{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-2">Communes en vedette</h1>
+<p class="text-sm text-gray-500 mb-6">Choisissez jusqu'à 3 communes à afficher sur la page d'accueil publique.</p>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-xl">
+  <form method="POST">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+
+    {% for i in range(3) %}
+    {% set slot = slots[i] %}
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Commune {{ i + 1 }}</label>
+      <div class="flex gap-2 items-center">
+        <input type="text"
+               name="code_{{ i + 1 }}"
+               value="{{ slot.code_insee if slot else '' }}"
+               placeholder="Code INSEE (ex: 44195)"
+               class="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        {% if slot %}
+        <span class="text-xs text-gray-500 whitespace-nowrap">{{ slot.nom }}{% if slot.departement_code %} ({{ slot.departement_code }}){% endif %}</span>
+        {% endif %}
+      </div>
+      <p class="text-xs text-gray-400 mt-1">Laissez vide pour désactiver cet emplacement.</p>
+    </div>
+    {% endfor %}
+
+    <div class="flex gap-3 mt-6">
+      <button type="submit"
+              class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition">
+        💾 Enregistrer
+      </button>
+      <a href="{{ url_for('admin.dashboard') }}"
+         class="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition">
+        Annuler
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Aperçu de la page d'accueil -->
+<div class="mt-8">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Aperçu actuel</h2>
+  {% if slots | selectattr('code_insee') | list %}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+    {% for slot in slots %}
+    {% if slot %}
+    <div class="bg-white rounded-xl border border-gray-200 p-4">
+      <div class="font-semibold text-gray-800">{{ slot.nom }}</div>
+      <div class="text-xs text-gray-400">{{ slot.departement_nom or '' }}{% if slot.departement_code %} ({{ slot.departement_code }}){% endif %}</div>
+      <div class="text-xs text-gray-400 mt-1">INSEE : {{ slot.code_insee }}</div>
+    </div>
+    {% else %}
+    <div class="bg-gray-50 rounded-xl border border-dashed border-gray-200 p-4 text-center text-gray-300 text-sm">
+      Vide
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-sm text-gray-400 italic">Aucune commune en vedette configurée.</p>
+  {% endif %}
+</div>
+{% endblock %}
