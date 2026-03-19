@@ -378,6 +378,39 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Migration: élargir le CHECK mode_saisie pour inclure 'api'
+    conn = get_db()
+    try:
+        # SQLite ne supporte pas ALTER TABLE pour modifier une contrainte CHECK.
+        # On recrée la table donnees avec le nouveau CHECK.
+        check_val = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='donnees'"
+        ).fetchone()
+        if check_val and "'api'" not in check_val[0]:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS donnees_migration (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    indicateur_id TEXT NOT NULL REFERENCES indicateurs(id),
+                    ville_id INTEGER NOT NULL DEFAULT 1,
+                    annee INTEGER NOT NULL,
+                    valeur REAL,
+                    source TEXT,
+                    commentaire TEXT,
+                    date_saisie TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    mode_saisie TEXT CHECK(mode_saisie IN ('csv', 'manuel', 'api')),
+                    UNIQUE(indicateur_id, annee, ville_id)
+                );
+                INSERT OR IGNORE INTO donnees_migration
+                    SELECT id, indicateur_id, ville_id, annee, valeur, source, commentaire, date_saisie, mode_saisie
+                    FROM donnees;
+                DROP TABLE donnees;
+                ALTER TABLE donnees_migration RENAME TO donnees;
+            """)
+            conn.commit()
+    except Exception:
+        pass
+    conn.close()
+
     # Migration: ajouter colonne thematique à subventions
     conn = get_db()
     sub_cols = [r[1] for r in conn.execute("PRAGMA table_info(subventions)").fetchall()]
