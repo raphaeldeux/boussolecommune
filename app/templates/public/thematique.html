@@ -50,245 +50,122 @@
   </div>
 </div>
 
-<!-- Liste des indicateurs -->
-<div class="space-y-4 sm:space-y-6">
-  {% for ind in indicateurs %}
-  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+{# ─── Triptyque par score ──────────────────────────────────────────────────── #}
 
-    {% if ind.donnee %}
-    <!-- Indicateur renseigné -->
-    <div class="p-4 sm:p-5">
-
-      <!-- Titre (pleine largeur) -->
-      <div class="mb-3">
-        <div class="font-semibold text-gray-900 text-base sm:text-lg leading-tight">{{ ind.libelle_citoyen }}</div>
-        {% if ind.libelle_technique %}
-        <div class="text-xs text-gray-400 mt-0.5">{{ ind.libelle_technique }}</div>
-        {% endif %}
-      </div>
-
-      <!-- Valeur (gauche) · Tendance + Score (droite) -->
-      <div class="flex items-center justify-between gap-3">
-        <!-- Gauche : valeur -->
-        <div>
-          <div class="text-xl sm:text-2xl font-bold text-gray-800 leading-tight">
-            {{ ind.donnee.valeur | format_valeur }}
-            <span class="text-sm font-normal text-gray-500">{{ ind.unite }}</span>
-          </div>
-          <div class="text-xs text-gray-400">{{ ind.donnee.annee }}</div>
-        </div>
-
-        <!-- Droite : tendance + score -->
-        <div class="flex items-center gap-3 flex-shrink-0">
-          {% if ind.tendance and ind.valeur_ancienne is not none %}
-          {% set hausse_bonne = ind.sens_positif == 'haut' %}
-          {% set tendance_bonne = (ind.tendance == '↗' and hausse_bonne) or (ind.tendance == '↘' and not hausse_bonne and ind.sens_positif != 'neutre') %}
-          {% set tendance_mauvaise = (ind.tendance == '↘' and hausse_bonne) or (ind.tendance == '↗' and not hausse_bonne and ind.sens_positif != 'neutre') %}
-          <div class="text-right">
-            <div class="text-lg sm:text-xl {% if tendance_bonne %}text-green-600{% elif tendance_mauvaise %}text-red-500{% else %}text-gray-400{% endif %} font-bold leading-none">
-              {{ ind.tendance }}
-              {% if ind.pct_evolution is not none %}
-              <span class="text-xs sm:text-sm font-semibold">{% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%</span>
-              {% endif %}
-            </div>
-            <div class="text-xs text-gray-400 mt-0.5 whitespace-nowrap">{{ ind.annee_ancienne }} → {{ ind.donnee.annee }}</div>
-          </div>
-          {% endif %}
-
-          {% if ind.score %}
-          <div class="score-badge score-badge-lg score-{{ ind.score }}">{{ ind.score }}</div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Comparaison communes similaires -->
-      {% if ind.valeur_reference and ind.donnee %}
-      {% set v_ville = ind.donnee.valeur %}
-      {% set v_ref = ind.valeur_reference %}
-      {% set v_max = [v_ville, v_ref] | max %}
-      {% set pct_s = ((v_ville / v_max) * 100) | round(1) if v_max > 0 else 0 %}
-      {% set pct_r = ((v_ref     / v_max) * 100) | round(1) if v_max > 0 else 0 %}
-      {% set ecart = (((v_ville - v_ref) / v_ref) * 100) | round(1) if v_ref != 0 else 0 %}
-      <div class="mt-4 bg-gray-50 rounded-lg px-3 sm:px-4 py-3 text-sm">
-        <div class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Comparaison</div>
-        <!-- Ville -->
-        <div class="flex items-center gap-2 mb-1.5">
-          <span class="w-16 sm:w-20 text-xs text-gray-600 text-right flex-shrink-0">{{ ville.nom }}</span>
-          <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
-            <div class="h-2 rounded-full"
-                 style="width: {{ pct_s }}%; background-color: {{ ind.score_couleur or '#10b981' }}"></div>
-          </div>
-          <span class="w-20 sm:w-24 text-xs font-semibold text-gray-800 flex-shrink-0 text-right">
-            {{ v_ville | format_valeur }} {{ ind.unite }}
-          </span>
-        </div>
-        <!-- Référence -->
-        <div class="flex items-center gap-2">
-          <span class="w-24 sm:w-32 text-xs text-gray-400 text-right flex-shrink-0 leading-tight">
-            {% if ind.ref_ville and ind.ref_ville.banque_nom %}{{ ind.ref_ville.banque_nom }}{% elif ind.libelle_reference %}{{ ind.libelle_reference }}{% else %}Référence{% endif %}
-          </span>
-          <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
-            <div class="h-2 rounded-full bg-gray-400" style="width: {{ pct_r }}%"></div>
-          </div>
-          <span class="w-20 sm:w-24 text-xs text-gray-500 flex-shrink-0 text-right">
-            {{ v_ref | format_valeur }} {{ ind.unite }}
-            {% if ind.annee_reference %}<span class="text-gray-400">({{ ind.annee_reference }})</span>{% endif %}
-          </span>
-        </div>
-        <!-- Écart -->
-        {% set ecart_bon = (ecart > 0 and ind.sens_positif == 'haut') or (ecart < 0 and ind.sens_positif == 'bas') %}
-        {% set ecart_mauvais = (ecart < 0 and ind.sens_positif == 'haut') or (ecart > 0 and ind.sens_positif == 'bas') %}
-        <div class="mt-2 text-xs text-right {% if ecart_bon %}text-green-600{% elif ecart_mauvais %}text-red-500{% else %}text-gray-400{% endif %}">
-          {% if ecart > 0 %}+{% endif %}{{ ecart }}% par rapport à la référence
-        </div>
-      </div>
-      {% endif %}
-
-      <!-- Interprétation courte -->
-      {% if ind.interpretation and ind.interpretation.phrase_courte %}
-      <div class="mt-3 text-sm font-medium text-gray-700 leading-relaxed">{{ ind.interpretation.phrase_courte }}</div>
-      {% endif %}
-
-      <!-- Graphique historique -->
-      {% if ind.historique and ind.historique | length > 1 %}
-      <div class="mt-4">
-        <canvas id="chart-{{ ind.id }}" height="80"></canvas>
-      </div>
-      <script>
-      (function() {
-        var ctx = document.getElementById('chart-{{ ind.id }}').getContext('2d');
-        var labels = {{ ind.historique | map(attribute='annee') | list | tojson }};
-        var data = {{ ind.historique | map(attribute='valeur') | list | tojson }};
-        labels = labels.slice().reverse();
-        data = data.slice().reverse();
-        var isTimeSeries = labels.length > 2;
-        new Chart(ctx, {
-          type: isTimeSeries ? 'line' : 'bar',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: '{{ ind.unite }}',
-              data: data,
-              backgroundColor: isTimeSeries ? 'transparent' : '{{ ind.score_couleur or "#10b981" }}33',
-              borderColor: '{{ ind.score_couleur or "#10b981" }}',
-              borderWidth: 2,
-              borderRadius: isTimeSeries ? 0 : 4,
-              pointRadius: isTimeSeries ? 4 : 0,
-              pointBackgroundColor: '{{ ind.score_couleur or "#10b981" }}',
-              tension: 0.3,
-              fill: isTimeSeries,
-              backgroundColor: isTimeSeries ? '{{ ind.score_couleur or "#10b981" }}18' : '{{ ind.score_couleur or "#10b981" }}33',
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: {
-                beginAtZero: false,
-                ticks: {
-                  maxTicksLimit: 4,
-                  callback: function(value) { return value + '\u00a0' + {{ ind.unite | tojson }}; }
-                }
-              },
-              x: { grid: { display: false } }
-            }
-          }
-        });
-      })();
-      </script>
-      {% endif %}
-
-      <!-- Interprétation longue -->
-      {% if ind.interpretation and ind.interpretation.phrase_longue %}
-      <div class="mt-3 text-sm text-gray-600 leading-relaxed">{{ ind.interpretation.phrase_longue }}</div>
-      {% endif %}
-
-      <!-- Source + en savoir plus -->
-      <div class="mt-3 flex items-center justify-between flex-wrap gap-2 pt-3 border-t border-gray-50">
-        <div class="text-xs text-gray-400 italic">
-          Source : {{ ind.donnee.source if ind.donnee.source else "Source non renseignée" }}
-        </div>
-        <div class="flex items-center gap-3">
-          {% if ind.historique and ind.historique | length > 1 %}
-          <button
-            data-canvas-id="chart-{{ ind.id }}"
-            data-label="{{ label | e }}"
-            data-libelle="{{ ind.libelle_citoyen | e }}"
-            data-valeur="{{ ind.donnee.valeur | format_valeur | e }}"
-            data-unite="{{ ind.unite | e }}"
-            data-annee="{{ ind.donnee.annee }}"
-            data-score="{{ ind.score or '' }}"
-            data-couleur="{{ ind.score_couleur or '#10b981' }}"
-            data-tendance="{{ ind.tendance or '' }}"
-            data-pct="{{ ind.pct_evolution if ind.pct_evolution is not none else '' }}"
-            data-annee-ancienne="{{ ind.annee_ancienne or '' }}"
-            onclick="exportGraphique(this)"
-            class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
-            </svg>
-            Graphique
-          </button>
-          {% endif %}
-          <button
-            data-ind-id="{{ ind.id }}"
-            data-label="{{ label | e }}"
-            data-icon="{{ icon }}"
-            data-libelle="{{ ind.libelle_citoyen | e }}"
-            data-valeur="{{ ind.donnee.valeur | format_valeur | e }}"
-            data-unite="{{ ind.unite | e }}"
-            data-annee="{{ ind.donnee.annee }}"
-            data-score="{{ ind.score or '' }}"
-            data-couleur="{{ ind.score_couleur or '#10b981' }}"
-            data-tendance="{{ ind.tendance or '' }}"
-            data-pct="{{ ind.pct_evolution if ind.pct_evolution is not none else '' }}"
-            data-annee-ancienne="{{ ind.annee_ancienne or '' }}"
-            data-phrase="{{ ind.interpretation.phrase_courte | e if ind.interpretation and ind.interpretation.phrase_courte else '' }}"
-            onclick="exportPost(this)"
-            class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-            </svg>
-            Post Facebook
-          </button>
-          {% if ind.description %}
-          <button onclick="openModal('modal-{{ ind.id }}')"
-                  class="text-xs text-emerald-600 hover:text-emerald-800 hover:underline transition">
-            En savoir plus ↓
-          </button>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal description -->
-    {% if ind.description %}
-    <div id="modal-{{ ind.id }}" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-         onclick="closeModalOnOverlay(event, 'modal-{{ ind.id }}')">
-      <div class="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg p-5 sm:p-6 shadow-xl max-h-[80vh] overflow-y-auto"
-           onclick="event.stopPropagation()">
-        <div class="flex items-start justify-between gap-3 mb-4">
-          <h3 class="font-bold text-base text-gray-900 leading-snug">{{ ind.libelle_citoyen }}</h3>
-          <button onclick="closeModal('modal-{{ ind.id }}')"
-                  class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition p-1 -mr-1 -mt-1">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-        <p class="text-gray-600 text-sm leading-relaxed">{{ ind.description }}</p>
-        <button onclick="closeModal('modal-{{ ind.id }}')"
-                class="mt-5 w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
-          Fermer
-        </button>
-      </div>
-    </div>
+{# Comptage par catégorie #}
+{% set ns_forts   = namespace(count=0) %}
+{% set ns_vigil   = namespace(count=0) %}
+{% set ns_preocc  = namespace(count=0) %}
+{% set ns_nonote  = namespace(count=0) %}
+{% set ns_nonrens = namespace(count=0) %}
+{% for ind in indicateurs %}
+  {% if ind.donnee %}
+    {% if   ind.score in ['A', 'B'] %}{% set ns_forts.count  = ns_forts.count  + 1 %}
+    {% elif ind.score == 'C'        %}{% set ns_vigil.count  = ns_vigil.count  + 1 %}
+    {% elif ind.score in ['D', 'E'] %}{% set ns_preocc.count = ns_preocc.count + 1 %}
+    {% else                         %}{% set ns_nonote.count = ns_nonote.count + 1 %}
     {% endif %}
+  {% else %}
+    {% set ns_nonrens.count = ns_nonrens.count + 1 %}
+  {% endif %}
+{% endfor %}
 
-    {% else %}
-    <!-- Indicateur non renseigné -->
-    <div class="p-4 sm:p-5 opacity-60">
+<div class="space-y-6">
+
+{# ── Points forts ──────────────────────────────────────────────────────────── #}
+{% if ns_forts.count > 0 %}
+<section>
+  <div class="flex items-center gap-2 mb-3 px-1">
+    <span class="text-base leading-none">✅</span>
+    <h2 class="text-sm font-semibold text-emerald-700 uppercase tracking-wide">
+      Point{{ 's' if ns_forts.count > 1 }} fort{{ 's' if ns_forts.count > 1 }}
+    </h2>
+    <span class="ml-auto text-xs text-emerald-500 font-medium">{{ ns_forts.count }} indicateur{{ 's' if ns_forts.count > 1 }}</span>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for ind in indicateurs if ind.donnee and ind.score in ['A', 'B'] %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-400 overflow-hidden">
+      {% include "public/_ind_card.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── Vigilance ─────────────────────────────────────────────────────────────── #}
+{% if ns_vigil.count > 0 %}
+<section>
+  <div class="flex items-center gap-2 mb-3 px-1">
+    <span class="text-base leading-none">⚠️</span>
+    <h2 class="text-sm font-semibold text-amber-700 uppercase tracking-wide">
+      Point{{ 's' if ns_vigil.count > 1 }} de vigilance
+    </h2>
+    <span class="ml-auto text-xs text-amber-500 font-medium">{{ ns_vigil.count }} indicateur{{ 's' if ns_vigil.count > 1 }}</span>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for ind in indicateurs if ind.donnee and ind.score == 'C' %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-amber-400 overflow-hidden">
+      {% include "public/_ind_card.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── Préoccupants ──────────────────────────────────────────────────────────── #}
+{% if ns_preocc.count > 0 %}
+<section>
+  <div class="flex items-center gap-2 mb-3 px-1">
+    <span class="text-base leading-none">🔴</span>
+    <h2 class="text-sm font-semibold text-red-700 uppercase tracking-wide">
+      Point{{ 's' if ns_preocc.count > 1 }} préoccupant{{ 's' if ns_preocc.count > 1 }}
+    </h2>
+    <span class="ml-auto text-xs text-red-400 font-medium">{{ ns_preocc.count }} indicateur{{ 's' if ns_preocc.count > 1 }}</span>
+  </div>
+  <div class="grid grid-cols-1 gap-4">
+    {% for ind in indicateurs if ind.donnee and ind.score in ['D', 'E'] %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-400 overflow-hidden">
+      {% include "public/_ind_card.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── Renseignés sans score ─────────────────────────────────────────────────── #}
+{% if ns_nonote.count > 0 %}
+<section>
+  <div class="flex items-center gap-2 mb-3 px-1">
+    <span class="text-base leading-none">📊</span>
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">
+      Indicateur{{ 's' if ns_nonote.count > 1 }} sans note
+    </h2>
+    <span class="ml-auto text-xs text-gray-400 font-medium">{{ ns_nonote.count }}</span>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for ind in indicateurs if ind.donnee and not ind.score %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300 overflow-hidden">
+      {% include "public/_ind_card.html" %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{# ── Non renseignés ────────────────────────────────────────────────────────── #}
+{% if ns_nonrens.count > 0 %}
+<div class="border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
+  <button onclick="this.nextElementSibling.classList.toggle('hidden')"
+          class="w-full flex items-center justify-between px-4 sm:px-5 py-3 text-left hover:bg-gray-50 transition">
+    <span class="text-sm text-gray-400 font-medium">
+      Données non disponibles
+      <span class="ml-1.5 text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ ns_nonrens.count }}</span>
+    </span>
+    <span class="text-gray-300 text-xs flex-shrink-0 ml-2">▼</span>
+  </button>
+  <div class="hidden divide-y divide-gray-50">
+    {% for ind in indicateurs if not ind.donnee %}
+    <div class="px-4 sm:px-5 py-3 opacity-50">
       <div class="flex items-center justify-between gap-4">
         <div>
           <div class="font-medium text-gray-500 text-sm">{{ ind.libelle_citoyen }}</div>
@@ -296,15 +173,15 @@
           <div class="text-xs text-gray-400 mt-0.5">{{ ind.libelle_technique }}</div>
           {% endif %}
         </div>
-        <span class="bg-gray-100 text-gray-500 text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0">
-          Non disponible
-        </span>
+        <span class="bg-gray-100 text-gray-400 text-xs font-medium px-2.5 py-1 rounded-full flex-shrink-0">Non renseigné</span>
       </div>
     </div>
-    {% endif %}
+    {% endfor %}
   </div>
-  {% endfor %}
 </div>
+{% endif %}
+
+</div>{# end space-y-6 #}
 
 {% if slug == 'lien_social' and subventions_years %}
 <!-- Section subventions -->
@@ -417,7 +294,48 @@
   </div>
 </div>
 
+<!-- Modales description -->
+{% for ind in indicateurs if ind.description %}
+<div id="modal-{{ ind.id }}" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+     onclick="closeModalOnOverlay(event, 'modal-{{ ind.id }}')">
+  <div class="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-lg p-5 sm:p-6 shadow-xl max-h-[80vh] overflow-y-auto"
+       onclick="event.stopPropagation()">
+    <div class="flex items-start justify-between gap-3 mb-4">
+      <h3 class="font-bold text-base text-gray-900 leading-snug">{{ ind.libelle_citoyen }}</h3>
+      <button onclick="closeModal('modal-{{ ind.id }}')"
+              class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition p-1 -mr-1 -mt-1">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    <p class="text-gray-600 text-sm leading-relaxed">{{ ind.description }}</p>
+    <button onclick="closeModal('modal-{{ ind.id }}')"
+            class="mt-5 w-full sm:w-auto px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
+      Fermer
+    </button>
+  </div>
+</div>
+{% endfor %}
+
 <script>
+// ── Détail accordéon ─────────────────────────────────────────────────────────
+function toggleDetail(btn) {
+  var detail = btn.nextElementSibling;
+  var chevron = btn.querySelector('[data-chevron]');
+  var wasHidden = detail.classList.contains('hidden');
+  detail.classList.toggle('hidden');
+  if (chevron) chevron.classList.toggle('rotate-180');
+  // Initialisation lazy des graphiques Chart.js
+  if (wasHidden) {
+    detail.querySelectorAll('canvas[data-chart-id]').forEach(function(canvas) {
+      var init = window._chartInits && window._chartInits[canvas.dataset.chartId];
+      if (init && !Chart.getChart(canvas)) { init(canvas); }
+    });
+  }
+}
+
+// ── Modales ──────────────────────────────────────────────────────────────────
 function openModal(id) {
   var el = document.getElementById(id);
   if (el) { el.classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
@@ -437,7 +355,7 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ── Helpers Canvas ──────────────────────────────────────────────
+// ── Helpers Canvas ───────────────────────────────────────────────────────────
 function triggerDownload(dataUrl, filename) {
   var a = document.createElement('a');
   a.href = dataUrl; a.download = filename;
@@ -466,10 +384,10 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// ── Export Graphique (900 × 480) ─────────────────────────────────
+// ── Export Graphique (900 × 480) ─────────────────────────────────────────────
 function exportGraphique(btn) {
   var d = btn.dataset;
-  var srcCanvas = document.getElementById(d.canvasId);
+  var srcCanvas = document.querySelector('[data-chart-id="' + d.canvasId + '"]');
   if (!srcCanvas) return;
 
   var W = 900, H = 480, PAD = 36;
@@ -477,21 +395,16 @@ function exportGraphique(btn) {
   c.width = W; c.height = H;
   var ctx = c.getContext('2d');
 
-  // Fond blanc
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, W, H);
-
-  // Bande couleur en haut
   ctx.fillStyle = d.couleur;
   ctx.fillRect(0, 0, W, 8);
 
   var y = 8 + PAD;
 
-  // Badge score (coin haut droit)
   if (d.score) {
     roundRect(ctx, W - PAD - 52, 18, 52, 52, 10);
-    ctx.fillStyle = d.couleur;
-    ctx.fill();
+    ctx.fillStyle = d.couleur; ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 32px system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -499,20 +412,17 @@ function exportGraphique(btn) {
     ctx.textAlign = 'left';
   }
 
-  // Label thématique
   ctx.fillStyle = '#059669';
   ctx.font = 'bold 11px system-ui, sans-serif';
   ctx.fillText((d.label).toUpperCase(), PAD, y);
   y += 22;
 
-  // Titre indicateur (max 2 lignes)
   ctx.fillStyle = '#111827';
   ctx.font = 'bold 20px system-ui, sans-serif';
   var titleLines = splitLines(ctx, d.libelle, W - PAD * 2 - 70);
   titleLines.slice(0, 2).forEach(function(l) { ctx.fillText(l, PAD, y); y += 27; });
   y += 6;
 
-  // Valeur principale
   ctx.font = 'bold 48px system-ui, sans-serif';
   ctx.fillStyle = '#111827';
   var valW = ctx.measureText(d.valeur).width;
@@ -524,7 +434,6 @@ function exportGraphique(btn) {
   ctx.fillStyle = '#9ca3af';
   ctx.fillText(String(d.annee), PAD, y + 18);
 
-  // Tendance sur sa propre ligne, sous la valeur et l'année
   var tY = y + 42;
   if (d.tendance && d.pct !== '') {
     var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
@@ -540,10 +449,8 @@ function exportGraphique(btn) {
   } else {
     y = tY;
   }
-
   y += 10;
 
-  // Chart.js canvas — ratio naturel conservé pour éviter l'agrandissement des labels
   var availW = W - PAD * 2;
   var availH = H - y - PAD - 16;
   if (availH > 40 && srcCanvas.height > 0) {
@@ -554,16 +461,14 @@ function exportGraphique(btn) {
     ctx.drawImage(srcCanvas, PAD, y, drawW, drawH);
   }
 
-  // Footer
   ctx.font = '10px system-ui, sans-serif';
   ctx.fillStyle = '#d1d5db';
   ctx.textAlign = 'right';
   ctx.fillText('CommuneSanté · Sautron Autrement', W - PAD, H - 10);
-
-  triggerDownload(c.toDataURL('image/png'), 'sautron-graphique-' + d.canvasId.replace('chart-', '') + '.png');
+  triggerDownload(c.toDataURL('image/png'), 'sautron-graphique-' + d.canvasId + '.png');
 }
 
-// ── Export Post Facebook (1200 × 630) ───────────────────────────
+// ── Export Post Facebook (1200 × 630) ────────────────────────────────────────
 function exportPost(btn) {
   var d = btn.dataset;
   var W = 1200, H = 630, PL = 700, PAD = 52;
@@ -571,31 +476,25 @@ function exportPost(btn) {
   c.width = W; c.height = H;
   var ctx = c.getContext('2d');
 
-  // Panneau gauche blanc
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, PL, H);
-
-  // Panneau droit coloré
   ctx.fillStyle = d.couleur;
   ctx.fillRect(PL, 0, W - PL, H);
 
   var y = PAD + 14;
   ctx.textAlign = 'left';
 
-  // Étiquette commune · thématique
   ctx.fillStyle = '#059669';
   ctx.font = 'bold 12px system-ui, sans-serif';
   ctx.fillText((d.label).toUpperCase(), PAD, y);
   y += 30;
 
-  // Titre indicateur (max 3 lignes)
   ctx.fillStyle = '#111827';
   ctx.font = 'bold 22px system-ui, sans-serif';
   var titleLines = splitLines(ctx, d.libelle, PL - PAD * 2);
   titleLines.slice(0, 3).forEach(function(l) { ctx.fillText(l, PAD, y); y += 30; });
   y += 14;
 
-  // Grande valeur
   ctx.font = 'bold 64px system-ui, sans-serif';
   ctx.fillStyle = '#111827';
   var valW = ctx.measureText(d.valeur).width;
@@ -608,7 +507,6 @@ function exportPost(btn) {
   ctx.fillText(String(d.annee), PAD, y + 22);
   y += 60;
 
-  // Tendance
   if (d.tendance && d.pct !== '') {
     var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
     ctx.font = 'bold 26px system-ui, sans-serif';
@@ -624,7 +522,6 @@ function exportPost(btn) {
     y += 40;
   }
 
-  // Phrase courte (max 4 lignes, avec barre verte gauche)
   if (d.phrase) {
     ctx.fillStyle = '#d1fae5';
     ctx.fillRect(PAD, y, 3, 86);
@@ -637,19 +534,16 @@ function exportPost(btn) {
     });
   }
 
-  // Footer (panneau gauche)
   ctx.font = '11px system-ui, sans-serif';
   ctx.fillStyle = '#d1d5db';
   ctx.fillText('CommuneSanté · Sautron Autrement', PAD, H - 20);
 
-  // Panneau droit : badge score
   var cx = PL + (W - PL) / 2;
   ctx.textAlign = 'center';
 
   if (d.score) {
     roundRect(ctx, cx - 75, H / 2 - 160, 150, 150, 18);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.fill();
     ctx.font = 'bold 88px system-ui, sans-serif';
     ctx.fillStyle = d.couleur;
     ctx.fillText(d.score, cx, H / 2 - 42);
@@ -658,13 +552,11 @@ function exportPost(btn) {
     ctx.fillText('SCORE DE SANTÉ', cx, H / 2 + 12);
   }
 
-  // Icône thématique
   ctx.globalAlpha = 0.3;
   ctx.font = '56px system-ui, sans-serif';
   ctx.fillStyle = '#ffffff';
   ctx.fillText(d.icon, cx, H / 2 + 100);
   ctx.globalAlpha = 1.0;
-
   ctx.textAlign = 'left';
   triggerDownload(c.toDataURL('image/png'), 'sautron-post-' + d.indId + '.png');
 }
