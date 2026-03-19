@@ -295,6 +295,14 @@ def thematique(ville_slug, slug):
     enrichis = [_enrichir_indicateur(i, ville["id"]) for i in indicateurs]
     renseignes = [e for e in enrichis if e["donnee"]]
 
+    grouped = {
+        "forts":    [e for e in renseignes if e["score"] in ("A", "B")],
+        "vigil":    [e for e in renseignes if e["score"] == "C"],
+        "preocc":   [e for e in renseignes if e["score"] in ("D", "E")],
+        "no_score": [e for e in renseignes if not e["score"]],
+        "unset":    [e for e in enrichis   if not e["donnee"]],
+    }
+
     score_them = calculer_score_thematique([{"score": e["score"]} for e in renseignes])
 
     interpretation_them = None
@@ -335,6 +343,7 @@ def thematique(ville_slug, slug):
         question=ind_model.THEMATIQUE_QUESTIONS[slug],
         icon=ind_model.THEMATIQUE_ICONS[slug],
         indicateurs=enrichis,
+        grouped=grouped,
         score=score_them,
         score_couleur=SCORE_COULEURS.get(score_them),
         interpretation=interpretation_them,

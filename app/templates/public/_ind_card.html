@@ -2,9 +2,10 @@
    Variable attendue : `ind` (indicateur enrichi avec ind.donnee garanti non-null).
    Contexte parent : ville, label, icon, slug disponibles. #}
 
-{% set hausse_bonne    = ind.sens_positif == 'haut' %}
-{% set tendance_bonne  = (ind.tendance == '↗' and hausse_bonne) or (ind.tendance == '↘' and not hausse_bonne and ind.sens_positif != 'neutre') %}
+{% set hausse_bonne      = ind.sens_positif == 'haut' %}
+{% set tendance_bonne    = (ind.tendance == '↗' and hausse_bonne) or (ind.tendance == '↘' and not hausse_bonne and ind.sens_positif != 'neutre') %}
 {% set tendance_mauvaise = (ind.tendance == '↘' and hausse_bonne) or (ind.tendance == '↗' and not hausse_bonne and ind.sens_positif != 'neutre') %}
+{% set has_historique    = ind.historique and ind.historique | length > 1 %}
 
 <!-- ── En-tête cliquable ───────────────────────────────────────────────────── -->
 <button onclick="toggleDetail(this)"
@@ -47,7 +48,7 @@
   {% endif %}
 
   <!-- Comparaison communes similaires -->
-  {% if ind.valeur_reference and ind.donnee %}
+  {% if ind.valeur_reference %}
   {% set v_ville = ind.donnee.valeur %}
   {% set v_ref   = ind.valeur_reference %}
   {% set v_max   = [v_ville, v_ref] | max %}
@@ -77,8 +78,8 @@
         {% if ind.annee_reference %}<span class="text-gray-400">({{ ind.annee_reference }})</span>{% endif %}
       </span>
     </div>
-    {% set ecart_bon    = (ecart > 0 and ind.sens_positif == 'haut') or (ecart < 0 and ind.sens_positif == 'bas') %}
-    {% set ecart_mauvais = (ecart < 0 and ind.sens_positif == 'haut') or (ecart > 0 and ind.sens_positif == 'bas') %}
+    {% set ecart_bon    = (ecart > 0 and hausse_bonne) or (ecart < 0 and ind.sens_positif == 'bas') %}
+    {% set ecart_mauvais = (ecart < 0 and hausse_bonne) or (ecart > 0 and ind.sens_positif == 'bas') %}
     <div class="mt-2 text-xs text-right {% if ecart_bon %}text-green-600{% elif ecart_mauvais %}text-red-500{% else %}text-gray-400{% endif %}">
       {% if ecart > 0 %}+{% endif %}{{ ecart }}% par rapport à la référence
     </div>
@@ -91,7 +92,7 @@
   {% endif %}
 
   <!-- Graphique historique (lazy) -->
-  {% if ind.historique and ind.historique | length > 1 %}
+  {% if has_historique %}
   <div>
     <canvas data-chart-id="chart-{{ ind.id }}" height="80"></canvas>
   </div>
@@ -150,7 +151,7 @@
       Source : {{ ind.donnee.source if ind.donnee.source else "Source non renseignée" }}
     </div>
     <div class="flex items-center gap-3">
-      {% if ind.historique and ind.historique | length > 1 %}
+      {% if has_historique %}
       <button
         data-canvas-id="chart-{{ ind.id }}"
         data-label="{{ label | e }}"

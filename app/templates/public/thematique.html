@@ -52,38 +52,25 @@
 
 {# ─── Triptyque par score ──────────────────────────────────────────────────── #}
 
-{# Comptage par catégorie #}
-{% set ns_forts   = namespace(count=0) %}
-{% set ns_vigil   = namespace(count=0) %}
-{% set ns_preocc  = namespace(count=0) %}
-{% set ns_nonote  = namespace(count=0) %}
-{% set ns_nonrens = namespace(count=0) %}
-{% for ind in indicateurs %}
-  {% if ind.donnee %}
-    {% if   ind.score in ['A', 'B'] %}{% set ns_forts.count  = ns_forts.count  + 1 %}
-    {% elif ind.score == 'C'        %}{% set ns_vigil.count  = ns_vigil.count  + 1 %}
-    {% elif ind.score in ['D', 'E'] %}{% set ns_preocc.count = ns_preocc.count + 1 %}
-    {% else                         %}{% set ns_nonote.count = ns_nonote.count + 1 %}
-    {% endif %}
-  {% else %}
-    {% set ns_nonrens.count = ns_nonrens.count + 1 %}
-  {% endif %}
-{% endfor %}
+{# Macro : en-tête de section (emoji, label, couleurs, liste d'indicateurs) #}
+{% macro section_header(emoji, label_sg, label_pl, items, cls_h2, cls_count) %}
+<div class="flex items-center gap-2 mb-3 px-1">
+  <span class="text-base leading-none">{{ emoji }}</span>
+  <h2 class="text-sm font-semibold {{ cls_h2 }} uppercase tracking-wide">
+    {{ label_sg if items | length == 1 else label_pl }}
+  </h2>
+  <span class="ml-auto text-xs {{ cls_count }} font-medium">{{ items | length }} indicateur{{ 's' if items | length > 1 }}</span>
+</div>
+{% endmacro %}
 
 <div class="space-y-6">
 
-{# ── Points forts ──────────────────────────────────────────────────────────── #}
-{% if ns_forts.count > 0 %}
+{# ── Points forts (A/B) ────────────────────────────────────────────────────── #}
+{% if grouped.forts %}
 <section>
-  <div class="flex items-center gap-2 mb-3 px-1">
-    <span class="text-base leading-none">✅</span>
-    <h2 class="text-sm font-semibold text-emerald-700 uppercase tracking-wide">
-      Point{{ 's' if ns_forts.count > 1 }} fort{{ 's' if ns_forts.count > 1 }}
-    </h2>
-    <span class="ml-auto text-xs text-emerald-500 font-medium">{{ ns_forts.count }} indicateur{{ 's' if ns_forts.count > 1 }}</span>
-  </div>
+  {{ section_header('✅', 'Point fort', 'Points forts', grouped.forts, 'text-emerald-700', 'text-emerald-500') }}
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for ind in indicateurs if ind.donnee and ind.score in ['A', 'B'] %}
+    {% for ind in grouped.forts %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -92,18 +79,12 @@
 </section>
 {% endif %}
 
-{# ── Vigilance ─────────────────────────────────────────────────────────────── #}
-{% if ns_vigil.count > 0 %}
+{# ── Vigilance (C) ─────────────────────────────────────────────────────────── #}
+{% if grouped.vigil %}
 <section>
-  <div class="flex items-center gap-2 mb-3 px-1">
-    <span class="text-base leading-none">⚠️</span>
-    <h2 class="text-sm font-semibold text-amber-700 uppercase tracking-wide">
-      Point{{ 's' if ns_vigil.count > 1 }} de vigilance
-    </h2>
-    <span class="ml-auto text-xs text-amber-500 font-medium">{{ ns_vigil.count }} indicateur{{ 's' if ns_vigil.count > 1 }}</span>
-  </div>
+  {{ section_header('⚠️', 'Point de vigilance', 'Points de vigilance', grouped.vigil, 'text-amber-700', 'text-amber-500') }}
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for ind in indicateurs if ind.donnee and ind.score == 'C' %}
+    {% for ind in grouped.vigil %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-amber-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -112,18 +93,12 @@
 </section>
 {% endif %}
 
-{# ── Préoccupants ──────────────────────────────────────────────────────────── #}
-{% if ns_preocc.count > 0 %}
+{# ── Préoccupants (D/E) ────────────────────────────────────────────────────── #}
+{% if grouped.preocc %}
 <section>
-  <div class="flex items-center gap-2 mb-3 px-1">
-    <span class="text-base leading-none">🔴</span>
-    <h2 class="text-sm font-semibold text-red-700 uppercase tracking-wide">
-      Point{{ 's' if ns_preocc.count > 1 }} préoccupant{{ 's' if ns_preocc.count > 1 }}
-    </h2>
-    <span class="ml-auto text-xs text-red-400 font-medium">{{ ns_preocc.count }} indicateur{{ 's' if ns_preocc.count > 1 }}</span>
-  </div>
+  {{ section_header('🔴', 'Point préoccupant', 'Points préoccupants', grouped.preocc, 'text-red-700', 'text-red-400') }}
   <div class="grid grid-cols-1 gap-4">
-    {% for ind in indicateurs if ind.donnee and ind.score in ['D', 'E'] %}
+    {% for ind in grouped.preocc %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -133,17 +108,11 @@
 {% endif %}
 
 {# ── Renseignés sans score ─────────────────────────────────────────────────── #}
-{% if ns_nonote.count > 0 %}
+{% if grouped.no_score %}
 <section>
-  <div class="flex items-center gap-2 mb-3 px-1">
-    <span class="text-base leading-none">📊</span>
-    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide">
-      Indicateur{{ 's' if ns_nonote.count > 1 }} sans note
-    </h2>
-    <span class="ml-auto text-xs text-gray-400 font-medium">{{ ns_nonote.count }}</span>
-  </div>
+  {{ section_header('📊', 'Indicateur sans note', 'Indicateurs sans note', grouped.no_score, 'text-gray-500', 'text-gray-400') }}
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for ind in indicateurs if ind.donnee and not ind.score %}
+    {% for ind in grouped.no_score %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -153,18 +122,20 @@
 {% endif %}
 
 {# ── Non renseignés ────────────────────────────────────────────────────────── #}
-{% if ns_nonrens.count > 0 %}
+{% if grouped.unset %}
 <div class="border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
   <button onclick="this.nextElementSibling.classList.toggle('hidden')"
           class="w-full flex items-center justify-between px-4 sm:px-5 py-3 text-left hover:bg-gray-50 transition">
     <span class="text-sm text-gray-400 font-medium">
       Données non disponibles
-      <span class="ml-1.5 text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ ns_nonrens.count }}</span>
+      <span class="ml-1.5 text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ grouped.unset | length }}</span>
     </span>
-    <span class="text-gray-300 text-xs flex-shrink-0 ml-2">▼</span>
+    <svg class="w-4 h-4 text-gray-300 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+    </svg>
   </button>
   <div class="hidden divide-y divide-gray-50">
-    {% for ind in indicateurs if not ind.donnee %}
+    {% for ind in grouped.unset %}
     <div class="px-4 sm:px-5 py-3 opacity-50">
       <div class="flex items-center justify-between gap-4">
         <div>
