@@ -261,22 +261,11 @@
 
   <!-- Footer -->
   <footer class="bg-white border-t border-gray-100 mt-8">
-    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col gap-3 text-xs text-gray-400">
-      <div class="flex flex-col sm:flex-row justify-between gap-3">
-        <span>CommuneSanté · Observatoire citoyen indépendant</span>
-        <div class="flex gap-4">
-          <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
-          <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
-        </div>
-      </div>
-      <!-- Légende des scores -->
-      <div class="flex items-center gap-3 flex-wrap pt-2 border-t border-gray-50">
-        <span class="text-gray-300 flex-shrink-0">Scores :</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
+    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-gray-400">
+      <span>CommuneSanté · Observatoire citoyen indépendant</span>
+      <div class="flex gap-4">
+        <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
+        <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
       </div>
     </div>
   </footer>

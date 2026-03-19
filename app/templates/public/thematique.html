@@ -46,6 +46,15 @@
       {% if interpretation %}
       <p class="text-gray-600 text-sm mt-3 leading-relaxed">{{ interpretation }}</p>
       {% endif %}
+      <!-- Légende des scores -->
+      <div class="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+        <span class="flex-shrink-0">Scores :</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
+      </div>
     </div>
   </div>
 </div>
