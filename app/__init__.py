@@ -10,14 +10,21 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env"))
 
 def create_app():
     app = Flask(__name__, template_folder="templates")
-    app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
-
     flask_env = os.environ.get("FLASK_ENV", "development")
+    secret_key = os.environ.get("SECRET_KEY", "dev-secret-key")
+    if flask_env == "production" and secret_key == "dev-secret-key":
+        raise RuntimeError(
+            "SECRET_KEY non configurée : définissez la variable d'environnement "
+            "SECRET_KEY avec une valeur aléatoire forte avant de lancer en production."
+        )
+    app.secret_key = secret_key
+
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=(flask_env == "production"),
         PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 10 Mo max par upload
     )
 
     # Helper CSRF accessible dans tous les templates
@@ -76,9 +83,21 @@ def create_app():
         conn.close()
         if nb_users == 0:
             from app.config import ADMIN_USERNAME, ADMIN_PASSWORD
+            if flask_env == "production" and ADMIN_PASSWORD == "admin":
+                raise RuntimeError(
+                    "ADMIN_PASSWORD='admin' n'est pas acceptable en production. "
+                    "Définissez la variable d'environnement ADMIN_PASSWORD."
+                )
             from app.models.user import create as create_user
             create_user(ADMIN_USERNAME, ADMIN_PASSWORD, "super_admin")
             print(f"[INFO] Super-admin créé : {ADMIN_USERNAME}", flush=True)
+
+    @app.after_request
+    def _security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        return response
 
     logging.basicConfig(level=logging.INFO)
 

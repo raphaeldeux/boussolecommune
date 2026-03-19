@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response
 from app.auth import login_required, super_admin_required, is_rate_limited, record_attempt
 from app.config import UPLOAD_FOLDER
@@ -419,7 +420,17 @@ def upload():
                 return render_template("admin/upload.html", ville=ville)
 
             contenu = fichier.read().decode("utf-8", errors="replace")
-            session["upload_contenu"] = contenu
+
+            # Stocker le contenu côté serveur (pas dans le cookie de session)
+            old_tmp = session.pop("upload_tmp", None)
+            if old_tmp and os.path.exists(old_tmp):
+                os.unlink(old_tmp)
+            tmp = tempfile.NamedTemporaryFile(
+                mode="w", suffix=".csv", delete=False, encoding="utf-8"
+            )
+            tmp.write(contenu)
+            tmp.close()
+            session["upload_tmp"] = tmp.name
             session["upload_format"] = format_csv
             session["upload_nom"] = fichier.filename
 
@@ -431,13 +442,18 @@ def upload():
             apercu = lignes_valides
 
         elif action == "importer":
-            contenu = session.get("upload_contenu")
+            tmp_path = session.get("upload_tmp")
             format_csv = session.get("upload_format", "generique")
             nom_fichier = session.get("upload_nom", "inconnu")
 
-            if not contenu:
+            if not tmp_path or not os.path.exists(tmp_path):
                 flash("Session expirée. Veuillez re-uploader le fichier.", "danger")
                 return redirect(url_for("admin.upload"))
+
+            with open(tmp_path, encoding="utf-8") as f:
+                contenu = f.read()
+            os.unlink(tmp_path)
+            session.pop("upload_tmp", None)
 
             if format_csv == "ofgl":
                 lignes_valides, erreurs = parser_ofgl(contenu)
@@ -470,7 +486,6 @@ def upload():
             conn.commit()
             conn.close()
 
-            session.pop("upload_contenu", None)
             session.pop("upload_format", None)
             session.pop("upload_nom", None)
 
@@ -744,6 +759,17 @@ def subventions():
 @bp.route("/subventions/supprimer/<int:id_>", methods=["POST"])
 @login_required
 def supprimer_subvention(id_):
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune ville sélectionnée.", "warning")
+        return redirect(url_for("admin.subventions"))
+    # Vérifier que la subvention appartient à la ville courante (IDOR)
+    conn = get_db()
+    row = conn.execute("SELECT ville_id FROM subventions WHERE id = ?", (id_,)).fetchone()
+    conn.close()
+    if not row or row["ville_id"] != ville["id"]:
+        flash("Subvention introuvable.", "danger")
+        return redirect(url_for("admin.subventions"))
     subvention_model.delete(id_)
     flash("Subvention supprimée.", "success")
     annee = request.form.get("annee", "")
