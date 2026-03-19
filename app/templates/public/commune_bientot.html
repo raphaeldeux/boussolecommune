@@ -22,6 +22,26 @@
     </p>
   </div>
 
+  {% if suggestions %}
+  <div class="mt-8 text-left">
+    <p class="text-sm text-gray-500 font-medium mb-3 text-center">
+      Communes disponibles dans le même département :
+    </p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {% for s in suggestions %}
+      <a href="{{ url_for('public.dashboard', ville_slug=s.slug) }}"
+         class="bg-white border border-gray-200 hover:border-emerald-300 hover:shadow-sm rounded-xl p-4 flex items-center justify-between gap-3 transition">
+        <span class="font-medium text-gray-800 text-sm truncate">{{ s.nom }}</span>
+        {% if s.score_global %}
+        <span class="score-badge score-{{ s.score_global }} flex-shrink-0"
+              style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.25rem">{{ s.score_global }}</span>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
   <div class="mt-8 flex justify-center gap-4">
     <a href="{{ url_for('public.index') }}"
        class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition">

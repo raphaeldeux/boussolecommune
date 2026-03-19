@@ -23,6 +23,12 @@
       <span class="text-xs font-semibold
         {% if tendance_bonne %}text-green-600{% elif tendance_mauvaise %}text-red-500{% else %}text-gray-400{% endif %}">
         {{ ind.tendance }}{% if ind.pct_evolution is not none %}&nbsp;{% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%{% endif %}
+        <span class="font-normal italic ml-0.5">
+          {%- if tendance_bonne -%}en amélioration
+          {%- elif tendance_mauvaise -%}en dégradation
+          {%- elif ind.tendance == '→' -%}stable
+          {%- endif -%}
+        </span>
       </span>
       {% endif %}
     </div>
@@ -56,32 +62,44 @@
   {% set pct_r   = ((v_ref   / v_max) * 100) | round(1) if v_max > 0 else 0 %}
   {% set ecart   = (((v_ville - v_ref) / v_ref) * 100) | round(1) if v_ref != 0 else 0 %}
   <div class="bg-gray-50 rounded-lg px-3 sm:px-4 py-3 text-sm">
-    <div class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-2">Comparaison</div>
-    <div class="flex items-center gap-2 mb-1.5">
-      <span class="w-16 sm:w-20 text-xs text-gray-600 text-right flex-shrink-0">{{ ville.nom }}</span>
-      <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
-        <div class="h-2 rounded-full" style="width: {{ pct_s }}%; background-color: {{ ind.score_couleur or '#10b981' }}"></div>
-      </div>
-      <span class="w-20 sm:w-24 text-xs font-semibold text-gray-800 flex-shrink-0 text-right">
-        {{ v_ville | format_valeur }} {{ ind.unite }}
-      </span>
-    </div>
-    <div class="flex items-center gap-2">
-      <span class="w-24 sm:w-32 text-xs text-gray-400 text-right flex-shrink-0 leading-tight">
-        {% if ind.ref_ville and ind.ref_ville.banque_nom %}{{ ind.ref_ville.banque_nom }}{% elif ind.libelle_reference %}{{ ind.libelle_reference }}{% else %}Référence{% endif %}
-      </span>
-      <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-0">
-        <div class="h-2 rounded-full bg-gray-400" style="width: {{ pct_r }}%"></div>
-      </div>
-      <span class="w-20 sm:w-24 text-xs text-gray-500 flex-shrink-0 text-right">
-        {{ v_ref | format_valeur }} {{ ind.unite }}
-        {% if ind.annee_reference %}<span class="text-gray-400">({{ ind.annee_reference }})</span>{% endif %}
-      </span>
-    </div>
+    <div class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-3">Comparaison avec les communes similaires</div>
     {% set ecart_bon    = (ecart > 0 and hausse_bonne) or (ecart < 0 and ind.sens_positif == 'bas') %}
     {% set ecart_mauvais = (ecart < 0 and hausse_bonne) or (ecart > 0 and ind.sens_positif == 'bas') %}
-    <div class="mt-2 text-xs text-right {% if ecart_bon %}text-green-600{% elif ecart_mauvais %}text-red-500{% else %}text-gray-400{% endif %}">
-      {% if ecart > 0 %}+{% endif %}{{ ecart }}% par rapport à la référence
+    <!-- Barre commune -->
+    <div class="mb-2">
+      <div class="flex items-center justify-between mb-0.5">
+        <span class="text-xs font-semibold text-gray-700 truncate max-w-[55%]">{{ ville.nom }}</span>
+        <span class="text-xs font-bold {% if ecart_bon %}text-green-700{% elif ecart_mauvais %}text-red-600{% else %}text-gray-700{% endif %} flex-shrink-0">
+          {{ v_ville | format_valeur }}&nbsp;{{ ind.unite }}
+        </span>
+      </div>
+      <div class="bg-gray-200 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full transition-all" style="width: {{ pct_s }}%; background-color: {{ ind.score_couleur or '#10b981' }}"></div>
+      </div>
+    </div>
+    <!-- Barre référence -->
+    <div class="mb-2">
+      <div class="flex items-center justify-between mb-0.5">
+        <span class="text-xs text-gray-400 truncate max-w-[55%]">
+          Moyenne — {% if ind.ref_ville and ind.ref_ville.banque_nom %}{{ ind.ref_ville.banque_nom }}{% elif ind.libelle_reference %}{{ ind.libelle_reference }}{% else %}Communes similaires{% endif %}
+        </span>
+        <span class="text-xs text-gray-500 flex-shrink-0">
+          {{ v_ref | format_valeur }}&nbsp;{{ ind.unite }}{% if ind.annee_reference %} <span class="text-gray-400">({{ ind.annee_reference }})</span>{% endif %}
+        </span>
+      </div>
+      <div class="bg-gray-200 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-gray-400" style="width: {{ pct_r }}%"></div>
+      </div>
+    </div>
+    <!-- Résumé en langue naturelle -->
+    <div class="mt-2 text-xs {% if ecart_bon %}text-green-700 bg-green-50{% elif ecart_mauvais %}text-red-600 bg-red-50{% else %}text-gray-500 bg-gray-100{% endif %} rounded px-2 py-1">
+      {% if ecart_bon %}
+        ✓ {% if ecart > 0 %}{{ ecart }}% au-dessus{% else %}{{ ecart | abs }}% en dessous{% endif %} de la moyenne — favorable pour cette commune
+      {% elif ecart_mauvais %}
+        ✗ {% if ecart > 0 %}{{ ecart }}% au-dessus{% else %}{{ ecart | abs }}% en dessous{% endif %} de la moyenne — point d'attention
+      {% else %}
+        {% if ecart > 0 %}+{% endif %}{{ ecart }}% par rapport à la moyenne des communes similaires
+      {% endif %}
     </div>
   </div>
   {% endif %}

@@ -77,25 +77,34 @@
   {% endif %}
 </div>
 
-{# ── Radar chart ───────────────────────────────────────────────────── #}
-{% if score_global %}
-<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6 flex flex-col md:flex-row items-center gap-6">
-  <!-- Cercle score global -->
-  <div class="flex-shrink-0 flex flex-col items-center">
-    <svg viewBox="0 0 100 100" class="w-20 h-20">
-      <circle cx="50" cy="50" r="45" fill="none" stroke="#e5e7eb" stroke-width="10"/>
-      <circle cx="50" cy="50" r="45" fill="none"
-        stroke="{{ score_global_couleur }}" stroke-width="10"
-        stroke-dasharray="283" stroke-dashoffset="0"
-        stroke-linecap="round" transform="rotate(-90 50 50)"/>
-      <text x="50" y="57" text-anchor="middle" font-size="32" font-weight="bold"
-        fill="{{ score_global_couleur }}">{{ score_global }}</text>
-    </svg>
-    <div class="text-xs font-semibold text-gray-500 mt-1.5 text-center">Score global</div>
+{# ── Scores par thématique ─────────────────────────────────────────── #}
+{% if score_global and cartes %}
+<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Scores par thématique</h2>
+  <div class="space-y-2.5">
+    {% for carte in cartes %}
+    {% if carte.score %}
+    {% set score_pct = {'A': 100, 'B': 80, 'C': 60, 'D': 40, 'E': 20}[carte.score] | default(0) %}
+    <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
+       class="flex items-center gap-3 group hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition">
+      <span class="text-lg flex-shrink-0 w-6 text-center">{{ carte.icon }}</span>
+      <span class="text-xs text-gray-600 w-24 sm:w-28 flex-shrink-0 group-hover:text-emerald-700 transition truncate">{{ carte.label }}</span>
+      <div class="flex-1 bg-gray-100 rounded-full h-3 min-w-0 overflow-hidden">
+        <div class="h-3 rounded-full transition-all score-{{ carte.score }}"
+             style="width: {{ score_pct }}%; opacity: 0.85;"></div>
+      </div>
+      <span class="score-badge score-{{ carte.score }} flex-shrink-0 ml-1"
+            style="width:1.5rem;height:1.5rem;font-size:.7rem;border-radius:.2rem">{{ carte.score }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
   </div>
-  <!-- Radar -->
-  <div class="flex-1 w-full max-w-sm mx-auto md:max-w-none" style="min-height:220px">
-    <canvas id="radar-dashboard" style="max-height:300px;"></canvas>
+  <div class="mt-3 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-300">
+    <span>E · Critique</span>
+    <span>D · Préoccupant</span>
+    <span>C · Vigilance</span>
+    <span>B · Bon</span>
+    <span>A · Très satisfaisant</span>
   </div>
 </div>
 {% endif %}
@@ -120,21 +129,8 @@
       {% endif %}
     </div>
 
-    <!-- Barre de progression données -->
-    {% set pct = ((carte.nb_renseignes / carte.nb_total) * 100) | int if carte.nb_total else 0 %}
-    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-1">
-      {% if carte.score == 'A' or carte.score == 'B' %}
-        {% set bar_color = 'bg-emerald-500' %}
-      {% elif carte.score == 'C' %}
-        {% set bar_color = 'bg-amber-400' %}
-      {% elif carte.score in ('D', 'E') %}
-        {% set bar_color = 'bg-red-400' %}
-      {% else %}
-        {% set bar_color = 'bg-gray-300' %}
-      {% endif %}
-      <div class="{{ bar_color }} h-1.5 rounded-full transition-all" style="width:{{ pct }}%"></div>
-    </div>
-    <div class="text-xs text-gray-400 mb-3">{{ carte.nb_renseignes }}/{{ carte.nb_total }} données</div>
+    <!-- Nombre d'indicateurs disponibles -->
+    <div class="text-xs text-gray-400 mb-3">{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs disponibles</div>
 
     <div class="mt-auto text-xs font-medium text-emerald-600 group-hover:text-emerald-800 transition">
       Voir le détail →
@@ -184,48 +180,4 @@
 
 {% endblock %}
 
-{% block scripts %}
-{% if score_global %}
-<script>
-(function() {
-  var ctx = document.getElementById('radar-dashboard').getContext('2d');
-  new Chart(ctx, {
-    type: 'radar',
-    data: {
-      labels: {{ radar_labels | tojson }},
-      datasets: [{
-        data: {{ radar_values | tojson }},
-        backgroundColor: 'rgba(16,185,129,0.10)',
-        borderColor: '#10b981',
-        borderWidth: 2,
-        pointBackgroundColor: {{ radar_colors | tojson }},
-        pointBorderColor: '#ffffff',
-        pointBorderWidth: 2,
-        pointRadius: 6,
-        pointHoverRadius: 8,
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        r: {
-          min: 0, max: 5,
-          ticks: {
-            stepSize: 1,
-            callback: function(v) { return ['', 'E', 'D', 'C', 'B', 'A'][v] || ''; },
-            font: { size: 11 },
-            backdropColor: 'transparent',
-            color: '#9ca3af',
-          },
-          pointLabels: { font: { size: 13, weight: '600' }, color: '#374151' },
-          grid: { color: 'rgba(0,0,0,0.06)' },
-          angleLines: { color: 'rgba(0,0,0,0.08)' },
-        }
-      },
-      plugins: { legend: { display: false } },
-    }
-  });
-})();
-</script>
-{% endif %}
-{% endblock %}
+{% block scripts %}{% endblock %}

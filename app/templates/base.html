@@ -20,6 +20,11 @@
     .score-badge-lg {
       width: 3rem; height: 3rem; font-size: 1.5rem; border-radius: 0.5rem;
     }
+    .score-badge-xs {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.2rem; height: 1.2rem; border-radius: 0.2rem;
+      font-weight: 700; font-size: 0.6rem; color: white;
+    }
     /* Masque la scrollbar des tabs sur mobile sans perdre le scroll */
     .tabs-scroll { scrollbar-width: none; -ms-overflow-style: none; }
     .tabs-scroll::-webkit-scrollbar { display: none; }
@@ -120,7 +125,7 @@
 
   <!-- ── Barre 2 : navigation ville (tabs) ─────────────────────────── -->
   {% if ville is defined and ville %}
-  <nav class="bg-white border-b border-gray-200 sticky top-12 z-30 shadow-sm">
+  <nav class="bg-white border-b border-gray-200 sm:sticky sm:top-12 z-30 shadow-sm">
     <div class="max-w-6xl mx-auto px-2 sm:px-4">
       <div class="flex items-end gap-0 h-10 text-sm tabs-scroll overflow-x-auto">
 
@@ -249,6 +254,22 @@
     {% endif %}
   {% endwith %}
 
+  <!-- Légende des scores (effaçable, mémorisée) -->
+  <div id="score-legend-banner" class="bg-amber-50 border-b border-amber-100">
+    <div class="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-3 flex-wrap">
+      <span class="text-xs text-gray-500 font-medium flex-shrink-0">Grille de scores :</span>
+      <div class="flex items-center gap-3 flex-wrap text-xs text-gray-600">
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
+      </div>
+      <button onclick="dismissScoreLegend()" aria-label="Masquer la légende"
+              class="ml-auto text-gray-300 hover:text-gray-500 transition text-base leading-none flex-shrink-0">×</button>
+    </div>
+  </div>
+
   <!-- Contenu principal -->
   <main class="flex-1 max-w-6xl mx-auto px-4 py-6 sm:py-8 w-full">
     {% block content %}{% endblock %}
@@ -268,6 +289,19 @@
   {% block scripts %}{% endblock %}
 
   <script>
+  // ── Légende des scores ─────────────────────────────────────────────
+  (function() {
+    if (localStorage.getItem('score-legend-dismissed') === '1') {
+      var b = document.getElementById('score-legend-banner');
+      if (b) b.style.display = 'none';
+    }
+  })();
+  function dismissScoreLegend() {
+    var b = document.getElementById('score-legend-banner');
+    if (b) b.style.display = 'none';
+    localStorage.setItem('score-legend-dismissed', '1');
+  }
+
   // ── Mobile menu ────────────────────────────────────────────────────
   function toggleMobileMenu() {
     var menu = document.getElementById('mobile-menu');

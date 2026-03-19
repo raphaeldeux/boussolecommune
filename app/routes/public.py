@@ -136,6 +136,8 @@ def _build_cartes(ville_id=1):
             "indicateurs_cles": renseignes[:3],
             "nb_renseignes": len(renseignes),
             "nb_total": len(indicateurs),
+            "nb_forts": sum(1 for e in renseignes if e.get("score") in ("A", "B")),
+            "nb_defis": sum(1 for e in renseignes if e.get("score") in ("D", "E")),
             "annee_max": annee_max,
         })
 
@@ -255,7 +257,23 @@ def commune(slug):
     if ville:
         return redirect(url_for("public.dashboard", ville_slug=ville["slug"]))
     # Commune présente dans le référentiel mais pas encore gérée
-    return render_template("public/commune_bientot.html", commune=commune_data)
+    # Suggestions : villes gérées du même département (max 3)
+    suggestions = []
+    dep_code = commune_data.get("departement_code") or (
+        commune_data["code_insee"][:2] if commune_data.get("code_insee") else None
+    )
+    if dep_code:
+        all_villes = ville_model.get_all()
+        for v in all_villes:
+            v_dep = (v.get("code_insee") or "")[:2]
+            if v_dep == dep_code and ville_model.has_data(v["id"]):
+                _, sg, _, _ = _build_cartes(v["id"])
+                suggestions.append({**v, "score_global": sg,
+                                    "score_couleur": SCORE_COULEURS.get(sg) or "#9ca3af"})
+                if len(suggestions) >= 3:
+                    break
+    return render_template("public/commune_bientot.html", commune=commune_data,
+                           suggestions=suggestions)
 
 
 @bp.route("/v/<ville_slug>/")
@@ -480,7 +498,8 @@ def comparer():
         thematiques = ind_model.get_thematiques()
         for v in villes_sel:
             cartes, score_global, _, _ = _build_cartes(v["id"])
-            scores_them = {c["slug"]: {"score": c["score"], "couleur": c["score_couleur"]} for c in cartes}
+            scores_them = {c["slug"]: {"score": c["score"], "couleur": c["score_couleur"],
+                                       "nb_forts": c["nb_forts"], "nb_defis": c["nb_defis"]} for c in cartes}
             comparaison.append({
                 "ville": v,
                 "score_global": score_global,

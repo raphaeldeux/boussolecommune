@@ -79,7 +79,13 @@
           <td class="px-4 py-3 text-center">
             {% set s = c.scores_thematiques.get(them) %}
             {% if s and s.score %}
-            <span class="score-badge score-{{ s.score }}">{{ s.score }}</span>
+            <div class="inline-flex flex-col items-center gap-1">
+              <span class="score-badge score-{{ s.score }}">{{ s.score }}</span>
+              <div class="flex gap-2 text-xs whitespace-nowrap">
+                {% if s.nb_forts %}<span class="text-emerald-600">{{ s.nb_forts }}✓</span>{% endif %}
+                {% if s.nb_defis %}<span class="text-red-500">{{ s.nb_defis }}✗</span>{% endif %}
+              </div>
+            </div>
             {% else %}
             <span class="text-gray-300">—</span>
             {% endif %}
