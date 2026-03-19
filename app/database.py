@@ -413,44 +413,55 @@ def init_db():
 
     # Migration: élargir le CHECK source_type pour inclure 'api_macantine'
     conn = get_db()
-    check_val = conn.execute(
-        "SELECT sql FROM sqlite_master WHERE type='table' AND name='indicateurs'"
-    ).fetchone()
-    if check_val and "'api_macantine'" not in check_val[0]:
-        # SQLite ne permet pas ALTER TABLE pour modifier un CHECK.
-        # La table temporaire est créée sans CHECK sur source_type pour
-        # absorber d'éventuelles valeurs inconnues déjà en base, puis on
-        # normalise les valeurs inconnues vers NULL avant de renommer.
-        conn.execute("DROP TABLE IF EXISTS indicateurs_migration")
-        conn.execute("""
-            CREATE TABLE indicateurs_migration (
-                id TEXT PRIMARY KEY,
-                thematique TEXT NOT NULL,
-                libelle_citoyen TEXT,
-                libelle_technique TEXT,
-                unite TEXT,
-                sens_positif TEXT CHECK(sens_positif IN ('haut','bas','neutre')) DEFAULT 'neutre',
-                seuil_vert REAL,
-                seuil_orange REAL,
-                seuil_rouge REAL,
-                valeur_reference REAL,
-                libelle_reference TEXT,
-                annee_reference INTEGER,
-                description TEXT,
-                source_type TEXT,
-                actif INTEGER DEFAULT 1
-            )
-        """)
-        conn.execute("INSERT INTO indicateurs_migration SELECT * FROM indicateurs")
-        # Normalise les valeurs inconnues (données corrompues) vers NULL
-        conn.execute("""
-            UPDATE indicateurs_migration
-            SET source_type = NULL
-            WHERE source_type NOT IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')
-        """)
-        conn.execute("DROP TABLE indicateurs")
+    tables = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'"
+    ).fetchall()}
+
+    # Cas de reprise : migration interrompue laissant indicateurs_migration sans indicateurs
+    if "indicateurs_migration" in tables and "indicateurs" not in tables:
         conn.execute("ALTER TABLE indicateurs_migration RENAME TO indicateurs")
         conn.commit()
+        tables.add("indicateurs")
+        tables.discard("indicateurs_migration")
+
+    if "indicateurs" in tables:
+        check_val = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='indicateurs'"
+        ).fetchone()
+        if check_val and "'api_macantine'" not in check_val[0]:
+            # SQLite ne permet pas ALTER TABLE pour modifier un CHECK.
+            # La table temporaire est créée sans CHECK sur source_type pour
+            # absorber d'éventuelles valeurs inconnues déjà en base.
+            conn.execute("DROP TABLE IF EXISTS indicateurs_migration")
+            conn.execute("""
+                CREATE TABLE indicateurs_migration (
+                    id TEXT PRIMARY KEY,
+                    thematique TEXT NOT NULL,
+                    libelle_citoyen TEXT,
+                    libelle_technique TEXT,
+                    unite TEXT,
+                    sens_positif TEXT CHECK(sens_positif IN ('haut','bas','neutre')) DEFAULT 'neutre',
+                    seuil_vert REAL,
+                    seuil_orange REAL,
+                    seuil_rouge REAL,
+                    valeur_reference REAL,
+                    libelle_reference TEXT,
+                    annee_reference INTEGER,
+                    description TEXT,
+                    source_type TEXT,
+                    actif INTEGER DEFAULT 1
+                )
+            """)
+            conn.execute("INSERT INTO indicateurs_migration SELECT * FROM indicateurs")
+            # Normalise les valeurs inconnues vers NULL
+            conn.execute("""
+                UPDATE indicateurs_migration
+                SET source_type = NULL
+                WHERE source_type NOT IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')
+            """)
+            conn.execute("DROP TABLE indicateurs")
+            conn.execute("ALTER TABLE indicateurs_migration RENAME TO indicateurs")
+            conn.commit()
     conn.close()
 
     # Migration: ajouter colonne thematique à subventions
