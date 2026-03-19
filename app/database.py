@@ -418,8 +418,9 @@ def init_db():
     ).fetchone()
     if check_val and "'api_macantine'" not in check_val[0]:
         # SQLite ne permet pas ALTER TABLE pour modifier un CHECK.
-        # On recrée la table en plusieurs étapes séparées pour éviter
-        # les problèmes de transaction avec executescript.
+        # La table temporaire est créée sans CHECK sur source_type pour
+        # absorber d'éventuelles valeurs inconnues déjà en base, puis on
+        # normalise les valeurs inconnues vers NULL avant de renommer.
         conn.execute("DROP TABLE IF EXISTS indicateurs_migration")
         conn.execute("""
             CREATE TABLE indicateurs_migration (
@@ -436,11 +437,17 @@ def init_db():
                 libelle_reference TEXT,
                 annee_reference INTEGER,
                 description TEXT,
-                source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')),
+                source_type TEXT,
                 actif INTEGER DEFAULT 1
             )
         """)
         conn.execute("INSERT INTO indicateurs_migration SELECT * FROM indicateurs")
+        # Normalise les valeurs inconnues (données corrompues) vers NULL
+        conn.execute("""
+            UPDATE indicateurs_migration
+            SET source_type = NULL
+            WHERE source_type NOT IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')
+        """)
         conn.execute("DROP TABLE indicateurs")
         conn.execute("ALTER TABLE indicateurs_migration RENAME TO indicateurs")
         conn.commit()
