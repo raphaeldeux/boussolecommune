@@ -430,8 +430,9 @@ def init_db():
         ).fetchone()
         if check_val and "'api_macantine'" not in check_val[0]:
             # SQLite ne permet pas ALTER TABLE pour modifier un CHECK.
-            # La table temporaire est créée sans CHECK sur source_type pour
-            # absorber d'éventuelles valeurs inconnues déjà en base.
+            # On désactive les FK le temps de la migration pour pouvoir
+            # dropper la table référencée par d'autres tables.
+            conn.execute("PRAGMA foreign_keys = OFF")
             conn.execute("DROP TABLE IF EXISTS indicateurs_migration")
             conn.execute("""
                 CREATE TABLE indicateurs_migration (
@@ -462,6 +463,7 @@ def init_db():
             conn.execute("DROP TABLE indicateurs")
             conn.execute("ALTER TABLE indicateurs_migration RENAME TO indicateurs")
             conn.commit()
+            conn.execute("PRAGMA foreign_keys = ON")
     conn.close()
 
     # Migration: ajouter colonne thematique à subventions
