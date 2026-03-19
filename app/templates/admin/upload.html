@@ -3,7 +3,63 @@
 {% block breadcrumb %} › <span class="text-gray-800 font-medium">Import CSV</span>{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-900 mb-6">Import CSV</h1>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Import de données</h1>
+
+<!-- Sources automatiques -->
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-8">
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Sources automatiques</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+    <!-- ma-cantine -->
+    <div class="border border-gray-100 rounded-lg p-4 flex flex-col gap-3">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">🥗</span>
+        <div>
+          <p class="text-sm font-medium text-gray-800">ma-cantine.agriculture.gouv.fr</p>
+          <p class="text-xs text-gray-400 mt-0.5">% de produits bio en restauration collective</p>
+          <p class="text-xs text-emerald-600 mt-1">Indicateur : part bio à la cantine</p>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('admin.fetch_macantine') }}" class="flex gap-2 items-center mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <input type="number" name="annee" value="{{ current_year|default(2024) }}"
+               min="2020" max="2030"
+               class="w-24 border border-gray-200 rounded px-2 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+        <button type="submit"
+                class="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
+    </div>
+
+    <!-- Placeholder OFGL -->
+    <div class="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col gap-2 opacity-50">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">💰</span>
+        <div>
+          <p class="text-sm font-medium text-gray-500">OFGL</p>
+          <p class="text-xs text-gray-400 mt-0.5">Finances communales (épargne, dette…)</p>
+          <p class="text-xs text-gray-300 mt-1">Bientôt disponible</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Placeholder INSEE -->
+    <div class="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col gap-2 opacity-50">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">📊</span>
+        <div>
+          <p class="text-sm font-medium text-gray-500">INSEE</p>
+          <p class="text-xs text-gray-400 mt-0.5">Population, revenus, chômage…</p>
+          <p class="text-xs text-gray-300 mt-1">Bientôt disponible</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<h2 class="text-lg font-semibold text-gray-800 mb-4">Import CSV manuel</h2>
 
 <!-- Boutons Télécharger modèle (US10) -->
 <div class="flex gap-3 mb-6 flex-wrap">

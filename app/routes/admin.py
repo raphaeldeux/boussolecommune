@@ -19,6 +19,7 @@ from app.database import get_db
 from app.services.scoring import calculer_score, ajuster_score, calculer_score_thematique, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
 from app.services.parser_ofgl import parser_ofgl
+from app.services.fetchers.macantine import fetch_bio_percent, INDICATEUR_ID as MACANTINE_IND
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -501,7 +502,46 @@ def upload():
         format_csv=format_csv or "generique",
         ville=ville,
         imports_hist=[dict(r) for r in imports_hist],
+        current_year=datetime.now().year - 1,
     )
+
+
+# ── Fetch automatique : ma-cantine ────────────────────────────────────────
+
+@bp.route("/fetch/macantine", methods=["POST"])
+@login_required
+def fetch_macantine():
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune commune sélectionnée.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    code_insee = ville.get("code_insee")
+    if not code_insee:
+        flash("Cette commune n'a pas de code INSEE renseigné.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    annee = request.form.get("annee", type=int)
+    if not annee:
+        flash("Année invalide.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    result = fetch_bio_percent(code_insee, annee)
+    if not result["ok"]:
+        flash(f"ma-cantine : {result['error']}", "danger")
+        return redirect(url_for("admin.upload"))
+
+    commentaire = f"{result['canteen_count']} cantine(s) déclarante(s) — EGAlim global : {result.get('egalim_percent', '?')} %"
+    donnee_model.upsert(
+        MACANTINE_IND, annee, result["valeur"],
+        result["source"], commentaire, "api", ville["id"]
+    )
+    flash(
+        f"ma-cantine {annee} : {result['valeur']:.0f} % de bio importé pour {ville['nom']} "
+        f"({result['canteen_count']} cantine(s)).",
+        "success"
+    )
+    return redirect(url_for("admin.upload"))
 
 
 # ── Modèles CSV téléchargeables (US10) ────────────────────────────────────
