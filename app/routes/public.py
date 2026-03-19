@@ -436,4 +436,6 @@ def comparer():
 
 @bp.route("/methodologie")
 def methodologie():
-    return render_template("public/methodologie.html")
+    retour_slug = request.args.get("retour")
+    ville_retour = ville_model.get_by_slug(retour_slug) if retour_slug else None
+    return render_template("public/methodologie.html", ville=ville_retour)

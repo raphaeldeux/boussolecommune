@@ -162,7 +162,7 @@
              {{ tab_active if request.endpoint == 'public.comparer' else tab_idle }}">
           Comparer
         </a>
-        <a href="{{ url_for('public.methodologie') }}"
+        <a href="{{ url_for('public.methodologie', retour=ville.slug) }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition text-xs
              {{ tab_active if request.endpoint == 'public.methodologie' else tab_idle }}">
           Méthode

@@ -1,5 +1,5 @@
-{% extends "base_discovery.html" %}
-{% block title %}Note méthodologique — CommuneSanté Sautron{% endblock %}
+{% extends "base.html" %}
+{% block title %}Note méthodologique — CommuneSanté{% if ville is defined and ville %} · {{ ville.nom }}{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
@@ -15,7 +15,7 @@
     </h2>
     <p class="text-gray-600 text-sm leading-relaxed mb-4">
       Chaque indicateur dispose de seuils fixés à partir des standards nationaux ou locaux.
-      La valeur mesurée pour Sautron est positionnée par rapport à ces seuils pour obtenir
+      La valeur mesurée pour la commune est positionnée par rapport à ces seuils pour obtenir
       un score initial de A à E.
     </p>
     <div class="overflow-x-auto">
@@ -112,7 +112,7 @@
     </h2>
     <p class="text-gray-600 text-sm leading-relaxed mb-4">
       Lorsqu'une valeur de référence est disponible (moyenne de communes de taille comparable,
-      source OFGL ou INSEE), le score est également modulé selon l'écart entre Sautron et cette référence.
+      source OFGL ou INSEE), le score est également modulé selon l'écart entre la commune et cette référence.
     </p>
     <div class="overflow-x-auto">
       <table class="w-full text-sm border-collapse">
@@ -124,7 +124,7 @@
         </thead>
         <tbody>
           <tr class="border-b border-gray-100">
-            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron &gt; 10 % au-dessus (dans le bon sens)</td>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">la commune &gt; 10 % au-dessus (dans le bon sens)</td>
             <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-green-600">+0,5 point</td>
           </tr>
           <tr class="border-b border-gray-100 bg-gray-50">
@@ -132,15 +132,15 @@
             <td class="px-4 py-2 border border-gray-200 text-center text-gray-400">0</td>
           </tr>
           <tr class="border-b border-gray-100">
-            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron 10 – 25 % en dessous</td>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">la commune 10 – 25 % en dessous</td>
             <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-orange-500">−0,5 point</td>
           </tr>
           <tr class="border-b border-gray-100">
-            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron 25 – 50 % en dessous</td>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">la commune 25 – 50 % en dessous</td>
             <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-red-500">−1 point</td>
           </tr>
           <tr>
-            <td class="px-4 py-2 border border-gray-200 text-gray-700">Sautron &gt; 50 % en dessous</td>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700">la commune &gt; 50 % en dessous</td>
             <td class="px-4 py-2 border border-gray-200 text-center font-semibold text-red-700">−1,5 point</td>
           </tr>
         </tbody>
@@ -230,10 +230,7 @@
     </p>
   </section>
 
-  <div class="text-center mt-4">
-    <a href="{{ url_for('public.index') }}"
-       class="text-sm text-emerald-600 hover:underline">← Retour à l'accueil</a>
-  </div>
+
 
 </div>
 {% endblock %}
