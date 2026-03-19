@@ -94,8 +94,7 @@ def calculer_score_global(scores_thematiques):
             poids = THEMATIQUE_POIDS[thematique]
             valeur = SCORE_VALEURS.get(score)
             if valeur:
-                total_ponde = poids * valeur
-                total_pondere += total_ponde
+                total_pondere += poids * valeur
                 total_poids += poids
     if total_poids == 0:
         return None

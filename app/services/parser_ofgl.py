@@ -19,15 +19,15 @@ MAPPING_OFGL = {
     "rigidite des charges": "fin_rigidite_charges",
 }
 
-POPULATION_SAUTRON = 8600
 SOURCE_OFGL = "OFGL — Comptes de gestion"
 
 COLONNES_REQUISES = {"code_commune", "annee", "libelle_compte", "montant"}
 
 
-def parser_ofgl(contenu):
+def parser_ofgl(contenu, population=None):
     """
     Parse un export OFGL (séparateur ;).
+    population : nombre d'habitants de la commune (obligatoire pour les indicateurs par habitant).
     Retourne (lignes_valides, erreurs)
     """
     lignes_valides = []
@@ -77,7 +77,10 @@ def parser_ofgl(contenu):
 
         # Conversion en valeur par habitant si nécessaire
         if indicateur_id in ("fin_dette_habitant", "fin_investissement_habitant"):
-            valeur = round(montant / POPULATION_SAUTRON, 2)
+            if not population:
+                erreurs.append({"ligne": num, "message": f"Population inconnue, impossible de calculer la valeur par habitant pour {indicateur_id}"})
+                continue
+            valeur = round(montant / population, 2)
         else:
             valeur = montant
 

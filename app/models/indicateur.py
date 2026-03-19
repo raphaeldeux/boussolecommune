@@ -2,50 +2,45 @@ from app.database import get_db
 
 
 def get_all(actif_only=True):
-    conn = get_db()
-    where = "WHERE actif = 1" if actif_only else ""
-    rows = conn.execute(f"SELECT * FROM indicateurs {where} ORDER BY thematique, id").fetchall()
-    conn.close()
+    with get_db() as conn:
+        where = "WHERE actif = 1" if actif_only else ""
+        rows = conn.execute(f"SELECT * FROM indicateurs {where} ORDER BY thematique, id").fetchall()
     return [dict(r) for r in rows]
 
 
 def get_by_id(indicateur_id):
-    conn = get_db()
-    row = conn.execute("SELECT * FROM indicateurs WHERE id = ?", (indicateur_id,)).fetchone()
-    conn.close()
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM indicateurs WHERE id = ?", (indicateur_id,)).fetchone()
     return dict(row) if row else None
 
 
 def get_by_thematique(thematique):
-    conn = get_db()
-    rows = conn.execute(
-        "SELECT * FROM indicateurs WHERE thematique = ? AND actif = 1 ORDER BY id",
-        (thematique,)
-    ).fetchall()
-    conn.close()
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM indicateurs WHERE thematique = ? AND actif = 1 ORDER BY id",
+            (thematique,)
+        ).fetchall()
     return [dict(r) for r in rows]
 
 
 def update_reference(indicateur_id, valeur, libelle, annee):
-    conn = get_db()
-    conn.execute(
-        """UPDATE indicateurs
-           SET valeur_reference = ?, libelle_reference = ?, annee_reference = ?
-           WHERE id = ?""",
-        (valeur, libelle, annee, indicateur_id)
-    )
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        conn.execute(
+            """UPDATE indicateurs
+               SET valeur_reference = ?, libelle_reference = ?, annee_reference = ?
+               WHERE id = ?""",
+            (valeur, libelle, annee, indicateur_id)
+        )
+        conn.commit()
 
 
 def clear_reference(indicateur_id):
-    conn = get_db()
-    conn.execute(
-        "UPDATE indicateurs SET valeur_reference=NULL, libelle_reference=NULL, annee_reference=NULL WHERE id=?",
-        (indicateur_id,)
-    )
-    conn.commit()
-    conn.close()
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE indicateurs SET valeur_reference=NULL, libelle_reference=NULL, annee_reference=NULL WHERE id=?",
+            (indicateur_id,)
+        )
+        conn.commit()
 
 
 def get_thematiques():

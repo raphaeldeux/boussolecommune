@@ -1,26 +1,26 @@
 import json
 import os
 import tempfile
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response
+from datetime import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response, abort
 from app.auth import login_required, super_admin_required, is_rate_limited, record_attempt
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
+from app.models.interpretation import LIMITE_PHRASE_COURTE, LIMITE_PHRASE_LONGUE
 import app.models.pyramide as pyramide_model
 import app.models.subvention as subvention_model
 import app.models.ville as ville_model
 import app.models.user as user_model
 import app.models.banque_reference as banque_ref_model
+import app.models.commune as commune_model
 import app.models.refs_banque as refs_banque_model
 from app.database import get_db
-from app.services.scoring import calculer_score, SCORE_COULEURS
+from app.services.scoring import calculer_score, ajuster_score, calculer_score_thematique, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
 from app.services.parser_ofgl import parser_ofgl
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
-
-INTERP_LIMIT_COURTE = 200
-INTERP_LIMIT_LONGUE = 1000
 
 
 @bp.context_processor
@@ -139,8 +139,6 @@ def dashboard():
     user_villes = _get_user_villes()
     thematiques = ind_model.get_thematiques() + ["portrait"]
     stats = []
-    score_num = {"A": 1, "B": 2, "C": 3, "D": 4, "E": 5}
-    score_let = ["A", "B", "C", "D", "E"]
     total_donnees = 0
     total_donnees_max = 0
     total_interp_ok = 0
@@ -178,11 +176,7 @@ def dashboard():
                     "en_attente" if donnee else "absent"
                 ),
             })
-        # Score thématique : moyenne des scores individuels
-        thematic_score = None
-        if scores:
-            avg = sum(score_num[s] for s in scores) / len(scores)
-            thematic_score = score_let[min(4, round(avg) - 1)]
+        thematic_score = calculer_score_thematique([{"score": s} for s in scores])
         total_donnees += nb_renseignes
         total_donnees_max += len(indicateurs)
         total_interp_ok += nb_interp_ok
@@ -229,7 +223,7 @@ def saisie():
         for i in inds:
             tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS[them]})
 
-    fv = {"annee": "2024", "valeur": "", "source": "", "commentaire": ""}
+    fv = {"annee": str(datetime.now().year), "valeur": "", "source": "", "commentaire": ""}
     if request.method == "GET":
         ind_arg = request.args.get("ind")
         annee_arg = request.args.get("annee")
@@ -288,7 +282,7 @@ def saisie():
 
     if request.method == "POST":
         fv = {
-            "annee": request.form.get("annee", "2024"),
+            "annee": request.form.get("annee", str(datetime.now().year)),
             "valeur": request.form.get("valeur", ""),
             "source": request.form.get("source", ""),
             "commentaire": request.form.get("commentaire", ""),
@@ -363,10 +357,10 @@ def interpretation(indicateur_id, annee):
         erreurs = []
         if score and score not in ("A", "B", "C", "D", "E"):
             erreurs.append("Le score doit être A, B, C, D ou E.")
-        if len(phrase_courte) > INTERP_LIMIT_COURTE:
-            erreurs.append(f"La phrase courte dépasse {INTERP_LIMIT_COURTE} caractères.")
-        if len(phrase_longue) > INTERP_LIMIT_LONGUE:
-            erreurs.append(f"L'interprétation dépasse {INTERP_LIMIT_LONGUE} caractères.")
+        if len(phrase_courte) > LIMITE_PHRASE_COURTE:
+            erreurs.append(f"La phrase courte dépasse {LIMITE_PHRASE_COURTE} caractères.")
+        if len(phrase_longue) > LIMITE_PHRASE_LONGUE:
+            erreurs.append(f"L'interprétation dépasse {LIMITE_PHRASE_LONGUE} caractères.")
 
         if erreurs:
             for e in erreurs:
@@ -393,8 +387,8 @@ def interpretation(indicateur_id, annee):
         donnee=donnee,
         interp=interp,
         ville=ville,
-        limit_courte=INTERP_LIMIT_COURTE,
-        limit_longue=INTERP_LIMIT_LONGUE,
+        limit_courte=LIMITE_PHRASE_COURTE,
+        limit_longue=LIMITE_PHRASE_LONGUE,
     )
 
 
@@ -434,7 +428,7 @@ def upload():
             session["upload_nom"] = fichier.filename
 
             if format_csv == "ofgl":
-                lignes_valides, erreurs = parser_ofgl(contenu)
+                lignes_valides, erreurs = parser_ofgl(contenu, population=ville.get("population") if ville else None)
             else:
                 lignes_valides, erreurs = parser_generique(contenu)
 
@@ -455,7 +449,7 @@ def upload():
             session.pop("upload_tmp", None)
 
             if format_csv == "ofgl":
-                lignes_valides, erreurs = parser_ofgl(contenu)
+                lignes_valides, erreurs = parser_ofgl(contenu, population=ville.get("population") if ville else None)
             else:
                 lignes_valides, erreurs = parser_generique(contenu)
 
@@ -750,7 +744,7 @@ def subventions():
         lignes=lignes,
         total=total,
         domaines=subvention_model.DOMAINES,
-        annee_courante=2024,
+        annee_courante=datetime.now().year,
         ville=ville,
     )
 
@@ -873,7 +867,6 @@ def nouveau_user():
 @bp.route("/users/modifier/<int:user_id>", methods=["GET", "POST"])
 @super_admin_required
 def modifier_user(user_id):
-    from flask import abort
     user = user_model.get_by_id(user_id)
     if not user:
         abort(404)
@@ -1179,13 +1172,8 @@ def mes_propositions():
 
 # ── Références ville (assignation) ────────────────────────────────────────
 
-# (ancienne route conservée — remplacée ci-dessous)
-# old `references()` supprimée et réécrite
-
 
 # ── Communes en vedette (super_admin) ─────────────────────────────────────
-
-import app.models.commune as commune_model
 
 
 @bp.route("/communes-vedette", methods=["GET", "POST"])
