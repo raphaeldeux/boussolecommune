@@ -393,7 +393,6 @@ def portrait(ville_slug):
 @bp.route("/comparer")
 def comparer():
     villes_list = ville_model.get_all()
-    # Filtrer les villes avec données
     villes_avec_data = [v for v in villes_list if ville_model.has_data(v["id"])]
 
     slugs_sel = request.args.getlist("v")
@@ -401,14 +400,13 @@ def comparer():
     comparaison = []
 
     if slugs_sel:
-        for slug in slugs_sel[:4]:  # max 4 villes
+        for slug in slugs_sel[:4]:
             v = ville_model.get_by_slug(slug)
             if v and ville_model.has_data(v["id"]):
                 villes_sel.append(v)
 
     if len(villes_sel) >= 2:
         thematiques = ind_model.get_thematiques()
-        # Score global par ville
         for v in villes_sel:
             cartes, score_global, _, _ = _build_cartes(v["id"])
             scores_them = {c["slug"]: {"score": c["score"], "couleur": c["score_couleur"]} for c in cartes}
@@ -419,6 +417,11 @@ def comparer():
                 "scores_thematiques": scores_them,
             })
 
+    # Contexte de retour : si on vient d'une page ville, on passe la ville
+    # pour que base.html affiche le header ville + les tabs de navigation
+    retour_slug = request.args.get("retour")
+    ville_retour = ville_model.get_by_slug(retour_slug) if retour_slug else None
+
     return render_template(
         "public/comparer.html",
         villes=villes_avec_data,
@@ -427,6 +430,7 @@ def comparer():
         thematiques=ind_model.get_thematiques(),
         thematique_labels=ind_model.THEMATIQUE_LABELS,
         thematique_icons=ind_model.THEMATIQUE_ICONS,
+        ville=ville_retour,
     )
 
 
