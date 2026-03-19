@@ -3,33 +3,85 @@
 {% block breadcrumb %} › <span class="text-gray-800 font-medium">Banque de références</span>{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-900 mb-6">Banque de références</h1>
+<div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Banque de références</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Gérez les strates, consultez les entrées validées et traitez les propositions.</p>
+  </div>
+  <div class="flex gap-2 flex-wrap">
+    <a href="{{ url_for('admin.banque_entrees') }}"
+       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition">
+      📊 Entrées de la banque
+    </a>
+    <a href="{{ url_for('admin.banque_propositions') }}"
+       class="relative px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition">
+      📬 Propositions
+      {% if nb_pending > 0 %}
+      <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+        {{ nb_pending }}
+      </span>
+      {% endif %}
+    </a>
+  </div>
+</div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-  <!-- Liste des références -->
+  <!-- Liste des strates -->
   <div class="lg:col-span-2">
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      {% if refs %}
+      <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+        <h2 class="font-semibold text-gray-700">Strates définies</h2>
+        <p class="text-xs text-gray-400 mt-0.5">Catégories de collectivités comparables (libellé libre).</p>
+      </div>
+      {% if strates %}
       <table class="w-full text-sm">
-        <thead class="bg-gray-50 border-b border-gray-100">
+        <thead class="border-b border-gray-100">
           <tr>
-            <th class="text-left px-4 py-3 text-gray-500 font-medium">Nom</th>
-            <th class="text-left px-4 py-3 text-gray-500 font-medium">Description</th>
-            <th class="text-center px-3 py-3 text-gray-500 font-medium">Actions</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium">Libellé</th>
+            <th class="text-left px-4 py-3 text-gray-500 font-medium hidden sm:table-cell">Description</th>
+            <th class="text-center px-3 py-3 text-gray-500 font-medium w-28">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          {% for ref in refs %}
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium text-gray-800">{{ ref.nom }}</td>
-            <td class="px-4 py-3 text-gray-500 text-xs">{{ ref.description or '—' }}</td>
+          {% for s in strates %}
+          <tr class="hover:bg-gray-50" x-data="{ editing: false }">
+            <td class="px-4 py-3">
+              <span class="font-medium text-gray-800">{{ s.nom }}</span>
+            </td>
+            <td class="px-4 py-3 text-gray-500 text-xs hidden sm:table-cell">{{ s.description or '—' }}</td>
             <td class="px-3 py-3 text-center">
-              <form method="POST" action="{{ url_for('admin.supprimer_banque_reference', ref_id=ref.id) }}"
-                    class="inline" onsubmit="return confirm('Supprimer « {{ ref.nom }} » ? Les références utilisant cette entrée seront dissociées.')">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-                <button type="submit" class="text-red-400 hover:text-red-600 text-xs">Supprimer</button>
-              </form>
+              <div class="flex items-center justify-center gap-2">
+                <!-- Modifier (formulaire inline via details/summary) -->
+                <details class="relative inline-block">
+                  <summary class="text-xs text-blue-500 hover:text-blue-700 cursor-pointer list-none">Modifier</summary>
+                  <div class="absolute right-0 mt-1 w-72 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50 text-left">
+                    <form method="POST" action="{{ url_for('admin.modifier_strate', strate_id=s.id) }}">
+                      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                      <div class="mb-2">
+                        <input type="text" name="nom" value="{{ s.nom }}" required
+                               class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                      </div>
+                      <div class="mb-3">
+                        <input type="text" name="description" value="{{ s.description or '' }}"
+                               placeholder="Description…"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                      </div>
+                      <button type="submit"
+                              class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 rounded-lg text-sm transition">
+                        Enregistrer
+                      </button>
+                    </form>
+                  </div>
+                </details>
+                <!-- Supprimer -->
+                <form method="POST" action="{{ url_for('admin.supprimer_strate', strate_id=s.id) }}"
+                      class="inline"
+                      onsubmit="return confirm('Supprimer la strate « {{ s.nom }} » ?')">
+                  <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+                  <button type="submit" class="text-red-400 hover:text-red-600 text-xs">Suppr.</button>
+                </form>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -37,43 +89,47 @@
       </table>
       {% else %}
       <div class="p-8 text-center text-gray-400">
-        <div class="text-3xl mb-2">📊</div>
-        <p>Aucune référence dans la banque.</p>
+        <div class="text-3xl mb-2">🏷️</div>
+        <p>Aucune strate définie.</p>
       </div>
       {% endif %}
     </div>
   </div>
 
-  <!-- Formulaire d'ajout -->
+  <!-- Formulaire nouvelle strate -->
   <div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-      <h2 class="font-semibold text-gray-800 mb-4">Ajouter une référence</h2>
-      <form method="POST" action="{{ url_for('admin.nouvelle_banque_reference') }}">
+      <h2 class="font-semibold text-gray-800 mb-4">Nouvelle strate</h2>
+      <form method="POST" action="{{ url_for('admin.nouvelle_strate') }}">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <div class="mb-3">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Libellé *</label>
           <input type="text" name="nom" required
-                 placeholder="Ex : Communes < 10 000 hab."
+                 placeholder="Ex : Loire-Atlantique 5 000–10 000 hab."
                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
         </div>
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea name="description" rows="2"
-                    placeholder="Explication ou source de cette référence…"
+                    placeholder="Source, périmètre…"
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
         </div>
         <button type="submit"
                 class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-lg text-sm transition">
-          Ajouter
+          Créer la strate
         </button>
       </form>
     </div>
 
-    <div class="mt-4 bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
-      <strong class="block mb-1">Comment utiliser la banque ?</strong>
-      Créez ici les catégories de référence (ex : "Communes &lt; 10 000 hab.", "Moyenne nationale").
-      Chaque gestionnaire peut ensuite, dans son interface « Références », choisir l'entrée de banque
-      applicable à chaque indicateur et saisir la valeur correspondante.
+    <div class="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-4 text-sm text-blue-800">
+      <strong class="block mb-1">Fonctionnement</strong>
+      <ol class="list-decimal list-inside space-y-1 text-xs text-blue-700">
+        <li>Créez ici les <strong>strates</strong> (catégories de collectivités).</li>
+        <li>Ajoutez des <strong>valeurs de référence</strong> par indicateur × strate.</li>
+        <li>Les gestionnaires peuvent aussi <strong>proposer</strong> des valeurs sourcées.</li>
+        <li>Vous <strong>validez</strong> les propositions avant mise en banque.</li>
+        <li>Les gestionnaires <strong>choisissent</strong> la strate applicable à leur ville.</li>
+      </ol>
     </div>
   </div>
 

@@ -142,6 +142,16 @@
                {% if request.endpoint == 'admin.references' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             📊 Références
           </a>
+          <a href="{{ url_for('admin.proposer_reference') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.proposer_reference' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            📬 Proposer une réf.
+          </a>
+          <a href="{{ url_for('admin.mes_propositions') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.mes_propositions' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            📋 Mes propositions
+          </a>
         </div>
 
         <!-- Super-admin -->
@@ -159,9 +169,15 @@
             👥 Utilisateurs
           </a>
           <a href="{{ url_for('admin.banque_references') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint in ('admin.banque_references',) %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+             class="relative flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint in ('admin.banque_references','admin.banque_entrees','admin.banque_propositions') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             🏛️ Banque de réf.
+            {%- set nb_p = pending_propositions_count | default(0) -%}
+            {% if nb_p > 0 %}
+            <span class="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0">
+              {{ nb_p }}
+            </span>
+            {% endif %}
           </a>
           <a href="{{ url_for('admin.communes_vedette') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm

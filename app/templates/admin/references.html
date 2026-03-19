@@ -6,76 +6,102 @@
 <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Références — {{ ville.nom }}</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Choisissez une référence de la banque pour chaque indicateur.</p>
+    <p class="text-sm text-gray-500 mt-0.5">
+      Choisissez, pour chaque indicateur, une entrée validée de la banque ou saisissez une valeur locale.
+    </p>
   </div>
-  {% if session.get('user_role') == 'super_admin' %}
-  <a href="{{ url_for('admin.banque_references') }}"
-     class="text-sm text-violet-600 hover:underline">Gérer la banque de références →</a>
-  {% endif %}
+  <div class="flex gap-2 flex-wrap text-sm">
+    <a href="{{ url_for('admin.proposer_reference') }}"
+       class="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-emerald-300 hover:text-emerald-700 transition">
+      + Proposer une référence banque
+    </a>
+    {% if session.get('user_role') == 'super_admin' %}
+    <a href="{{ url_for('admin.banque_entrees') }}"
+       class="px-3 py-1.5 rounded-lg border border-violet-200 text-violet-600 hover:bg-violet-50 transition">
+      🏛️ Gérer la banque →
+    </a>
+    {% endif %}
+  </div>
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-  <!-- Formulaire -->
+  <!-- Formulaire d'assignation -->
   <div>
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 class="font-semibold text-gray-800 mb-4">Associer une référence</h2>
-      <form method="POST">
+      <h2 class="font-semibold text-gray-800 mb-4">Assigner une référence</h2>
+      <form method="POST" id="ref-form">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="action" value="set">
         <div class="space-y-4">
 
+          <!-- Sélecteur indicateur -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Indicateur</label>
             <select name="indicateur_id" id="ref-indicateur" required
                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
               <option value="">— Choisir un indicateur —</option>
-              {% set current_them = namespace(value='') %}
+              {% set cur = namespace(v='') %}
               {% for ind in indicateurs %}
-                {% if ind.them_label != current_them.value %}
-                  {% if current_them.value != '' %}</optgroup>{% endif %}
+                {% if ind.them_label != cur.v %}
+                  {% if cur.v != '' %}</optgroup>{% endif %}
                   <optgroup label="{{ ind.them_label }}">
-                  {% set current_them.value = ind.them_label %}
+                  {% set cur.v = ind.them_label %}
                 {% endif %}
-                <option value="{{ ind.id }}" data-unite="{{ ind.unite or '' }}"
-                        data-valref="{{ ind.ref_ville.valeur if ind.ref_ville and ind.ref_ville.valeur else '' }}"
-                        data-refid="{{ ind.ref_ville.banque_reference_id if ind.ref_ville else '' }}">
-                  {{ ind.libelle_citoyen }}
-                  {% if ind.ref_ville %} ✓{% endif %}
+                <option value="{{ ind.id }}"
+                        data-unite="{{ ind.unite or '' }}"
+                        data-mode="{{ 'banque' if (ind.ref_ville and ind.ref_ville.is_banque) else ('locale' if ind.ref_ville else '') }}"
+                        data-refid="{{ ind.ref_ville.ref_banque_id if ind.ref_ville and ind.ref_ville.ref_banque_id else '' }}"
+                        data-locale="{{ ind.ref_ville.valeur_locale if ind.ref_ville and ind.ref_ville.valeur_locale is not none else '' }}"
+                        data-justif="{{ ind.ref_ville.justification_locale if ind.ref_ville else '' }}"
+                        data-entrees="{{ ind.entrees_valides | tojson | e }}">
+                  {{ ind.libelle_citoyen }}{% if ind.ref_ville %} ✓{% endif %}
                 </option>
               {% endfor %}
               </optgroup>
             </select>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Référence de la banque</label>
-            {% if banque %}
-            <select name="banque_reference_id"
-                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
-              <option value="">— Aucune référence de banque —</option>
-              {% for ref in banque %}
-              <option value="{{ ref.id }}">{{ ref.nom }}{% if ref.description %} — {{ ref.description[:50] }}{% endif %}</option>
-              {% endfor %}
-            </select>
-            {% else %}
-            <p class="text-sm text-amber-600">
-              Aucune entrée dans la banque.
-              {% if session.get('user_role') == 'super_admin' %}
-              <a href="{{ url_for('admin.banque_references') }}" class="underline">Créer des références →</a>
-              {% endif %}
-            </p>
-            {% endif %}
+          <!-- Mode : banque ou locale -->
+          <div class="flex items-center gap-4">
+            <label class="flex items-center gap-1.5 cursor-pointer text-sm">
+              <input type="radio" name="mode" value="banque" id="mode-banque" class="text-emerald-600">
+              <span>Référence banque</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer text-sm">
+              <input type="radio" name="mode" value="locale" id="mode-locale" class="text-amber-600">
+              <span>Valeur locale</span>
+            </label>
           </div>
 
-          <div class="grid grid-cols-2 gap-3">
+          <!-- Panel banque -->
+          <div id="panel-banque">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Entrée de la banque</label>
+            <select name="ref_banque_id" id="sel-banque"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              <option value="">— Choisir l'indicateur d'abord —</option>
+            </select>
+            <p id="no-entrees" class="hidden text-xs text-amber-600 mt-1">
+              Aucune entrée validée pour cet indicateur.
+              <a href="{{ url_for('admin.proposer_reference') }}" class="underline">Faire une proposition →</a>
+            </p>
+          </div>
+
+          <!-- Panel local -->
+          <div id="panel-locale" class="hidden space-y-3">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
-                Valeur <span id="ref-unite" class="text-gray-400 font-normal text-xs"></span>
+                Valeur locale <span id="ref-unite" class="text-gray-400 font-normal text-xs"></span>
               </label>
-              <input type="text" name="valeur" id="ref-valeur" required
+              <input type="text" name="valeur_locale" id="inp-locale"
                      placeholder="ex : 6.8"
-                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Justification</label>
+              <input type="text" name="justification" id="inp-justif"
+                     placeholder="Pourquoi une valeur locale ? (source, contexte…)"
+                     class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
             </div>
           </div>
 
@@ -99,42 +125,51 @@
           <tr>
             <th class="text-left px-4 py-2 text-gray-500 font-medium">Indicateur</th>
             <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
-            <th class="text-left px-3 py-2 text-gray-500 font-medium">Référence</th>
-            <th class="px-3 py-2"></th>
+            <th class="text-left px-3 py-2 text-gray-500 font-medium">Origine</th>
+            <th class="px-3 py-2 w-12"></th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-50">
-          {% set has_any = namespace(value=false) %}
+          {% set has_any = namespace(v=false) %}
           {% for ind in indicateurs %}
           {% if ind.ref_ville %}
-          {% set has_any.value = true %}
+          {% set has_any.v = true %}
           <tr class="hover:bg-gray-50">
             <td class="px-4 py-3">
-              <div class="font-medium text-gray-700 text-xs">{{ ind.libelle_citoyen | truncate(36) }}</div>
+              <div class="font-medium text-gray-700 text-xs">{{ ind.libelle_citoyen | truncate(38) }}</div>
               <div class="text-xs text-gray-400">{{ ind.them_label }}</div>
             </td>
             <td class="px-3 py-3 text-center font-mono text-gray-700 whitespace-nowrap text-xs">
-              {{ ind.ref_ville.valeur | format_valeur }} {{ ind.unite }}
+              {{ ind.ref_ville.valeur | format_valeur if ind.ref_ville.valeur is not none else '—' }}
+              {{ ind.unite or '' }}
             </td>
-            <td class="px-3 py-3 text-xs text-gray-500">
-              {{ ind.ref_ville.banque_nom or '—' }}
+            <td class="px-3 py-3 text-xs">
+              {% if ind.ref_ville.is_banque %}
+              <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-xs">
+                🏛️ {{ ind.ref_ville.strate_nom or 'Banque' }}
+              </span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-xs"
+                    title="{{ ind.ref_ville.justification_locale or '' }}">
+                📍 Locale
+              </span>
+              {% endif %}
             </td>
             <td class="px-3 py-3">
               <form method="POST">
                 <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
                 <input type="hidden" name="action" value="clear">
                 <input type="hidden" name="indicateur_id" value="{{ ind.id }}">
-                <button type="submit"
-                        class="text-xs text-red-400 hover:text-red-600">Suppr.</button>
+                <button type="submit" class="text-xs text-red-400 hover:text-red-600">Suppr.</button>
               </form>
             </td>
           </tr>
           {% endif %}
           {% endfor %}
-          {% if not has_any.value %}
+          {% if not has_any.v %}
           <tr>
             <td colspan="4" class="px-4 py-6 text-center text-gray-400 text-sm italic">
-              Aucune référence saisie.
+              Aucune référence assignée.
             </td>
           </tr>
           {% endif %}
@@ -144,19 +179,80 @@
   </div>
 
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
-var selectEl = document.getElementById('ref-indicateur');
-selectEl.addEventListener('change', function() {
+var modeB = document.getElementById('mode-banque');
+var modeL = document.getElementById('mode-locale');
+var panelB = document.getElementById('panel-banque');
+var panelL = document.getElementById('panel-locale');
+var selInd = document.getElementById('ref-indicateur');
+var selBanque = document.getElementById('sel-banque');
+var noEntrees = document.getElementById('no-entrees');
+var inpLocale = document.getElementById('inp-locale');
+var inpJustif = document.getElementById('inp-justif');
+var refUnite = document.getElementById('ref-unite');
+
+function setMode(mode) {
+  if (mode === 'banque') {
+    panelB.classList.remove('hidden');
+    panelL.classList.add('hidden');
+    modeB.checked = true;
+  } else {
+    panelB.classList.add('hidden');
+    panelL.classList.remove('hidden');
+    modeL.checked = true;
+  }
+}
+
+modeB.addEventListener('change', function() { setMode('banque'); });
+modeL.addEventListener('change', function() { setMode('locale'); });
+
+selInd.addEventListener('change', function() {
   var opt = this.options[this.selectedIndex];
-  document.getElementById('ref-valeur').value = opt.dataset.valref || '';
-  var unite = opt.dataset.unite;
-  document.getElementById('ref-unite').textContent = unite ? '(' + unite + ')' : '';
+  refUnite.textContent = opt.dataset.unite ? '(' + opt.dataset.unite + ')' : '';
+
+  // Remplir le sélecteur banque
+  var entrees = [];
+  try { entrees = JSON.parse(opt.dataset.entrees || '[]'); } catch(e) {}
+  selBanque.innerHTML = '';
+  if (entrees.length === 0) {
+    selBanque.innerHTML = '<option value="">Aucune entrée disponible</option>';
+    noEntrees.classList.remove('hidden');
+  } else {
+    noEntrees.classList.add('hidden');
+    var empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = '— Choisir une strate —';
+    selBanque.appendChild(empty);
+    entrees.forEach(function(e) {
+      var o = document.createElement('option');
+      o.value = e.id;
+      o.textContent = e.strate_nom + ' — ' + e.valeur + (e.annee ? ' (' + e.annee + ')' : '');
+      selBanque.appendChild(o);
+    });
+  }
+
+  // Pré-remplir depuis la ref existante
+  var mode = opt.dataset.mode;
   var refId = opt.dataset.refid;
-  if (refId) {
-    var refSel = document.querySelector('select[name="banque_reference_id"]');
-    if (refSel) refSel.value = refId;
+  var locale = opt.dataset.locale;
+  var justif = opt.dataset.justif;
+
+  if (mode === 'banque' && refId) {
+    setMode('banque');
+    selBanque.value = refId;
+  } else if (mode === 'locale') {
+    setMode('locale');
+    inpLocale.value = locale;
+    inpJustif.value = justif;
+  } else {
+    setMode('banque');
   }
 });
+
+// Init mode par défaut
+setMode('banque');
 </script>
 {% endblock %}

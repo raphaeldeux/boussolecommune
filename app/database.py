@@ -332,6 +332,52 @@ def init_db():
         conn.commit()
     conn.close()
 
+    # Migration banque de références : nouvelle table refs_banque + colonnes indicateur_ville_ref
+    conn = get_db()
+    tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+    if 'refs_banque' not in tables:
+        conn.executescript("""
+            CREATE TABLE refs_banque (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                indicateur_id    TEXT    NOT NULL REFERENCES indicateurs(id),
+                strate_id        INTEGER NOT NULL REFERENCES banque_references(id) ON DELETE CASCADE,
+                valeur           REAL    NOT NULL,
+                source           TEXT    NOT NULL,
+                annee            INTEGER,
+                statut           TEXT    NOT NULL DEFAULT 'en_attente'
+                                 CHECK(statut IN ('en_attente','valide','rejete')),
+                propose_par      INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                valide_par       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                date_proposition TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                date_validation  TIMESTAMP,
+                commentaire_rejet TEXT,
+                UNIQUE(indicateur_id, strate_id)
+            );
+        """)
+        conn.commit()
+    ivr_cols = [r[1] for r in conn.execute("PRAGMA table_info(indicateur_ville_ref)").fetchall()]
+    for col, defn in [
+        ('ref_banque_id',       'INTEGER REFERENCES refs_banque(id) ON DELETE SET NULL'),
+        ('valeur_locale',       'REAL'),
+        ('justification_locale','TEXT'),
+    ]:
+        if col not in ivr_cols:
+            try:
+                conn.execute(f"ALTER TABLE indicateur_ville_ref ADD COLUMN {col} {defn}")
+                conn.commit()
+            except Exception:
+                pass
+    # Migrate old valeur → valeur_locale when not yet migrated
+    conn.execute("""
+        UPDATE indicateur_ville_ref
+        SET valeur_locale = valeur
+        WHERE valeur IS NOT NULL
+          AND valeur_locale IS NULL
+          AND ref_banque_id IS NULL
+    """)
+    conn.commit()
+    conn.close()
+
     # Seed indicateurs de base
     conn = get_db()
     conn.executescript("""

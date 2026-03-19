@@ -11,6 +11,7 @@ import app.models.subvention as subvention_model
 import app.models.ville as ville_model
 import app.models.user as user_model
 import app.models.banque_reference as banque_ref_model
+import app.models.refs_banque as refs_banque_model
 from app.database import get_db
 from app.services.scoring import calculer_score, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
@@ -24,13 +25,20 @@ INTERP_LIMIT_LONGUE = 1000
 
 @bp.context_processor
 def inject_admin_context():
-    """Injecte la ville courante et les villes accessibles dans tous les templates admin."""
+    """Injecte la ville courante, les villes accessibles et le nb de propositions en attente."""
     if session.get("user_id"):
+        nb_pending = 0
+        if session.get("user_role") == "super_admin":
+            try:
+                nb_pending = refs_banque_model.count_pending()
+            except Exception:
+                pass
         return {
             "admin_current_ville": _get_current_ville(),
             "admin_user_villes": _get_user_villes(),
+            "pending_propositions_count": nb_pending,
         }
-    return {"admin_current_ville": None, "admin_user_villes": []}
+    return {"admin_current_ville": None, "admin_user_villes": [], "pending_propositions_count": 0}
 
 
 def _get_current_ville():
@@ -531,12 +539,16 @@ def references():
     thematiques = ind_model.get_thematiques() + ["portrait"]
     tous_indicateurs = []
     for them in thematiques:
-        inds = ind_model.get_by_thematique(them)
-        for i in inds:
+        for i in ind_model.get_by_thematique(them):
             ref = banque_ref_model.get_ref_for_indicateur_ville(i["id"], ville["id"])
-            tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS[them], "ref_ville": ref})
-
-    banque = banque_ref_model.get_all()
+            # Entrées banque validées disponibles pour cet indicateur
+            entrees_valides = refs_banque_model.get_valides_for_indicateur(i["id"])
+            tous_indicateurs.append({
+                **i,
+                "them_label": ind_model.THEMATIQUE_LABELS.get(them, them),
+                "ref_ville": ref,
+                "entrees_valides": entrees_valides,
+            })
 
     if request.method == "POST":
         action = request.form.get("action", "set")
@@ -547,44 +559,45 @@ def references():
             flash("Référence supprimée.", "info")
             return redirect(url_for("admin.references"))
 
-        banque_reference_id = request.form.get("banque_reference_id", "").strip()
-        valeur_str = request.form.get("valeur", "").strip()
+        mode = request.form.get("mode", "banque")  # 'banque' ou 'locale'
 
-        erreurs = []
         if not indicateur_id:
-            erreurs.append("Veuillez sélectionner un indicateur.")
-        if not valeur_str:
-            erreurs.append("La valeur de référence est requise.")
+            flash("Indicateur requis.", "danger")
+            return redirect(url_for("admin.references"))
+
+        ind = ind_model.get_by_id(indicateur_id)
+        if not ind:
+            flash("Indicateur introuvable.", "danger")
+            return redirect(url_for("admin.references"))
+
+        if mode == "banque":
+            ref_banque_id_str = request.form.get("ref_banque_id", "").strip()
+            if not ref_banque_id_str:
+                flash("Sélectionnez une entrée de la banque.", "danger")
+                return redirect(url_for("admin.references"))
+            banque_ref_model.set_ref_banque(indicateur_id, ville["id"], int(ref_banque_id_str))
+            flash(f"Référence banque assignée pour « {ind['libelle_citoyen']} ».", "success")
         else:
+            valeur_str = request.form.get("valeur_locale", "").strip()
+            justification = request.form.get("justification", "").strip()
+            if not valeur_str:
+                flash("Valeur locale requise.", "danger")
+                return redirect(url_for("admin.references"))
             try:
                 valeur = float(valeur_str.replace(",", "."))
             except ValueError:
-                erreurs.append("La valeur doit être un nombre.")
-                valeur = None
+                flash("Valeur invalide.", "danger")
+                return redirect(url_for("admin.references"))
+            banque_ref_model.set_ref_locale(indicateur_id, ville["id"], valeur, justification)
+            flash(f"Valeur locale enregistrée pour « {ind['libelle_citoyen']} ».", "success")
 
-        if not erreurs:
-            ind = ind_model.get_by_id(indicateur_id)
-            if not ind:
-                erreurs.append("Indicateur introuvable.")
-
-        if erreurs:
-            for e in erreurs:
-                flash(e, "danger")
-        else:
-            banque_ref_model.set_ref_for_indicateur_ville(
-                indicateur_id, ville["id"],
-                int(banque_reference_id) if banque_reference_id else None,
-                valeur
-            )
-            flash(f"Référence mise à jour pour « {ind['libelle_citoyen']} ».", "success")
-            return redirect(url_for("admin.references"))
+        return redirect(url_for("admin.references"))
 
     return render_template(
         "admin/references.html",
         indicateurs=tous_indicateurs,
         thematiques=thematiques,
         thematique_labels=ind_model.THEMATIQUE_LABELS,
-        banque=banque,
         ville=ville,
     )
 
@@ -889,36 +902,260 @@ def supprimer_user(user_id):
     return redirect(url_for("admin.users"))
 
 
-# ── Banque de références (super_admin) ────────────────────────────────────
+# ── Banque de références : strates (super_admin) ──────────────────────────
 
 @bp.route("/banque-references")
 @super_admin_required
 def banque_references():
-    refs = banque_ref_model.get_all()
-    return render_template("admin/banque_references.html", refs=refs)
+    strates = banque_ref_model.get_all()
+    nb_pending = refs_banque_model.count_pending()
+    return render_template("admin/banque_references.html",
+                           strates=strates, nb_pending=nb_pending)
 
 
-@bp.route("/banque-references/nouvelle", methods=["POST"])
+@bp.route("/banque-references/nouvelle-strate", methods=["POST"])
 @super_admin_required
-def nouvelle_banque_reference():
+def nouvelle_strate():
     nom = request.form.get("nom", "").strip()
     description = request.form.get("description", "").strip()
     if not nom:
         flash("Le nom est requis.", "danger")
     else:
         banque_ref_model.create(nom, description)
-        flash(f"Référence « {nom} » créée.", "success")
+        flash(f"Strate « {nom} » créée.", "success")
     return redirect(url_for("admin.banque_references"))
 
 
-@bp.route("/banque-references/supprimer/<int:ref_id>", methods=["POST"])
+@bp.route("/banque-references/modifier-strate/<int:strate_id>", methods=["POST"])
 @super_admin_required
-def supprimer_banque_reference(ref_id):
-    ref = banque_ref_model.get_by_id(ref_id)
-    if ref:
-        banque_ref_model.delete(ref_id)
-        flash(f"Référence « {ref['nom']} » supprimée.", "success")
+def modifier_strate(strate_id):
+    nom = request.form.get("nom", "").strip()
+    description = request.form.get("description", "").strip()
+    if not nom:
+        flash("Le nom est requis.", "danger")
+    else:
+        banque_ref_model.update(strate_id, nom, description)
+        flash("Strate mise à jour.", "success")
     return redirect(url_for("admin.banque_references"))
+
+
+@bp.route("/banque-references/supprimer-strate/<int:strate_id>", methods=["POST"])
+@super_admin_required
+def supprimer_strate(strate_id):
+    strate = banque_ref_model.get_by_id(strate_id)
+    if not strate:
+        flash("Strate introuvable.", "danger")
+        return redirect(url_for("admin.banque_references"))
+    nb = banque_ref_model.count_refs_for_strate(strate_id)
+    if nb > 0:
+        flash(f"Impossible : {nb} entrée(s) de banque rattachée(s) à cette strate.", "danger")
+    else:
+        banque_ref_model.delete(strate_id)
+        flash(f"Strate « {strate['nom']} » supprimée.", "success")
+    return redirect(url_for("admin.banque_references"))
+
+
+# ── Banque de références : entrées validées (super_admin) ─────────────────
+
+@bp.route("/banque-references/entrees", methods=["GET", "POST"])
+@super_admin_required
+def banque_entrees():
+    strates = banque_ref_model.get_all()
+    thematiques = ind_model.get_thematiques() + ["portrait"]
+    tous_indicateurs = []
+    for them in thematiques:
+        for i in ind_model.get_by_thematique(them):
+            tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS.get(them, them)})
+
+    filtre_them = request.args.get("them", "")
+    filtre_strate = request.args.get("strate", "")
+    entrees = refs_banque_model.get_all(
+        statut="valide",
+        strate_id=int(filtre_strate) if filtre_strate else None,
+    )
+    if filtre_them:
+        entrees = [e for e in entrees if e["thematique"] == filtre_them]
+
+    if request.method == "POST":
+        action = request.form.get("action", "add")
+
+        if action == "delete":
+            ref_id = int(request.form.get("ref_id", 0))
+            refs_banque_model.delete(ref_id)
+            flash("Entrée supprimée.", "info")
+            return redirect(url_for("admin.banque_entrees"))
+
+        indicateur_id = request.form.get("indicateur_id", "").strip()
+        strate_id_str = request.form.get("strate_id", "").strip()
+        valeur_str = request.form.get("valeur", "").strip()
+        source = request.form.get("source", "").strip()
+        annee_str = request.form.get("annee", "").strip()
+
+        erreurs = []
+        if not indicateur_id:
+            erreurs.append("Indicateur requis.")
+        if not strate_id_str:
+            erreurs.append("Strate requise.")
+        if not source:
+            erreurs.append("Source requise.")
+        valeur = None
+        if not valeur_str:
+            erreurs.append("Valeur requise.")
+        else:
+            try:
+                valeur = float(valeur_str.replace(",", "."))
+            except ValueError:
+                erreurs.append("Valeur invalide.")
+        annee = int(annee_str) if annee_str.isdigit() else None
+
+        if erreurs:
+            for e in erreurs:
+                flash(e, "danger")
+        else:
+            user_id = session.get("user_id")
+            try:
+                refs_banque_model.create(
+                    indicateur_id, int(strate_id_str), valeur, source, annee,
+                    statut="valide", propose_par=user_id, valide_par=user_id
+                )
+                flash("Entrée ajoutée à la banque.", "success")
+            except Exception:
+                flash("Cette combinaison indicateur × strate existe déjà.", "danger")
+        return redirect(url_for("admin.banque_entrees"))
+
+    return render_template(
+        "admin/banque_entrees.html",
+        entrees=entrees,
+        strates=strates,
+        indicateurs=tous_indicateurs,
+        thematiques=thematiques,
+        thematique_labels=ind_model.THEMATIQUE_LABELS,
+        filtre_them=filtre_them,
+        filtre_strate=filtre_strate,
+    )
+
+
+# ── Banque de références : propositions (super_admin) ─────────────────────
+
+@bp.route("/banque-references/propositions")
+@super_admin_required
+def banque_propositions():
+    propositions = refs_banque_model.get_all(statut="en_attente")
+    return render_template("admin/banque_propositions.html", propositions=propositions)
+
+
+@bp.route("/banque-references/propositions/<int:ref_id>/valider", methods=["POST"])
+@super_admin_required
+def valider_proposition(ref_id):
+    valeur_str = request.form.get("valeur", "").strip()
+    source = request.form.get("source", "").strip()
+    annee_str = request.form.get("annee", "").strip()
+    user_id = session.get("user_id")
+    ref = refs_banque_model.get_by_id(ref_id)
+    if not ref:
+        flash("Proposition introuvable.", "danger")
+        return redirect(url_for("admin.banque_propositions"))
+    # Le super-admin peut corriger valeur/source avant validation
+    if valeur_str:
+        try:
+            refs_banque_model.update_valeur(
+                ref_id,
+                float(valeur_str.replace(",", ".")),
+                source or ref["source"],
+                int(annee_str) if annee_str.isdigit() else ref.get("annee"),
+            )
+        except ValueError:
+            flash("Valeur invalide.", "danger")
+            return redirect(url_for("admin.banque_propositions"))
+    refs_banque_model.update_statut(ref_id, "valide", valide_par=user_id)
+    flash("Proposition validée et ajoutée à la banque.", "success")
+    return redirect(url_for("admin.banque_propositions"))
+
+
+@bp.route("/banque-references/propositions/<int:ref_id>/rejeter", methods=["POST"])
+@super_admin_required
+def rejeter_proposition(ref_id):
+    commentaire = request.form.get("commentaire", "").strip()
+    user_id = session.get("user_id")
+    refs_banque_model.update_statut(ref_id, "rejete",
+                                    valide_par=user_id,
+                                    commentaire_rejet=commentaire or None)
+    flash("Proposition rejetée.", "info")
+    return redirect(url_for("admin.banque_propositions"))
+
+
+# ── Banque de références : proposition gestionnaire ───────────────────────
+
+@bp.route("/proposer-reference", methods=["GET", "POST"])
+@login_required
+def proposer_reference():
+    strates = banque_ref_model.get_all()
+    thematiques = ind_model.get_thematiques() + ["portrait"]
+    tous_indicateurs = []
+    for them in thematiques:
+        for i in ind_model.get_by_thematique(them):
+            tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS.get(them, them)})
+
+    if request.method == "POST":
+        indicateur_id = request.form.get("indicateur_id", "").strip()
+        strate_id_str = request.form.get("strate_id", "").strip()
+        valeur_str = request.form.get("valeur", "").strip()
+        source = request.form.get("source", "").strip()
+        annee_str = request.form.get("annee", "").strip()
+
+        erreurs = []
+        if not indicateur_id:
+            erreurs.append("Indicateur requis.")
+        if not strate_id_str:
+            erreurs.append("Strate requise.")
+        if not source:
+            erreurs.append("Source requise (URL ou référence documentaire).")
+        valeur = None
+        if not valeur_str:
+            erreurs.append("Valeur requise.")
+        else:
+            try:
+                valeur = float(valeur_str.replace(",", "."))
+            except ValueError:
+                erreurs.append("Valeur invalide.")
+        annee = int(annee_str) if annee_str.isdigit() else None
+
+        if erreurs:
+            for e in erreurs:
+                flash(e, "danger")
+        else:
+            user_id = session.get("user_id")
+            try:
+                refs_banque_model.create(
+                    indicateur_id, int(strate_id_str), valeur, source, annee,
+                    statut="en_attente", propose_par=user_id
+                )
+                flash("Proposition soumise, en attente de validation.", "success")
+                return redirect(url_for("admin.mes_propositions"))
+            except Exception:
+                flash("Une proposition existe déjà pour cette combinaison indicateur × strate.", "danger")
+
+    return render_template(
+        "admin/proposer_reference.html",
+        strates=strates,
+        indicateurs=tous_indicateurs,
+        thematiques=thematiques,
+        thematique_labels=ind_model.THEMATIQUE_LABELS,
+    )
+
+
+@bp.route("/mes-propositions")
+@login_required
+def mes_propositions():
+    user_id = session.get("user_id")
+    propositions = refs_banque_model.get_by_user(user_id)
+    return render_template("admin/mes_propositions.html", propositions=propositions)
+
+
+# ── Références ville (assignation) ────────────────────────────────────────
+
+# (ancienne route conservée — remplacée ci-dessous)
+# old `references()` supprimée et réécrite
 
 
 # ── Communes en vedette (super_admin) ─────────────────────────────────────
