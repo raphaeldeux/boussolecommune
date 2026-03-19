@@ -693,6 +693,7 @@ def subventions():
             annee = request.form.get("annee", "").strip()
             nom = request.form.get("nom_beneficiaire", "").strip()
             domaine = request.form.get("domaine", "autre")
+            thematique = request.form.get("thematique", "lien_social")
             montant_raw = request.form.get("montant", "").replace(",", ".").strip()
             commentaire = request.form.get("commentaire", "").strip()
             if not annee or not annee.isdigit() or not nom or not montant_raw:
@@ -703,7 +704,7 @@ def subventions():
             except ValueError:
                 flash("Montant invalide.", "danger")
                 return redirect(url_for("admin.subventions"))
-            subvention_model.insert(int(annee), nom, domaine, montant, commentaire, ville["id"])
+            subvention_model.insert(int(annee), nom, domaine, montant, commentaire, ville["id"], thematique)
             flash(f"Subvention ajoutée pour « {nom} ».", "success")
 
         elif action == "importer_csv":
@@ -725,7 +726,8 @@ def subventions():
                     domaine_csv = cols[2] if cols[2] in subvention_model.DOMAINES else "autre"
                     montant_csv = float(cols[3].replace(",", "."))
                     commentaire_csv = cols[4] if len(cols) > 4 else ""
-                    subvention_model.insert(annee_csv, nom_csv, domaine_csv, montant_csv, commentaire_csv, ville["id"])
+                    thematique_csv = cols[5].strip() if len(cols) > 5 else "lien_social"
+                    subvention_model.insert(annee_csv, nom_csv, domaine_csv, montant_csv, commentaire_csv, ville["id"], thematique_csv)
                     nb_ok += 1
                 except (ValueError, IndexError):
                     nb_err += 1
@@ -744,7 +746,48 @@ def subventions():
         lignes=lignes,
         total=total,
         domaines=subvention_model.DOMAINES,
+        thematiques=ind_model.THEMATIQUE_LABELS,
         annee_courante=datetime.now().year,
+        ville=ville,
+    )
+
+
+@bp.route("/subventions/modifier/<int:id_>", methods=["GET", "POST"])
+@login_required
+def modifier_subvention(id_):
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune ville sélectionnée.", "warning")
+        return redirect(url_for("admin.subventions"))
+    sub = subvention_model.get_by_id(id_)
+    if not sub or sub["ville_id"] != ville["id"]:
+        flash("Subvention introuvable.", "danger")
+        return redirect(url_for("admin.subventions"))
+
+    if request.method == "POST":
+        annee = request.form.get("annee", "").strip()
+        nom = request.form.get("nom_beneficiaire", "").strip()
+        domaine = request.form.get("domaine", "autre")
+        thematique = request.form.get("thematique", "lien_social")
+        montant_raw = request.form.get("montant", "").replace(",", ".").strip()
+        commentaire = request.form.get("commentaire", "").strip()
+        if not annee or not annee.isdigit() or not nom or not montant_raw:
+            flash("Tous les champs obligatoires doivent être remplis.", "danger")
+            return redirect(url_for("admin.modifier_subvention", id_=id_))
+        try:
+            montant = float(montant_raw)
+        except ValueError:
+            flash("Montant invalide.", "danger")
+            return redirect(url_for("admin.modifier_subvention", id_=id_))
+        subvention_model.update(id_, int(annee), nom, domaine, montant, commentaire, thematique)
+        flash(f"Subvention modifiée pour « {nom} ».", "success")
+        return redirect(url_for("admin.subventions") + f"?annee={annee}")
+
+    return render_template(
+        "admin/subvention_modifier.html",
+        sub=sub,
+        domaines=subvention_model.DOMAINES,
+        thematiques=ind_model.THEMATIQUE_LABELS,
         ville=ville,
     )
 

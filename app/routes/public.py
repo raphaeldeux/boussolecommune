@@ -318,13 +318,31 @@ def thematique(ville_slug, slug):
     subventions_totaux = []
     subventions_total = 0
     subventions_annee = None
-    if slug == "lien_social":
-        subventions_years = subvention_model.get_years(ville["id"])
-        if subventions_years:
+    subventions_prev_total = 0
+    subventions_evol_globale = None   # float ou None
+    subventions_prev_by_nom = {}      # {nom: montant_annee_precedente}
+
+    subventions_years = subvention_model.get_years(ville["id"], thematique=slug)
+    if subventions_years:
+        # US-SUB-03 : lire le paramètre d'année dans l'URL
+        annee_param = request.args.get("annee_subv")
+        if annee_param and annee_param.isdigit() and int(annee_param) in subventions_years:
+            subventions_annee = int(annee_param)
+        else:
             subventions_annee = subventions_years[0]
-            subventions_lignes = subvention_model.get_by_year(subventions_annee, ville["id"])
-            subventions_totaux = subvention_model.get_totaux_par_domaine(subventions_annee, ville["id"])
-            subventions_total = subvention_model.get_total(subventions_annee, ville["id"])
+
+        subventions_lignes = subvention_model.get_by_year(subventions_annee, ville["id"], thematique=slug)
+        subventions_totaux = subvention_model.get_totaux_par_domaine(subventions_annee, ville["id"], thematique=slug)
+        subventions_total = subvention_model.get_total(subventions_annee, ville["id"], thematique=slug)
+
+        # US-SUB-04 : évolution vs année précédente disponible
+        prev_annee = subvention_model.get_previous_year(subventions_annee, ville["id"], thematique=slug)
+        if prev_annee:
+            subventions_prev_total = subvention_model.get_total(prev_annee, ville["id"], thematique=slug)
+            if subventions_prev_total:
+                subventions_evol_globale = (subventions_total - subventions_prev_total) / subventions_prev_total * 100
+            for l in subvention_model.get_by_year(prev_annee, ville["id"], thematique=slug):
+                subventions_prev_by_nom[l["nom_beneficiaire"]] = l["montant"]
 
     nav_thematiques = [
         {
@@ -354,6 +372,8 @@ def thematique(ville_slug, slug):
         subventions_totaux=subventions_totaux,
         subventions_total=subventions_total,
         subventions_annee=subventions_annee,
+        subventions_evol_globale=subventions_evol_globale,
+        subventions_prev_by_nom=subventions_prev_by_nom,
     )
 
 

@@ -154,18 +154,28 @@
 
 </div>{# end space-y-6 #}
 
-{% if slug == 'lien_social' and subventions_years %}
+{% if subventions_years %}
 <!-- Section subventions -->
 <div class="mt-6 sm:mt-8 border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
   <button onclick="this.nextElementSibling.classList.toggle('hidden')"
           class="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 text-left hover:bg-gray-50 transition">
-    <span class="font-semibold text-gray-800 text-sm sm:text-base">
-      🤝 Subventions aux associations
+    <span class="font-semibold text-gray-800 text-sm sm:text-base flex items-center flex-wrap gap-2">
+      💰 Subventions
       {% if subventions_annee %}
-      <span class="text-gray-400 font-normal text-xs ml-2">{{ subventions_annee }}</span>
+      <span class="text-gray-400 font-normal text-xs">{{ subventions_annee }}</span>
       {% endif %}
       {% if subventions_total > 0 %}
-      <span class="ml-2 text-emerald-700 font-bold">{{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €</span>
+      <span class="text-emerald-700 font-bold">{{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €</span>
+      {% endif %}
+      {# Badge évolution globale #}
+      {% if subventions_evol_globale is not none %}
+        {% if subventions_evol_globale > 0 %}
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-green-50 text-green-700">+{{ "%.1f"|format(subventions_evol_globale) }} %</span>
+        {% elif subventions_evol_globale < 0 %}
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-600">{{ "%.1f"|format(subventions_evol_globale) }} %</span>
+        {% else %}
+        <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">stable</span>
+        {% endif %}
       {% endif %}
     </span>
     <span class="text-gray-400 text-xs flex-shrink-0 ml-2">▼</span>
@@ -176,7 +186,7 @@
     {% if subventions_years | length > 1 %}
     <div class="flex gap-1 mb-4 flex-wrap">
       {% for y in subventions_years %}
-      <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug='lien_social') }}?annee_subv={{ y }}"
+      <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=slug) }}?annee_subv={{ y }}"
          class="px-3 py-1 rounded-lg text-xs font-medium transition
                 {% if y == subventions_annee %}bg-emerald-600 text-white{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
         {{ y }}
@@ -192,13 +202,17 @@
         <table class="w-full text-sm">
           <thead class="bg-gray-50">
             <tr>
-              <th class="text-left px-3 py-2 text-gray-500 font-medium">Association</th>
+              <th class="text-left px-3 py-2 text-gray-500 font-medium">Bénéficiaire</th>
               <th class="text-left px-3 py-2 text-gray-500 font-medium">Domaine</th>
               <th class="text-right px-3 py-2 text-gray-500 font-medium">Montant</th>
+              {% if subventions_prev_by_nom %}
+              <th class="text-right px-3 py-2 text-gray-500 font-medium">Évol.</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
             {% for ligne in subventions_lignes %}
+            {% set prev_montant = subventions_prev_by_nom.get(ligne.nom_beneficiaire) %}
             <tr class="hover:bg-gray-50">
               <td class="px-3 py-2 text-gray-700">{{ ligne.nom_beneficiaire }}</td>
               <td class="px-3 py-2">
@@ -208,6 +222,7 @@
                   {% elif ligne.domaine == 'social' %}bg-orange-50 text-orange-700
                   {% elif ligne.domaine == 'environnement' %}bg-green-50 text-green-700
                   {% elif ligne.domaine == 'education' %}bg-yellow-50 text-yellow-700
+                  {% elif ligne.domaine == 'sante' %}bg-pink-50 text-pink-700
                   {% else %}bg-gray-100 text-gray-600{% endif %}">
                   {{ ligne.domaine }}
                 </span>
@@ -215,7 +230,38 @@
               <td class="px-3 py-2 text-right font-mono text-gray-700">
                 {{ "{:,.0f}".format(ligne.montant).replace(",", " ") }} €
               </td>
+              {% if subventions_prev_by_nom %}
+              <td class="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">
+                {% if prev_montant is none %}
+                  <span class="text-gray-400">Nouveau</span>
+                {% else %}
+                  {% set pct = (ligne.montant - prev_montant) / prev_montant * 100 %}
+                  {% if pct > 0.5 %}
+                  <span class="text-green-600">+{{ "%.0f"|format(pct) }} %</span>
+                  {% elif pct < -0.5 %}
+                  <span class="text-red-500">{{ "%.0f"|format(pct) }} %</span>
+                  {% else %}
+                  <span class="text-gray-400">—</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+              {% endif %}
             </tr>
+            {% endfor %}
+            {# Bénéficiaires supprimés cette année #}
+            {% for nom, montant_prev in subventions_prev_by_nom.items() %}
+            {% if nom not in subventions_lignes | map(attribute='nom_beneficiaire') | list %}
+            <tr class="hover:bg-gray-50 opacity-50">
+              <td class="px-3 py-2 text-gray-500 italic">{{ nom }}</td>
+              <td class="px-3 py-2"></td>
+              <td class="px-3 py-2 text-right font-mono text-gray-400 line-through">
+                {{ "{:,.0f}".format(montant_prev).replace(",", " ") }} €
+              </td>
+              {% if subventions_prev_by_nom %}
+              <td class="px-3 py-2 text-right text-xs font-medium text-red-400">Supprimé</td>
+              {% endif %}
+            </tr>
+            {% endif %}
             {% endfor %}
           </tbody>
           {% if subventions_total > 0 %}
@@ -225,6 +271,19 @@
               <td class="px-3 py-2 text-right font-mono text-gray-800">
                 {{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €
               </td>
+              {% if subventions_prev_by_nom %}
+              <td class="px-3 py-2 text-right text-xs font-medium">
+                {% if subventions_evol_globale is not none %}
+                  {% if subventions_evol_globale > 0.5 %}
+                  <span class="text-green-600">+{{ "%.1f"|format(subventions_evol_globale) }} %</span>
+                  {% elif subventions_evol_globale < -0.5 %}
+                  <span class="text-red-500">{{ "%.1f"|format(subventions_evol_globale) }} %</span>
+                  {% else %}
+                  <span class="text-gray-400">stable</span>
+                  {% endif %}
+                {% endif %}
+              </td>
+              {% endif %}
             </tr>
           </tfoot>
           {% endif %}
@@ -533,7 +592,7 @@ function exportPost(btn) {
 }
 </script>
 
-{% if slug == 'lien_social' and subventions_totaux | length > 1 %}
+{% if subventions_totaux | length > 1 %}
 <script>
 (function() {
   var el = document.getElementById('chart-subventions');

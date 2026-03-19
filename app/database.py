@@ -378,6 +378,17 @@ def init_db():
     conn.commit()
     conn.close()
 
+    # Migration: ajouter colonne thematique à subventions
+    conn = get_db()
+    sub_cols = [r[1] for r in conn.execute("PRAGMA table_info(subventions)").fetchall()]
+    if "thematique" not in sub_cols:
+        try:
+            conn.execute("ALTER TABLE subventions ADD COLUMN thematique TEXT NOT NULL DEFAULT 'lien_social'")
+            conn.commit()
+        except Exception:
+            pass
+    conn.close()
+
     # Seed indicateurs de base
     conn = get_db()
     conn.executescript("""

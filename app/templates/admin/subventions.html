@@ -3,7 +3,7 @@
 {% block breadcrumb %} › <span class="text-gray-800 font-medium">Subventions</span>{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-900 mb-6">Subventions aux associations</h1>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">Subventions</h1>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -23,8 +23,19 @@
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Bénéficiaire</label>
-            <input type="text" name="nom_beneficiaire" required placeholder="Nom de l'association"
+            <input type="text" name="nom_beneficiaire" required placeholder="Nom de l'association ou organisme"
                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Thématique</label>
+            <select name="thematique"
+                    class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              {% for slug, label in thematiques.items() %}
+              {% if slug != 'portrait' %}
+              <option value="{{ slug }}" {% if slug == 'lien_social' %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
           </div>
           <div>
             <label class="block text-xs font-medium text-gray-600 mb-1">Domaine</label>
@@ -57,7 +68,8 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <h2 class="font-semibold text-gray-800 mb-2">Import CSV</h2>
       <p class="text-xs text-gray-400 mb-3">Format attendu :<br>
-        <code class="bg-gray-50 px-1 rounded text-xs">annee,nom_beneficiaire,domaine,montant,commentaire</code>
+        <code class="bg-gray-50 px-1 rounded text-xs">annee,nom_beneficiaire,domaine,montant,commentaire,thematique</code><br>
+        <span class="italic">La colonne thematique est optionnelle (défaut : lien_social).</span>
       </p>
       <form method="POST" enctype="multipart/form-data">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
@@ -106,6 +118,7 @@
           <thead class="bg-gray-50">
             <tr>
               <th class="text-left px-3 py-2 text-gray-500 font-medium">Bénéficiaire</th>
+              <th class="text-left px-3 py-2 text-gray-500 font-medium">Thématique</th>
               <th class="text-left px-3 py-2 text-gray-500 font-medium">Domaine</th>
               <th class="text-right px-3 py-2 text-gray-500 font-medium">Montant</th>
               <th class="px-3 py-2"></th>
@@ -118,6 +131,9 @@
                 <div class="font-medium text-gray-700">{{ ligne.nom_beneficiaire }}</div>
                 {% if ligne.commentaire %}<div class="text-xs text-gray-400">{{ ligne.commentaire }}</div>{% endif %}
               </td>
+              <td class="px-3 py-2 text-xs text-gray-500">
+                {{ thematiques.get(ligne.thematique, ligne.thematique) }}
+              </td>
               <td class="px-3 py-2">
                 <span class="px-2 py-0.5 rounded-full text-xs font-medium
                   {% if ligne.domaine == 'sport' %}bg-blue-50 text-blue-700
@@ -125,6 +141,7 @@
                   {% elif ligne.domaine == 'social' %}bg-orange-50 text-orange-700
                   {% elif ligne.domaine == 'environnement' %}bg-green-50 text-green-700
                   {% elif ligne.domaine == 'education' %}bg-yellow-50 text-yellow-700
+                  {% elif ligne.domaine == 'sante' %}bg-pink-50 text-pink-700
                   {% else %}bg-gray-100 text-gray-600{% endif %}">
                   {{ ligne.domaine }}
                 </span>
@@ -132,7 +149,9 @@
               <td class="px-3 py-2 text-right font-mono text-gray-700">
                 {{ "{:,.0f}".format(ligne.montant).replace(",", " ") }} €
               </td>
-              <td class="px-3 py-2 text-right">
+              <td class="px-3 py-2 text-right whitespace-nowrap">
+                <a href="{{ url_for('admin.modifier_subvention', id_=ligne.id) }}"
+                   class="text-xs text-blue-500 hover:text-blue-700 transition mr-2">Modifier</a>
                 <form method="POST" action="{{ url_for('admin.supprimer_subvention', id_=ligne.id) }}"
                       class="inline" onsubmit="return confirm('Supprimer la subvention pour « {{ ligne.nom_beneficiaire | replace("'", "\\'") }} » ?')">
                   <input type="hidden" name="_csrf" value="{{ csrf_token() }}">

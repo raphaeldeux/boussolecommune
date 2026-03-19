@@ -1,0 +1,79 @@
+{% extends "admin_base.html" %}
+{% block title %}Modifier une subvention — Admin{% endblock %}
+{% block breadcrumb %}
+  › <a href="{{ url_for('admin.subventions') }}" class="text-emerald-600 hover:underline">Subventions</a>
+  › <span class="text-gray-800 font-medium">Modifier</span>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">Modifier une subvention</h1>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <form method="POST">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <div class="space-y-4">
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Année</label>
+          <input type="number" name="annee" value="{{ sub.annee }}"
+                 min="2000" max="2099" required
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Bénéficiaire</label>
+          <input type="text" name="nom_beneficiaire" value="{{ sub.nom_beneficiaire }}" required
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Thématique</label>
+          <select name="thematique"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+            {% for slug, label in thematiques.items() %}
+            {% if slug != 'portrait' %}
+            <option value="{{ slug }}" {% if slug == sub.thematique %}selected{% endif %}>{{ label }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Domaine</label>
+          <select name="domaine"
+                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+            {% for d in domaines %}
+            <option value="{{ d }}" {% if d == sub.domaine %}selected{% endif %}>{{ d | capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Montant (€)</label>
+          <input type="number" name="montant" step="0.01" min="0" value="{{ sub.montant }}" required
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">Commentaire <span class="font-normal text-gray-400">(optionnel)</span></label>
+          <input type="text" name="commentaire" value="{{ sub.commentaire or '' }}"
+                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+      </div>
+
+      <div class="mt-6 flex gap-3">
+        <button type="submit"
+                class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+          Enregistrer
+        </button>
+        <a href="{{ url_for('admin.subventions') }}?annee={{ sub.annee }}"
+           class="flex-1 text-center bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-lg text-sm transition">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
