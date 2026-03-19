@@ -377,6 +377,48 @@ def thematique(ville_slug, slug):
     )
 
 
+@bp.route("/v/<ville_slug>/subventions-fragment")
+def subventions_fragment(ville_slug):
+    """Renvoie le fragment HTML barre+tableau pour un changement d'année sans rechargement."""
+    ville = _get_ville_or_404(ville_slug)
+    slug = request.args.get("slug", "lien_social")
+    thematiques_valides = ind_model.get_thematiques()
+    if slug not in thematiques_valides:
+        abort(404)
+
+    years = subvention_model.get_years(ville["id"], thematique=slug)
+    annee_param = request.args.get("annee")
+    if annee_param and annee_param.isdigit() and int(annee_param) in years:
+        annee = int(annee_param)
+    else:
+        annee = years[0] if years else None
+    if not annee:
+        return "", 204
+
+    lignes  = subvention_model.get_by_year(annee, ville["id"], thematique=slug)
+    totaux  = subvention_model.get_totaux_par_domaine(annee, ville["id"], thematique=slug)
+    total   = subvention_model.get_total(annee, ville["id"], thematique=slug)
+
+    prev_annee = subvention_model.get_previous_year(annee, ville["id"], thematique=slug)
+    evol_globale = None
+    prev_by_nom  = {}
+    if prev_annee:
+        prev_total = subvention_model.get_total(prev_annee, ville["id"], thematique=slug)
+        if prev_total:
+            evol_globale = (total - prev_total) / prev_total * 100
+        for l in subvention_model.get_by_year(prev_annee, ville["id"], thematique=slug):
+            prev_by_nom[l["nom_beneficiaire"]] = l["montant"]
+
+    return render_template(
+        "public/_subventions_content.html",
+        subventions_lignes=lignes,
+        subventions_totaux=totaux,
+        subventions_total=total,
+        subventions_annee=annee,
+        subventions_evol_globale=evol_globale,
+        subventions_prev_by_nom=prev_by_nom,
+    )
+
 
 @bp.route("/v/<ville_slug>/portrait")
 def portrait(ville_slug):

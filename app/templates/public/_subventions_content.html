@@ -1,0 +1,134 @@
+{#
+  Partial : barre 100 % + tableau subventions.
+  Variables attendues :
+    subventions_lignes, subventions_totaux, subventions_total,
+    subventions_annee, subventions_evol_globale, subventions_prev_by_nom
+#}
+<div
+  data-subv-total="{{ subventions_total | int }}"
+  data-subv-annee="{{ subventions_annee }}"
+  data-subv-evol="{{ '%.1f' | format(subventions_evol_globale) if subventions_evol_globale is not none else '' }}">
+
+  {# Barre de répartition 100 % #}
+  {% if subventions_totaux | length > 1 and subventions_total > 0 %}
+  {% set DCOL = {'sport': '#3b82f6', 'culture': '#8b5cf6', 'social': '#f97316', 'environnement': '#22c55e', 'education': '#eab308', 'sante': '#ec4899', 'autre': '#9ca3af'} %}
+  <div class="mb-4">
+    <div class="flex rounded-md overflow-hidden h-6 w-full">
+      {% for t in subventions_totaux %}
+      {% set pct = (t.total / subventions_total * 100) %}
+      <div style="width:{{ '%.2f' | format(pct) }}%; background:{{ DCOL.get(t.domaine, '#9ca3af') }};"
+           title="{{ t.domaine | capitalize }} — {{ '{:,.0f}'.format(t.total).replace(',', '\u202f') }} € ({{ '%.0f' | format(pct) }} %)"
+           class="flex items-center justify-center overflow-hidden">
+        {% if pct >= 10 %}
+        <span class="text-white text-xs font-semibold truncate px-1 leading-none">{{ '%.0f' | format(pct) }} %</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+      {% for t in subventions_totaux %}
+      {% set pct = (t.total / subventions_total * 100) %}
+      <span class="flex items-center gap-1 text-xs text-gray-600">
+        <span class="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
+              style="background:{{ DCOL.get(t.domaine, '#9ca3af') }};"></span>
+        {{ t.domaine | capitalize }} <span class="text-gray-400">{{ '%.0f' | format(pct) }} %</span>
+      </span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tableau -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="text-left px-3 py-2 text-gray-500 font-medium">Bénéficiaire</th>
+          <th class="text-left px-3 py-2 text-gray-500 font-medium">Domaine</th>
+          <th class="text-right px-3 py-2 text-gray-500 font-medium whitespace-nowrap">Montant</th>
+          {% if subventions_prev_by_nom %}
+          <th class="text-right px-3 py-2 text-gray-500 font-medium whitespace-nowrap">Évol.</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for ligne in subventions_lignes %}
+        {% set prev_montant = subventions_prev_by_nom.get(ligne.nom_beneficiaire) %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-2 text-gray-700">{{ ligne.nom_beneficiaire }}</td>
+          <td class="px-3 py-2">
+            <span class="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap
+              {% if ligne.domaine == 'sport' %}bg-blue-50 text-blue-700
+              {% elif ligne.domaine == 'culture' %}bg-purple-50 text-purple-700
+              {% elif ligne.domaine == 'social' %}bg-orange-50 text-orange-700
+              {% elif ligne.domaine == 'environnement' %}bg-green-50 text-green-700
+              {% elif ligne.domaine == 'education' %}bg-yellow-50 text-yellow-700
+              {% elif ligne.domaine == 'sante' %}bg-pink-50 text-pink-700
+              {% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ ligne.domaine }}
+            </span>
+          </td>
+          <td class="px-3 py-2 text-right font-mono text-gray-700 whitespace-nowrap">
+            {{ "{:,.0f}".format(ligne.montant).replace(",", " ") }} €
+          </td>
+          {% if subventions_prev_by_nom %}
+          <td class="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">
+            {% if prev_montant is none %}
+              <span class="text-gray-400">Nouveau</span>
+            {% else %}
+              {% set pct = (ligne.montant - prev_montant) / prev_montant * 100 %}
+              {% if pct > 0.5 %}
+              <span class="text-green-600">+{{ "%.0f"|format(pct) }} %</span>
+              {% elif pct < -0.5 %}
+              <span class="text-red-500">{{ "%.0f"|format(pct) }} %</span>
+              {% else %}
+              <span class="text-gray-400">—</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+        {# Bénéficiaires supprimés cette année #}
+        {% for nom, montant_prev in subventions_prev_by_nom.items() %}
+        {% if nom not in subventions_lignes | map(attribute='nom_beneficiaire') | list %}
+        <tr class="hover:bg-gray-50 opacity-50">
+          <td class="px-3 py-2 text-gray-500 italic">{{ nom }}</td>
+          <td class="px-3 py-2"></td>
+          <td class="px-3 py-2 text-right font-mono text-gray-400 line-through whitespace-nowrap">
+            {{ "{:,.0f}".format(montant_prev).replace(",", " ") }} €
+          </td>
+          {% if subventions_prev_by_nom %}
+          <td class="px-3 py-2 text-right text-xs font-medium text-red-400 whitespace-nowrap">Supprimé</td>
+          {% endif %}
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+      {% if subventions_total > 0 %}
+      <tfoot>
+        <tr class="bg-gray-50 font-semibold">
+          <td colspan="2" class="px-3 py-2 text-gray-700">Total</td>
+          <td class="px-3 py-2 text-right font-mono text-gray-800 whitespace-nowrap">
+            {{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €
+          </td>
+          {% if subventions_prev_by_nom %}
+          <td class="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">
+            {% if subventions_evol_globale is not none %}
+              {% if subventions_evol_globale > 0.5 %}
+              <span class="text-green-600">+{{ "%.1f"|format(subventions_evol_globale) }} %</span>
+              {% elif subventions_evol_globale < -0.5 %}
+              <span class="text-red-500">{{ "%.1f"|format(subventions_evol_globale) }} %</span>
+              {% else %}
+              <span class="text-gray-400">stable</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+
+</div>
