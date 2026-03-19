@@ -71,22 +71,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Légende des scores (effaçable, mémorisée) -->
-  <div id="score-legend-banner" class="bg-amber-50 border-b border-amber-100">
-    <div class="max-w-3xl mx-auto px-4 py-1.5 flex items-center gap-3 flex-wrap">
-      <span class="text-xs text-gray-500 font-medium flex-shrink-0">Grille de scores :</span>
-      <div class="flex items-center gap-3 flex-wrap text-xs text-gray-600">
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
-      </div>
-      <button onclick="dismissScoreLegend()" aria-label="Masquer la légende"
-              class="ml-auto text-gray-300 hover:text-gray-500 transition text-base leading-none flex-shrink-0">×</button>
-    </div>
-  </div>
-
   <!-- Contenu -->
   <main class="flex-1 w-full">
     {% block content %}{% endblock %}
@@ -104,18 +88,5 @@
   </footer>
 
   {% block scripts %}{% endblock %}
-  <script>
-  (function() {
-    if (localStorage.getItem('score-legend-dismissed') === '1') {
-      var b = document.getElementById('score-legend-banner');
-      if (b) b.style.display = 'none';
-    }
-  })();
-  function dismissScoreLegend() {
-    var b = document.getElementById('score-legend-banner');
-    if (b) b.style.display = 'none';
-    localStorage.setItem('score-legend-dismissed', '1');
-  }
-  </script>
 </body>
 </html>

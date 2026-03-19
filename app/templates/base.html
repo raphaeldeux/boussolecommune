@@ -254,22 +254,6 @@
     {% endif %}
   {% endwith %}
 
-  <!-- Légende des scores (effaçable, mémorisée) -->
-  <div id="score-legend-banner" class="bg-amber-50 border-b border-amber-100">
-    <div class="max-w-6xl mx-auto px-4 py-1.5 flex items-center gap-3 flex-wrap">
-      <span class="text-xs text-gray-500 font-medium flex-shrink-0">Grille de scores :</span>
-      <div class="flex items-center gap-3 flex-wrap text-xs text-gray-600">
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
-      </div>
-      <button onclick="dismissScoreLegend()" aria-label="Masquer la légende"
-              class="ml-auto text-gray-300 hover:text-gray-500 transition text-base leading-none flex-shrink-0">×</button>
-    </div>
-  </div>
-
   <!-- Contenu principal -->
   <main class="flex-1 max-w-6xl mx-auto px-4 py-6 sm:py-8 w-full">
     {% block content %}{% endblock %}
@@ -277,11 +261,22 @@
 
   <!-- Footer -->
   <footer class="bg-white border-t border-gray-100 mt-8">
-    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-gray-400">
-      <span>CommuneSanté · Observatoire citoyen indépendant</span>
-      <div class="flex gap-4">
-        <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
-        <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
+    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col gap-3 text-xs text-gray-400">
+      <div class="flex flex-col sm:flex-row justify-between gap-3">
+        <span>CommuneSanté · Observatoire citoyen indépendant</span>
+        <div class="flex gap-4">
+          <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
+          <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
+        </div>
+      </div>
+      <!-- Légende des scores -->
+      <div class="flex items-center gap-3 flex-wrap pt-2 border-t border-gray-50">
+        <span class="text-gray-300 flex-shrink-0">Scores :</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
+        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
       </div>
     </div>
   </footer>
@@ -289,19 +284,6 @@
   {% block scripts %}{% endblock %}
 
   <script>
-  // ── Légende des scores ─────────────────────────────────────────────
-  (function() {
-    if (localStorage.getItem('score-legend-dismissed') === '1') {
-      var b = document.getElementById('score-legend-banner');
-      if (b) b.style.display = 'none';
-    }
-  })();
-  function dismissScoreLegend() {
-    var b = document.getElementById('score-legend-banner');
-    if (b) b.style.display = 'none';
-    localStorage.setItem('score-legend-dismissed', '1');
-  }
-
   // ── Mobile menu ────────────────────────────────────────────────────
   function toggleMobileMenu() {
     var menu = document.getElementById('mobile-menu');
