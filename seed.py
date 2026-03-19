@@ -388,7 +388,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_part_bio_cantine",
-        "thematique": "lien_social",
+        "thematique": "personnes",
         "libelle_citoyen": "Quelle part de produits bio à la cantine ?",
         "libelle_technique": "Part des produits bio en restauration collective",
         "unite": "%",
@@ -406,7 +406,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_egalim_cantine",
-        "thematique": "lien_social",
+        "thematique": "personnes",
         "libelle_citoyen": "Quelle part de produits durables et de qualité à la cantine ?",
         "libelle_technique": "Part des produits EGAlim en restauration collective",
         "unite": "%",
@@ -425,7 +425,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_viandes_egalim_cantine",
-        "thematique": "lien_social",
+        "thematique": "personnes",
         "libelle_citoyen": "Quelle part de viandes et volailles de qualité à la cantine ?",
         "libelle_technique": "Part des viandes et volailles EGAlim en restauration collective",
         "unite": "%",
@@ -443,7 +443,7 @@ INDICATEURS = [
     },
     {
         "id": "eco_mer_egalim_cantine",
-        "thematique": "lien_social",
+        "thematique": "personnes",
         "libelle_citoyen": "Quelle part de poissons et produits de la mer durables à la cantine ?",
         "libelle_technique": "Part des produits de la mer EGAlim en restauration collective",
         "unite": "%",
