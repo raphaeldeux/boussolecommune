@@ -411,6 +411,40 @@ def init_db():
         pass
     conn.close()
 
+    # Migration: élargir le CHECK source_type pour inclure 'api_macantine'
+    conn = get_db()
+    try:
+        check_val = conn.execute(
+            "SELECT sql FROM sqlite_master WHERE type='table' AND name='indicateurs'"
+        ).fetchone()
+        if check_val and "'api_macantine'" not in check_val[0]:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS indicateurs_migration (
+                    id TEXT PRIMARY KEY,
+                    thematique TEXT NOT NULL,
+                    libelle_citoyen TEXT,
+                    libelle_technique TEXT,
+                    unite TEXT,
+                    sens_positif TEXT CHECK(sens_positif IN ('haut','bas','neutre')) DEFAULT 'neutre',
+                    seuil_vert REAL,
+                    seuil_orange REAL,
+                    seuil_rouge REAL,
+                    valeur_reference REAL,
+                    libelle_reference TEXT,
+                    annee_reference INTEGER,
+                    description TEXT,
+                    source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')),
+                    actif INTEGER DEFAULT 1
+                );
+                INSERT OR IGNORE INTO indicateurs_migration SELECT * FROM indicateurs;
+                DROP TABLE indicateurs;
+                ALTER TABLE indicateurs_migration RENAME TO indicateurs;
+            """)
+            conn.commit()
+    except Exception:
+        pass
+    conn.close()
+
     # Migration: ajouter colonne thematique à subventions
     conn = get_db()
     sub_cols = [r[1] for r in conn.execute("PRAGMA table_info(subventions)").fetchall()]

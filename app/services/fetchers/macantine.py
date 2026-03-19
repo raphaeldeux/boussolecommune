@@ -1,31 +1,47 @@
 """
 Fetcher ma-cantine.agriculture.gouv.fr
-Récupère le taux de produits bio (%) par commune et par année.
+Récupère les indicateurs EGAlim par commune et par année.
 
 Endpoint public (sans authentification) :
   GET /api/v1/canteenStatistics/?city=<insee>&year=<annee>
-Champ utilisé : bioPercent (entier 0-100)
+
+Indicateurs retournés :
+  eco_part_bio_cantine        → bioPercent       (objectif EGAlim : 20 %)
+  eco_egalim_cantine          → egalimPercent     (objectif EGAlim : 50 %)
+  eco_viandes_egalim_cantine  → viandesVolaillesEgalimPercent (objectif : 60 %)
+  eco_mer_egalim_cantine      → produitsDeLaMerEgalimPercent  (objectif : 60 %)
 """
 
 import requests
 
 BASE_URL = "https://ma-cantine.agriculture.gouv.fr/api/v1"
-INDICATEUR_ID = "eco_part_bio_cantine"
 SOURCE = "ma-cantine.agriculture.gouv.fr"
 TIMEOUT = 15
 
+# Correspondance champ API → indicateur_id
+CHAMPS = {
+    "bioPercent":                    "eco_part_bio_cantine",
+    "egalimPercent":                 "eco_egalim_cantine",
+    "viandesVolaillesEgalimPercent": "eco_viandes_egalim_cantine",
+    "produitsDeLaMerEgalimPercent":  "eco_mer_egalim_cantine",
+}
 
-def fetch_bio_percent(code_insee: str, annee: int) -> dict:
+
+def fetch_cantine_data(code_insee: str, annee: int) -> dict:
     """
     Interroge l'API ma-cantine pour une commune et une année données.
 
     Retourne un dict :
       {
-        "valeur": float,          # bioPercent (0-100)
+        "ok": True,
         "source": str,
-        "canteen_count": int,     # nb de cantines déclarantes
-        "egalim_percent": float,  # % EGAlim global (informatif)
-        "ok": True
+        "canteen_count": int,
+        "teledeclarations_count": int,
+        "indicateurs": {
+            "eco_part_bio_cantine": 32.0,
+            "eco_egalim_cantine": 52.0,
+            ...   (champ absent = None → ne pas insérer)
+        }
       }
     ou en cas d'erreur :
       {"ok": False, "error": str}
@@ -45,18 +61,26 @@ def fetch_bio_percent(code_insee: str, annee: int) -> dict:
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-    bio = data.get("bioPercent")
-    if bio is None:
-        return {"ok": False, "error": "Champ bioPercent absent de la réponse"}
-
     canteen_count = data.get("canteenCount", 0)
+    teledecl_count = data.get("teledeclarationsCount", 0)
+
     if canteen_count == 0:
-        return {"ok": False, "error": "Aucune cantine déclarante pour cette commune et cette année"}
+        return {"ok": False, "error": "Aucune cantine référencée pour cette commune"}
+
+    if teledecl_count == 0:
+        return {"ok": False, "error": f"{canteen_count} cantine(s) référencée(s) mais aucune télédéclaration pour {annee}"}
+
+    indicateurs = {}
+    for champ, ind_id in CHAMPS.items():
+        val = data.get(champ)
+        # On n'insère pas si la valeur est None ou si c'est 0 sans déclaration
+        if val is not None:
+            indicateurs[ind_id] = float(val)
 
     return {
         "ok": True,
-        "valeur": float(bio),
         "source": SOURCE,
         "canteen_count": canteen_count,
-        "egalim_percent": data.get("egalimPercent"),
+        "teledeclarations_count": teledecl_count,
+        "indicateurs": indicateurs,
     }

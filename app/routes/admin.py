@@ -19,7 +19,7 @@ from app.database import get_db
 from app.services.scoring import calculer_score, ajuster_score, calculer_score_thematique, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
 from app.services.parser_ofgl import parser_ofgl
-from app.services.fetchers.macantine import fetch_bio_percent, INDICATEUR_ID as MACANTINE_IND
+from app.services.fetchers.macantine import fetch_cantine_data
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -526,19 +526,23 @@ def fetch_macantine():
         flash("Année invalide.", "danger")
         return redirect(url_for("admin.upload"))
 
-    result = fetch_bio_percent(code_insee, annee)
+    result = fetch_cantine_data(code_insee, annee)
     if not result["ok"]:
         flash(f"ma-cantine : {result['error']}", "danger")
         return redirect(url_for("admin.upload"))
 
-    commentaire = f"{result['canteen_count']} cantine(s) déclarante(s) — EGAlim global : {result.get('egalim_percent', '?')} %"
-    donnee_model.upsert(
-        MACANTINE_IND, annee, result["valeur"],
-        result["source"], commentaire, "api", ville["id"]
+    commentaire = (
+        f"{result['canteen_count']} cantine(s), "
+        f"{result['teledeclarations_count']} télédéclaration(s)"
     )
+    nb = 0
+    for ind_id, valeur in result["indicateurs"].items():
+        donnee_model.upsert(ind_id, annee, valeur, result["source"], commentaire, "api", ville["id"])
+        nb += 1
+
     flash(
-        f"ma-cantine {annee} : {result['valeur']:.0f} % de bio importé pour {ville['nom']} "
-        f"({result['canteen_count']} cantine(s)).",
+        f"ma-cantine {annee} : {nb} indicateur(s) importé(s) pour {ville['nom']} "
+        f"({result['teledeclarations_count']} télédéclaration(s) sur {result['canteen_count']} cantine(s)).",
         "success"
     )
     return redirect(url_for("admin.upload"))
