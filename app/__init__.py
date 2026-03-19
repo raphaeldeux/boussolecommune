@@ -2,6 +2,7 @@ import logging
 import secrets as _secrets
 from datetime import timedelta
 from flask import Flask, request, session, abort
+from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 import os
 
@@ -18,6 +19,9 @@ def create_app():
             "SECRET_KEY avec une valeur aléatoire forte avant de lancer en production."
         )
     app.secret_key = secret_key
+    # Fait confiance à 1 niveau de proxy (nginx) pour X-Forwarded-For / X-Forwarded-Proto
+    # → request.remote_addr retourne l'IP réelle du client (utilisé par le rate limiting)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,

@@ -29,12 +29,13 @@ avec exactement ces trois clés : "score", "phrase_courte", "phrase_longue".
 - phrase_longue : 2 à 3 phrases, maximum 400 caractères au total"""
 
 
-def _build_prompt(indicateur, annee, valeur, valeur_n1=None):
+def _build_prompt(indicateur, annee, valeur, ville=None, valeur_n1=None):
     sens_label = {"haut": "haute", "bas": "basse", "neutre": "haute ou basse"}.get(
         indicateur.get("sens_positif", "neutre"), "haute"
     )
+    commune_label = ville["nom"] if ville else "Commune"
     lignes = [
-        "Commune : Sautron (Loire-Atlantique, ~8 600 habitants, périurbain Nantes)",
+        f"Commune : {commune_label}",
         f"Indicateur : {indicateur['libelle_citoyen']}",
         f"Identifiant technique : {indicateur['id']}",
         f"Unité : {indicateur.get('unite', '')}",
@@ -92,17 +93,18 @@ def _parse_json(texte):
     return json.loads(texte)
 
 
-def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
+def generer_interpretation(indicateur, annee, valeur, ville=None, score_calcule=None):
     """Génère et met en cache l'interprétation via Ollama, OpenRouter ou Anthropic."""
     client, model = _get_client()
     if not client:
         _log("error", "[claude] Aucune source LLM configurée (OLLAMA_BASE_URL, OPENROUTER_API_KEY ou ANTHROPIC_API_KEY manquante).")
         return None
 
-    donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1)
+    ville_id = ville["id"] if ville else 1
+    donnee_n1 = donnee_model.get_by_indicateur_annee(indicateur["id"], annee - 1, ville_id)
     valeur_n1 = donnee_n1["valeur"] if donnee_n1 else None
 
-    prompt = _build_prompt(indicateur, annee, valeur, valeur_n1)
+    prompt = _build_prompt(indicateur, annee, valeur, ville=ville, valeur_n1=valeur_n1)
 
     for tentative in range(2):
         try:
@@ -119,7 +121,7 @@ def generer_interpretation(indicateur, annee, valeur, score_calcule=None):
             score = data.get("score") or score_calcule
             phrase_courte = data.get("phrase_courte", "")
             phrase_longue = data.get("phrase_longue", "")
-            interp_model.upsert(indicateur["id"], annee, score, phrase_courte, phrase_longue)
+            interp_model.upsert(indicateur["id"], annee, score, phrase_courte, phrase_longue, ville_id)
             return {"score": score, "phrase_courte": phrase_courte, "phrase_longue": phrase_longue}
         except Exception as e:
             _log("error", "[claude] Tentative %d échouée : %s", tentative + 1, e)

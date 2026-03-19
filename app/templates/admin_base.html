@@ -74,10 +74,13 @@
       <span class="text-xs text-gray-400 hidden sm:inline">{{ session.get('username', '') }}</span>
       <a href="{{ url_for('public.index') }}"
          class="text-xs text-gray-400 hover:text-gray-200 transition hidden md:inline">← Site public</a>
-      <a href="{{ url_for('admin.logout') }}"
-         class="text-xs bg-gray-700 hover:bg-red-700 px-2.5 py-1 rounded transition text-gray-300 hover:text-white">
-        Déconnexion
-      </a>
+      <form method="post" action="{{ url_for('admin.logout') }}" class="inline">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                class="text-xs bg-gray-700 hover:bg-red-700 px-2.5 py-1 rounded transition text-gray-300 hover:text-white cursor-pointer">
+          Déconnexion
+        </button>
+      </form>
     </div>
   </header>
 

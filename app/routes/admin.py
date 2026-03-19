@@ -3,7 +3,6 @@ import os
 import tempfile
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response
 from app.auth import login_required, super_admin_required, is_rate_limited, record_attempt
-from app.config import UPLOAD_FOLDER
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
@@ -99,7 +98,7 @@ def login():
     return render_template("admin/login.html")
 
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     flash("Déconnexion réussie.", "info")
