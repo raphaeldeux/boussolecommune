@@ -195,7 +195,7 @@
     </div>
     {% endif %}
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div class="space-y-6">
 
       <!-- Tableau -->
       <div class="overflow-x-auto">
@@ -204,9 +204,9 @@
             <tr>
               <th class="text-left px-3 py-2 text-gray-500 font-medium">Bénéficiaire</th>
               <th class="text-left px-3 py-2 text-gray-500 font-medium">Domaine</th>
-              <th class="text-right px-3 py-2 text-gray-500 font-medium">Montant</th>
+              <th class="text-right px-3 py-2 text-gray-500 font-medium whitespace-nowrap">Montant</th>
               {% if subventions_prev_by_nom %}
-              <th class="text-right px-3 py-2 text-gray-500 font-medium">Évol.</th>
+              <th class="text-right px-3 py-2 text-gray-500 font-medium whitespace-nowrap">Évol.</th>
               {% endif %}
             </tr>
           </thead>
@@ -216,7 +216,7 @@
             <tr class="hover:bg-gray-50">
               <td class="px-3 py-2 text-gray-700">{{ ligne.nom_beneficiaire }}</td>
               <td class="px-3 py-2">
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap
                   {% if ligne.domaine == 'sport' %}bg-blue-50 text-blue-700
                   {% elif ligne.domaine == 'culture' %}bg-purple-50 text-purple-700
                   {% elif ligne.domaine == 'social' %}bg-orange-50 text-orange-700
@@ -227,7 +227,7 @@
                   {{ ligne.domaine }}
                 </span>
               </td>
-              <td class="px-3 py-2 text-right font-mono text-gray-700">
+              <td class="px-3 py-2 text-right font-mono text-gray-700 whitespace-nowrap">
                 {{ "{:,.0f}".format(ligne.montant).replace(",", " ") }} €
               </td>
               {% if subventions_prev_by_nom %}
@@ -254,11 +254,11 @@
             <tr class="hover:bg-gray-50 opacity-50">
               <td class="px-3 py-2 text-gray-500 italic">{{ nom }}</td>
               <td class="px-3 py-2"></td>
-              <td class="px-3 py-2 text-right font-mono text-gray-400 line-through">
+              <td class="px-3 py-2 text-right font-mono text-gray-400 line-through whitespace-nowrap">
                 {{ "{:,.0f}".format(montant_prev).replace(",", " ") }} €
               </td>
               {% if subventions_prev_by_nom %}
-              <td class="px-3 py-2 text-right text-xs font-medium text-red-400">Supprimé</td>
+              <td class="px-3 py-2 text-right text-xs font-medium text-red-400 whitespace-nowrap">Supprimé</td>
               {% endif %}
             </tr>
             {% endif %}
@@ -268,11 +268,11 @@
           <tfoot>
             <tr class="bg-gray-50 font-semibold">
               <td colspan="2" class="px-3 py-2 text-gray-700">Total</td>
-              <td class="px-3 py-2 text-right font-mono text-gray-800">
+              <td class="px-3 py-2 text-right font-mono text-gray-800 whitespace-nowrap">
                 {{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €
               </td>
               {% if subventions_prev_by_nom %}
-              <td class="px-3 py-2 text-right text-xs font-medium">
+              <td class="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">
                 {% if subventions_evol_globale is not none %}
                   {% if subventions_evol_globale > 0.5 %}
                   <span class="text-green-600">+{{ "%.1f"|format(subventions_evol_globale) }} %</span>
@@ -290,11 +290,11 @@
         </table>
       </div>
 
-      <!-- Répartition par domaine -->
+      <!-- Répartition par domaine (barres horizontales, sous le tableau) -->
       {% if subventions_totaux | length > 1 %}
       <div>
-        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">Répartition par domaine</p>
-        <canvas id="chart-subventions" style="max-height:220px;"></canvas>
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">Répartition par domaine</p>
+        <canvas id="chart-subventions"></canvas>
       </div>
       {% endif %}
 
@@ -599,26 +599,55 @@ function exportPost(btn) {
   if (!el) return;
   var COULEURS = {
     sport: '#3b82f6', culture: '#8b5cf6', social: '#f97316',
-    environnement: '#22c55e', education: '#eab308', autre: '#9ca3af'
+    environnement: '#22c55e', education: '#eab308', sante: '#ec4899', autre: '#9ca3af'
   };
-  var labels  = {{ subventions_totaux | map(attribute='domaine') | list | tojson }};
-  var values  = {{ subventions_totaux | map(attribute='total')   | list | tojson }};
-  var colors  = labels.map(function(d) { return COULEURS[d] || '#9ca3af'; });
+  var labels = {{ subventions_totaux | map(attribute='domaine') | list | tojson }};
+  var values = {{ subventions_totaux | map(attribute='total')   | list | tojson }};
+  var colors = labels.map(function(d) { return COULEURS[d] || '#9ca3af'; });
+  var grandTotal = values.reduce(function(a, b) { return a + b; }, 0);
+
+  // Hauteur dynamique : 36px par barre, minimum 80px
+  el.style.height = Math.max(80, labels.length * 36) + 'px';
+
   new Chart(el.getContext('2d'), {
-    type: 'doughnut',
-    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }] },
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
     options: {
+      indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 10 } },
+        legend: { display: false },
         tooltip: {
           callbacks: {
             label: function(ctx) {
-              var v = ctx.parsed;
-              var total = ctx.dataset.data.reduce(function(a,b){return a+b;}, 0);
-              return ' ' + ctx.label + ' : ' + v.toLocaleString('fr-FR') + ' € (' + Math.round(v/total*100) + '%)';
+              var v = ctx.parsed.x;
+              return ' ' + v.toLocaleString('fr-FR') + ' € (' + Math.round(v / grandTotal * 100) + ' %)';
             }
           }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 11 },
+            callback: function(v) {
+              return v >= 1000 ? (v / 1000).toLocaleString('fr-FR') + ' k€' : v + ' €';
+            }
+          }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 12 } }
         }
       }
     }
