@@ -195,7 +195,36 @@
     </div>
     {% endif %}
 
-    <div class="space-y-6">
+    {# Barre de répartition 100 % #}
+    {% if subventions_totaux | length > 1 and subventions_total > 0 %}
+    {% set DCOL = {'sport': '#3b82f6', 'culture': '#8b5cf6', 'social': '#f97316', 'environnement': '#22c55e', 'education': '#eab308', 'sante': '#ec4899', 'autre': '#9ca3af'} %}
+    <div class="mb-4">
+      <div class="flex rounded-md overflow-hidden h-6 w-full">
+        {% for t in subventions_totaux %}
+        {% set pct = (t.total / subventions_total * 100) %}
+        <div style="width:{{ '%.2f' | format(pct) }}%; background:{{ DCOL.get(t.domaine, '#9ca3af') }};"
+             title="{{ t.domaine | capitalize }} — {{ '{:,.0f}'.format(t.total).replace(',', '\u202f') }} € ({{ '%.0f' | format(pct) }} %)"
+             class="flex items-center justify-center overflow-hidden">
+          {% if pct >= 10 %}
+          <span class="text-white text-xs font-semibold truncate px-1 leading-none">{{ '%.0f' | format(pct) }} %</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+        {% for t in subventions_totaux %}
+        {% set pct = (t.total / subventions_total * 100) %}
+        <span class="flex items-center gap-1 text-xs text-gray-600">
+          <span class="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                style="background:{{ DCOL.get(t.domaine, '#9ca3af') }};"></span>
+          {{ t.domaine | capitalize }} <span class="text-gray-400">{{ '%.0f' | format(pct) }} %</span>
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="space-y-0">
 
       <!-- Tableau -->
       <div class="overflow-x-auto">
@@ -289,14 +318,6 @@
           {% endif %}
         </table>
       </div>
-
-      <!-- Répartition par domaine (barres horizontales, sous le tableau) -->
-      {% if subventions_totaux | length > 1 %}
-      <div>
-        <p class="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2">Répartition par domaine</p>
-        <canvas id="chart-subventions"></canvas>
-      </div>
-      {% endif %}
 
     </div>
   </div>
@@ -592,67 +613,4 @@ function exportPost(btn) {
 }
 </script>
 
-{% if subventions_totaux | length > 1 %}
-<script>
-(function() {
-  var el = document.getElementById('chart-subventions');
-  if (!el) return;
-  var COULEURS = {
-    sport: '#3b82f6', culture: '#8b5cf6', social: '#f97316',
-    environnement: '#22c55e', education: '#eab308', sante: '#ec4899', autre: '#9ca3af'
-  };
-  var labels = {{ subventions_totaux | map(attribute='domaine') | list | tojson }};
-  var values = {{ subventions_totaux | map(attribute='total')   | list | tojson }};
-  var colors = labels.map(function(d) { return COULEURS[d] || '#9ca3af'; });
-  var grandTotal = values.reduce(function(a, b) { return a + b; }, 0);
-
-  // Hauteur dynamique : 36px par barre, minimum 80px
-  el.style.height = Math.max(80, labels.length * 36) + 'px';
-
-  new Chart(el.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: values,
-        backgroundColor: colors,
-        borderRadius: 4,
-        borderSkipped: false,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function(ctx) {
-              var v = ctx.parsed.x;
-              return ' ' + v.toLocaleString('fr-FR') + ' € (' + Math.round(v / grandTotal * 100) + ' %)';
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: {
-            font: { size: 11 },
-            callback: function(v) {
-              return v >= 1000 ? (v / 1000).toLocaleString('fr-FR') + ' k€' : v + ' €';
-            }
-          }
-        },
-        y: {
-          grid: { display: false },
-          ticks: { font: { size: 12 } }
-        }
-      }
-    }
-  });
-})();
-</script>
-{% endif %}
 {% endblock %}
