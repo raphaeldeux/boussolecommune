@@ -389,7 +389,7 @@ INDICATEURS = [
     {
         "id": "eco_part_bio_cantine",
         "thematique": "personnes",
-        "libelle_citoyen": "Quelle part de produits bio à la cantine ?",
+        "libelle_citoyen": "La cantine sert-elle suffisamment de produits bio ?",
         "libelle_technique": "Part des produits bio en restauration collective",
         "unite": "%",
         "sens_positif": "haut",
