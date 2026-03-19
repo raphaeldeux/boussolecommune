@@ -752,17 +752,18 @@ def seed():
 
     for ind in INDICATEURS:
         existing = conn.execute(
-            "SELECT id, thematique, actif FROM indicateurs WHERE id = ?", (ind["id"],)
+            "SELECT id, thematique, libelle_citoyen, actif FROM indicateurs WHERE id = ?", (ind["id"],)
         ).fetchone()
         if existing:
             needs_update = (
                 existing["thematique"] != ind["thematique"]
+                or existing["libelle_citoyen"] != ind["libelle_citoyen"]
                 or existing["actif"] != 1
             )
             if needs_update:
                 conn.execute(
-                    "UPDATE indicateurs SET thematique = ?, actif = 1 WHERE id = ?",
-                    (ind["thematique"], ind["id"])
+                    "UPDATE indicateurs SET thematique = ?, libelle_citoyen = ?, actif = 1 WHERE id = ?",
+                    (ind["thematique"], ind["libelle_citoyen"], ind["id"])
                 )
                 updated += 1
             else:
