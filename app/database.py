@@ -50,7 +50,7 @@ def init_db():
             libelle_reference TEXT,
             annee_reference INTEGER,
             description TEXT,
-            source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle')),
+            source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')),
             actif INTEGER DEFAULT 1
         );
 
