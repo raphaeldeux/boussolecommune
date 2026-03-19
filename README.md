@@ -2,7 +2,7 @@
 
 **L'observatoire citoyen de la vie communale.**
 
-CommuneSanté est une application web libre et open source qui agrège, interprète et publie les indicateurs clés d'une commune sur 6 dimensions : finances, écologie, social, gouvernance, services publics et vitalité économique. Chaque indicateur est exprimé en langage citoyen et analysé automatiquement via l'API Claude (Anthropic).
+CommuneSanté est une application web libre et open source qui agrège et publie les indicateurs clés d'une commune sur 6 dimensions : finances, cadre de vie, personnes, lien social, démocratie et vivant. Chaque indicateur est noté de A à E et commenté par les administrateurs en langage citoyen.
 
 L'objectif : rendre les données publiques lisibles par tous, pas seulement par les élus et les techniciens.
 
@@ -13,12 +13,26 @@ L'objectif : rendre les données publiques lisibles par tous, pas seulement par 
 ## Fonctionnalités
 
 - **Dashboard public** avec scores A–E par thématique et score global pondéré
-- **37 indicateurs** couvrant 6 thématiques (finances, écologie, social, gouvernance, services, économie)
-- **Interprétation automatique** des données via Claude (Anthropic)
-- **Comparaison avec des communes similaires** (valeurs de référence saisies par l'admin)
-- **Interface d'administration** : saisie manuelle, import CSV, gestion des références
-- **Intégration ma-cantine** : récupération automatique des données EGAlim
-- **Déploiement simplifié** via Docker
+- **41 indicateurs** répartis sur 6 thématiques
+- **Comparaison intercommunale** — jusqu'à 4 communes côte à côte (`/comparer`)
+- **Subventions** — tableau public des subventions aux associations, par domaine et thématique
+- **Portrait démographique** — pyramide des âges par commune
+- **Interprétations manuelles** — phrases courte et longue rédigées par les administrateurs
+- **Page Méthodologie** publique expliquant le calcul des scores
+- **Interface d'administration** : saisie, import CSV, gestion des références
+
+---
+
+## Les 6 thématiques
+
+| Thématique | Slug |
+|------------|------|
+| Soin des finances | `finances` |
+| Soin du cadre de vie | `cadre_vie` |
+| Soin des personnes | `personnes` |
+| Soin du lien social | `lien_social` |
+| Soin de la démocratie | `democratie` |
+| Soin du vivant | `vivant` |
 
 ---
 
@@ -66,7 +80,6 @@ python wsgi.py        # lancer le serveur
 
 | Variable | Description | Requis |
 |----------|-------------|--------|
-| `ANTHROPIC_API_KEY` | Clé API Anthropic (Claude) | Oui pour les interprétations |
 | `ADMIN_PASSWORD` | Mot de passe interface admin | Oui |
 | `SECRET_KEY` | Clé secrète Flask (sessions) | Oui |
 | `FLASK_ENV` | `production` ou `development` | Non (défaut : development) |
@@ -76,36 +89,49 @@ python wsgi.py        # lancer le serveur
 
 ## Alimentation des données
 
-### Saisie manuelle
+Les 41 indicateurs se divisent en deux familles selon leur mode d'alimentation.
 
-Aller sur `/admin/saisie` → sélectionner l'indicateur → saisir l'année, la valeur et la source.
+### Données automatiques
 
-### Import CSV
+Ces indicateurs sont récupérés sans intervention manuelle.
 
-Aller sur `/admin/upload` → choisir le format → déposer le fichier → valider l'aperçu.
+**ma-cantine (API gouvernementale)**
+Les 4 indicateurs EGAlim (bio, produits durables, viandes de qualité, poissons durables) sont récupérés automatiquement depuis [ma-cantine.agriculture.gouv.fr](https://ma-cantine.agriculture.gouv.fr).
 
-**Format générique** (toutes thématiques) :
-```csv
-annee,indicateur_id,valeur,source
-2024,eco_part_bio_cantine,42,Rapport DRAAF 2024
-2024,soc_logements_sociaux_taux,18.3,Bilan SRU préfecture 2024
-```
+**OFGL (finances)**
+Les 6 indicateurs financiers sont alimentés par import du fichier brut exporté depuis [ofgl.fr](https://www.ofgl.fr), filtré sur votre commune :
 
-**Format OFGL** (finances uniquement) — export brut depuis [ofgl.fr](https://www.ofgl.fr), filtré sur votre commune :
 ```csv
 code_commune;libelle_commune;annee;libelle_compte;montant
 12345;Ma Commune;2023;Épargne brute;1250000
 12345;Ma Commune;2023;Encours de dette;8400000
 ```
 
+Aller sur `/admin/upload` → format OFGL → déposer le fichier → valider l'aperçu.
+
+### Données manuelles
+
+Les 31 indicateurs restants sont alimentés de deux façons.
+
+**Saisie directe**
+Aller sur `/admin/saisie` → sélectionner l'indicateur → saisir l'année, la valeur et la source.
+
+**Import CSV générique**
+Aller sur `/admin/upload` → format générique → déposer le fichier → valider l'aperçu.
+
+```csv
+annee,indicateur_id,valeur,source
+2024,eco_part_bio_cantine,42,Rapport DRAAF 2024
+2024,soc_logements_sociaux_taux,18.3,Bilan SRU préfecture 2024
+```
+
 ### Références — communes similaires
 
-Aller sur `/admin/references` → sélectionner un indicateur → saisir :
-- **Valeur de référence** : moyenne de la strate (ex : `6.8`)
-- **Année** : année de la donnée de référence
-- **Source / libellé** : description de la strate (ex : `Moyenne communes 5 000–10 000 hab. (OFGL)`)
+Aller sur `/admin/references` → sélectionner un indicateur → saisir une valeur de référence (ex : moyenne de strate OFGL) et son libellé. Une barre de comparaison apparaît alors automatiquement sur la page publique.
 
-Quand une référence est renseignée, une barre de comparaison apparaît automatiquement sur la page publique.
+### Subventions
+
+Aller sur `/admin/subventions` → saisie ligne par ligne ou import CSV. Les subventions sont affichées publiquement avec un classement par domaine (sport, culture, social, environnement, éducation, santé).
 
 ---
 
@@ -120,7 +146,9 @@ Quand une référence est renseignée, une barre de comparaison apparaît automa
 | E | Rouge foncé | Critique |
 
 Le score thématique est calculé dès que **3 indicateurs minimum** sont renseignés.
-Le score global est une moyenne pondérée des 6 thématiques : Finances 25%, Écologie 20%, Social 20%, Gouvernance 15%, Services 10%, Économie 10%.
+Le score global est une moyenne pondérée des 6 thématiques : Finances 25%, Vivant 20%, Personnes 20%, Lien social 15%, Démocratie 10%, Cadre de vie 10%.
+
+La méthodologie complète est disponible sur `/methodologie`.
 
 ---
 
@@ -153,22 +181,25 @@ communesante/
 │   ├── models/                  # Accès base de données
 │   │   ├── indicateur.py
 │   │   ├── donnee.py
-│   │   └── interpretation.py
+│   │   ├── interpretation.py
+│   │   ├── subvention.py
+│   │   └── pyramide.py
 │   ├── services/
 │   │   ├── scoring.py           # Calcul scores A–E
-│   │   ├── claude.py            # Appels API Claude + cache
 │   │   ├── parser_csv.py        # Parser format générique
-│   │   └── parser_ofgl.py       # Parser format OFGL (finances)
+│   │   ├── parser_ofgl.py       # Parser format OFGL (finances)
+│   │   └── fetchers/
+│   │       └── macantine.py     # Récupération données EGAlim
 │   ├── routes/
 │   │   ├── public.py            # Routes publiques
 │   │   └── admin.py             # Routes admin (protégées)
 │   └── templates/
 │       ├── base.html
-│       ├── public/              # dashboard.html, thematique.html
-│       └── admin/               # login, dashboard, saisie, upload
+│       ├── public/              # dashboard, thematique, comparer, methodologie
+│       └── admin/               # login, dashboard, saisie, upload, subventions
 ├── data/                        # Base SQLite (volume Docker)
 ├── uploads/                     # CSV uploadés temporairement
-├── seed.py                      # Initialisation des 37 indicateurs
+├── seed.py                      # Initialisation des 41 indicateurs
 ├── wsgi.py                      # Point d'entrée Flask
 ├── Dockerfile
 ├── docker-compose.yml
@@ -179,28 +210,11 @@ communesante/
 
 ## Roadmap
 
-### Court terme
-
-- [ ] **Indicateur de fraîcheur des données** — afficher publiquement la date de dernière mise à jour de chaque indicateur
-- [ ] **Export CSV/JSON public** — permettre aux citoyens de télécharger les données brutes
-- [ ] **Meilleur rapport d'erreurs CSV** — indiquer précisément les lignes rejetées lors d'un import et pourquoi
-- [ ] **Recherche d'indicateurs** — barre de recherche par mot-clé dans l'interface admin
-
-### Moyen terme
-
-- [ ] **Visualisation de tendances** — graphiques d'évolution sur plusieurs années pour chaque indicateur
-- [ ] **Alertes de mise à jour** — notifications admin quand une donnée dépasse X mois sans actualisation
-- [ ] **Détection de doublons à l'import** — avertissement si un indicateur/année existe déjà avant d'écraser
-- [ ] **Journal d'audit** — tracer qui a saisi quoi et quand, pour renforcer la transparence
-- [ ] **Intégrations supplémentaires** — connecteurs automatiques vers INSEE, OFGL, data.gouv.fr
-
-### Long terme
-
-- [ ] **Multi-communes** — permettre à une même instance de gérer plusieurs communes (comparaisons intercommunales)
-- [ ] **Exports PDF** — rapport thématique ou global téléchargeable, adapté aux conseils municipaux
-- [ ] **Personnalisation des pondérations** — permettre à chaque commune d'ajuster les poids du score global
+- [ ] **Visualisation de tendances** — graphiques d'évolution pluriannuelle pour chaque indicateur
+- [ ] **Export des données** — téléchargement public des données brutes en CSV
+- [ ] **Journal d'audit** — traçabilité des saisies admin (qui, quand, quelle valeur)
+- [ ] **Intégrations supplémentaires** — connecteurs automatiques vers INSEE et data.gouv.fr
 - [ ] **API publique JSON** — exposer les données pour intégration dans d'autres outils (site municipal, etc.)
-- [ ] **Modélisation de scénarios** — simuler l'impact d'une amélioration sur le score global
 
 ---
 
