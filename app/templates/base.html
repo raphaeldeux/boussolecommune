@@ -157,11 +157,6 @@
           </svg>
         </button>
 
-        <a href="{{ url_for('public.synthese', ville_slug=ville.slug) }}"
-           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.synthese' else tab_idle }}">
-          Synthèse
-        </a>
         <a href="{{ url_for('public.comparer') }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
              {{ tab_active if request.endpoint == 'public.comparer' else tab_idle }}">
@@ -217,11 +212,6 @@
         {{ nav_icon }} {{ nav_label }}
       </a>
       {% endfor %}
-      <a href="{{ url_for('public.synthese', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.synthese' %}bg-emerald-800{% endif %}"
-         onclick="toggleMobileMenu()">
-        ◎ Synthèse
-      </a>
       {% endif %}
       <a href="{{ url_for('public.comparer') }}"
          class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition"

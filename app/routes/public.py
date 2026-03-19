@@ -271,13 +271,16 @@ def dashboard(ville_slug):
         ville=ville,
         cartes=cartes,
         score_global=score_global,
-        score_global_couleur=SCORE_COULEURS.get(score_global),
+        score_global_couleur=SCORE_COULEURS.get(score_global) or "#9ca3af",
         derniere_maj=derniere_maj,
         meilleur=meilleur,
         pire=pire,
         nb_forts=nb_forts,
         nb_defis=nb_defis,
         nb_neutres=nb_neutres,
+        radar_labels=[c["label"] for c in cartes],
+        radar_values=[SCORE_VALEURS.get(c["score"], 0) for c in cartes],
+        radar_colors=[c["score_couleur"] for c in cartes],
     )
 
 
@@ -344,24 +347,6 @@ def thematique(ville_slug, slug):
         subventions_annee=subventions_annee,
     )
 
-
-@bp.route("/v/<ville_slug>/synthese")
-def synthese(ville_slug):
-    ville = _get_ville_or_404(ville_slug)
-    cartes, score_global, _, _ = _build_cartes(ville["id"])
-    radar_labels = [c["label"] for c in cartes]
-    radar_values = [SCORE_VALEURS.get(c["score"], 0) for c in cartes]
-    radar_colors = [c["score_couleur"] for c in cartes]
-    return render_template(
-        "public/synthese.html",
-        ville=ville,
-        cartes=cartes,
-        score_global=score_global,
-        score_global_couleur=SCORE_COULEURS.get(score_global) or "#9ca3af",
-        radar_labels=radar_labels,
-        radar_values=radar_values,
-        radar_colors=radar_colors,
-    )
 
 
 @bp.route("/v/<ville_slug>/portrait")
