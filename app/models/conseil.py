@@ -1,0 +1,73 @@
+from app.database import get_db
+
+
+def get_all(ville_id):
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM conseils WHERE ville_id = %s ORDER BY date_conseil DESC",
+            (ville_id,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_publies(ville_id, limit=3):
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM conseils WHERE ville_id = %s AND publie = TRUE "
+            "ORDER BY date_conseil DESC LIMIT %s",
+            (ville_id, limit)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_by_id(conseil_id):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM conseils WHERE id = %s", (conseil_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def create(ville_id, titre, date_conseil, fichier_pdf=None):
+    with get_db() as conn:
+        row = conn.execute(
+            "INSERT INTO conseils (ville_id, titre, date_conseil, fichier_pdf) "
+            "VALUES (%s, %s, %s, %s) RETURNING id",
+            (ville_id, titre, date_conseil, fichier_pdf)
+        ).fetchone()
+        conn.commit()
+    return row["id"]
+
+
+def update(conseil_id, titre, date_conseil, fichier_pdf=None):
+    with get_db() as conn:
+        if fichier_pdf is not None:
+            conn.execute(
+                "UPDATE conseils SET titre=%s, date_conseil=%s, fichier_pdf=%s WHERE id=%s",
+                (titre, date_conseil, fichier_pdf, conseil_id)
+            )
+        else:
+            conn.execute(
+                "UPDATE conseils SET titre=%s, date_conseil=%s WHERE id=%s",
+                (titre, date_conseil, conseil_id)
+            )
+        conn.commit()
+
+
+def set_publie(conseil_id, publie):
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE conseils SET publie=%s WHERE id=%s",
+            (publie, conseil_id)
+        )
+        conn.commit()
+
+
+def delete(conseil_id):
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT fichier_pdf FROM conseils WHERE id=%s", (conseil_id,)
+        ).fetchone()
+        conn.execute("DELETE FROM conseils WHERE id=%s", (conseil_id,))
+        conn.commit()
+    return dict(row)["fichier_pdf"] if row else None

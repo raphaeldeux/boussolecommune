@@ -1,0 +1,72 @@
+{% extends "admin_base.html" %}
+{% block title %}Conseils municipaux — Admin{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Conseils municipaux</h1>
+  <a href="{{ url_for('admin.conseil_nouveau') }}"
+     class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+    + Ajouter un PV
+  </a>
+</div>
+
+{% if conseils %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+      <tr>
+        <th class="px-4 py-3 text-left">Date</th>
+        <th class="px-4 py-3 text-left">Titre</th>
+        <th class="px-4 py-3 text-center">PDF</th>
+        <th class="px-4 py-3 text-center">Statut</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for c in conseils %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.date_conseil }}</td>
+        <td class="px-4 py-3 font-medium text-gray-900">{{ c.titre }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if c.fichier_pdf %}
+          <span class="text-emerald-600">✓</span>
+          {% else %}
+          <span class="text-gray-300">—</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          <form method="POST" action="{{ url_for('admin.conseil_publier', conseil_id=c.id) }}" class="inline">
+            <button type="submit"
+                    class="px-2 py-1 rounded text-xs font-medium transition
+                      {% if c.publie %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
+                      {% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
+              {{ 'Publié' if c.publie else 'Brouillon' }}
+            </button>
+          </form>
+        </td>
+        <td class="px-4 py-3 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <a href="{{ url_for('admin.conseil_modifier', conseil_id=c.id) }}"
+               class="text-blue-600 hover:text-blue-800 text-xs font-medium">Modifier</a>
+            <form method="POST" action="{{ url_for('admin.conseil_supprimer', conseil_id=c.id) }}"
+                  onsubmit="return confirm('Supprimer ce conseil ?')">
+              <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+  <div class="text-4xl mb-3">🏛️</div>
+  <p class="text-sm">Aucun conseil municipal ajouté pour l'instant.</p>
+  <a href="{{ url_for('admin.conseil_nouveau') }}"
+     class="mt-4 inline-block text-emerald-600 hover:text-emerald-800 text-sm font-medium">
+    Ajouter le premier →
+  </a>
+</div>
+{% endif %}
+{% endblock %}

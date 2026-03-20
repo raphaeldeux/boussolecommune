@@ -365,4 +365,34 @@ def init_db():  # noqa: C901
             ON CONFLICT DO NOTHING
         """, row)
     conn.commit()
+
+    # Table conseils municipaux (US-T1)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS conseils (
+            id           SERIAL PRIMARY KEY,
+            ville_id     INTEGER NOT NULL REFERENCES villes(id) ON DELETE CASCADE,
+            titre        TEXT NOT NULL,
+            date_conseil DATE NOT NULL,
+            fichier_pdf  TEXT,
+            resume_citoyen TEXT,
+            publie       BOOLEAN NOT NULL DEFAULT FALSE,
+            date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
+    # Table documents publics (US-T7)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS documents (
+            id           SERIAL PRIMARY KEY,
+            ville_id     INTEGER NOT NULL REFERENCES villes(id) ON DELETE CASCADE,
+            titre        TEXT NOT NULL,
+            categorie    TEXT NOT NULL DEFAULT 'autre',
+            fichier      TEXT,
+            publie       BOOLEAN NOT NULL DEFAULT FALSE,
+            date_creation TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
     conn.close()

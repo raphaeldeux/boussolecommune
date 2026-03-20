@@ -1282,3 +1282,111 @@ def communes_vedette():
     for i, v in enumerate(vedettes[:3]):
         slots[i] = v
     return render_template("admin/communes_vedette.html", slots=slots)
+
+
+# ── Conseils municipaux ───────────────────────────────────────────────────
+
+import app.models.conseil as conseil_model
+import werkzeug.utils
+
+
+CONSEILS_UPLOAD_DIR = "/app/uploads/conseils"
+
+
+def _save_pdf(fichier):
+    """Sauvegarde le PDF uploadé et retourne son nom de fichier."""
+    os.makedirs(CONSEILS_UPLOAD_DIR, exist_ok=True)
+    filename = werkzeug.utils.secure_filename(fichier.filename)
+    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    filename = f"{ts}_{filename}"
+    fichier.save(os.path.join(CONSEILS_UPLOAD_DIR, filename))
+    return filename
+
+
+@bp.route("/conseils")
+@login_required
+def conseils():
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    if not ville:
+        flash("Aucune ville sélectionnée.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    items = conseil_model.get_all(ville["id"])
+    return render_template("admin/conseils.html", ville=ville, conseils=items)
+
+
+@bp.route("/conseils/nouveau", methods=["GET", "POST"])
+@login_required
+def conseil_nouveau():
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    if not ville:
+        abort(403)
+    if request.method == "POST":
+        titre = request.form.get("titre", "").strip()
+        date_conseil = request.form.get("date_conseil", "").strip()
+        fichier = request.files.get("fichier_pdf")
+        if not titre or not date_conseil:
+            flash("Titre et date sont obligatoires.", "danger")
+            return render_template("admin/conseil_form.html", ville=ville, conseil=None)
+        fichier_pdf = None
+        if fichier and fichier.filename:
+            if not fichier.filename.lower().endswith(".pdf"):
+                flash("Seuls les fichiers PDF sont acceptés.", "danger")
+                return render_template("admin/conseil_form.html", ville=ville, conseil=None)
+            fichier_pdf = _save_pdf(fichier)
+        conseil_model.create(ville["id"], titre, date_conseil, fichier_pdf)
+        flash("Conseil ajouté avec succès.", "success")
+        return redirect(url_for("admin.conseils"))
+    return render_template("admin/conseil_form.html", ville=ville, conseil=None)
+
+
+@bp.route("/conseils/<int:conseil_id>/modifier", methods=["GET", "POST"])
+@login_required
+def conseil_modifier(conseil_id):
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    if request.method == "POST":
+        titre = request.form.get("titre", "").strip()
+        date_conseil = request.form.get("date_conseil", "").strip()
+        fichier = request.files.get("fichier_pdf")
+        if not titre or not date_conseil:
+            flash("Titre et date sont obligatoires.", "danger")
+            return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
+        fichier_pdf = None
+        if fichier and fichier.filename:
+            if not fichier.filename.lower().endswith(".pdf"):
+                flash("Seuls les fichiers PDF sont acceptés.", "danger")
+                return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
+            fichier_pdf = _save_pdf(fichier)
+        conseil_model.update(conseil_id, titre, date_conseil, fichier_pdf)
+        flash("Conseil mis à jour.", "success")
+        return redirect(url_for("admin.conseils"))
+    return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
+
+
+@bp.route("/conseils/<int:conseil_id>/publier", methods=["POST"])
+@login_required
+def conseil_publier(conseil_id):
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    conseil_model.set_publie(conseil_id, not conseil["publie"])
+    return redirect(url_for("admin.conseils"))
+
+
+@bp.route("/conseils/<int:conseil_id>/supprimer", methods=["POST"])
+@login_required
+def conseil_supprimer(conseil_id):
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    fichier_pdf = conseil_model.delete(conseil_id)
+    if fichier_pdf:
+        path = os.path.join(CONSEILS_UPLOAD_DIR, fichier_pdf)
+        if os.path.exists(path):
+            os.remove(path)
+    flash("Conseil supprimé.", "success")
+    return redirect(url_for("admin.conseils"))

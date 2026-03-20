@@ -1,0 +1,55 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ 'Modifier' if conseil else 'Nouveau' }} conseil — Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-xl">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">
+    {{ 'Modifier le conseil' if conseil else 'Ajouter un conseil municipal' }}
+  </h1>
+
+  <form method="POST" enctype="multipart/form-data"
+        class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Date du conseil *</label>
+      <input type="date" name="date_conseil"
+             value="{{ conseil.date_conseil if conseil else '' }}"
+             required
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Titre *</label>
+      <input type="text" name="titre"
+             value="{{ conseil.titre if conseil else '' }}"
+             placeholder="Ex : Conseil municipal du 15 janvier 2025"
+             required
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Procès-verbal (PDF)
+        {% if conseil and conseil.fichier_pdf %}
+        <span class="text-xs text-emerald-600 font-normal ml-1">— fichier existant : {{ conseil.fichier_pdf }}</span>
+        {% endif %}
+      </label>
+      <input type="file" name="fichier_pdf" accept=".pdf"
+             class="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0
+                    file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100">
+      {% if conseil and conseil.fichier_pdf %}
+      <p class="text-xs text-gray-400 mt-1">Laisser vide pour conserver le fichier actuel.</p>
+      {% endif %}
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit"
+              class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition">
+        {{ 'Enregistrer' if conseil else 'Ajouter' }}
+      </button>
+      <a href="{{ url_for('admin.conseils') }}"
+         class="text-gray-500 hover:text-gray-700 text-sm">Annuler</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
