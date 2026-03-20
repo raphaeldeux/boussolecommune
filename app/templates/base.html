@@ -125,7 +125,7 @@
 
   <!-- ── Barre 2 : navigation ville (tabs) ─────────────────────────── -->
   {% if ville is defined and ville %}
-  <nav class="bg-white border-b border-gray-200 sm:sticky sm:top-12 z-30 shadow-sm">
+  <nav class="bg-white border-b border-gray-200 sticky top-12 z-30 shadow-sm">
     <div class="max-w-6xl mx-auto px-2 sm:px-4">
       <div class="flex items-end gap-0 h-10 text-sm tabs-scroll overflow-x-auto">
 
@@ -154,7 +154,7 @@
         ] %}
         <button id="them-dd-btn"
                 onclick="toggleThemDropdown()"
-                class="hidden md:flex px-4 h-full items-center gap-1 whitespace-nowrap transition
+                class="flex px-3 sm:px-4 h-full items-center gap-1 whitespace-nowrap transition
                   {{ tab_active if request.endpoint == 'public.thematique' else tab_idle }}">
           Thématiques
           <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

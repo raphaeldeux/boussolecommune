@@ -40,17 +40,19 @@
   <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
     <h2 class="font-semibold text-gray-700">Score global</h2>
   </div>
-  <div class="p-5 grid gap-4" style="grid-template-columns: repeat({{ comparaison|length }}, minmax(0,1fr))">
-    {% for c in comparaison %}
-    <div class="text-center">
-      <div class="font-bold text-gray-900 mb-2">{{ c.ville.nom }}</div>
-      {% if c.score_global %}
-      <div class="score-badge score-badge-lg score-{{ c.score_global }} mx-auto">{{ c.score_global }}</div>
-      {% else %}
-      <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold mx-auto">—</div>
-      {% endif %}
+  <div class="overflow-x-auto">
+    <div class="p-5 grid gap-4" style="grid-template-columns: repeat({{ comparaison|length }}, minmax(8rem,1fr))">
+      {% for c in comparaison %}
+      <div class="text-center">
+        <div class="font-bold text-gray-900 mb-2">{{ c.ville.nom }}</div>
+        {% if c.score_global %}
+        <div class="score-badge score-badge-lg score-{{ c.score_global }} mx-auto">{{ c.score_global }}</div>
+        {% else %}
+        <div class="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold mx-auto">—</div>
+        {% endif %}
+      </div>
+      {% endfor %}
     </div>
-    {% endfor %}
   </div>
 </div>
 
