@@ -100,7 +100,7 @@
         <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
              {{ tab_active if request.endpoint == 'public.dashboard' else tab_idle }}">
-          Accueil
+          Tableau de bord
         </a>
         <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
@@ -127,10 +127,22 @@
           </svg>
         </button>
 
-        <a href="{{ url_for('public.comparer', v=ville.slug, retour=ville.slug) }}"
+        <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.comparer' else tab_idle }}">
-          Comparer
+             {{ tab_active if request.endpoint == 'public.conseils' else tab_idle }}">
+          Conseils
+        </a>
+
+        <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
+           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
+             {{ tab_active if request.endpoint == 'public.documents' else tab_idle }}">
+          Documents
+        </a>
+
+        <a href="{{ url_for('public.methodologie') }}"
+           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
+             {{ tab_active if request.endpoint == 'public.methodologie' else tab_idle }}">
+          Méthodologie
         </a>
 
       </div>
@@ -159,7 +171,7 @@
       <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
          class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.dashboard' %}bg-emerald-800{% endif %}"
          onclick="toggleMobileMenu()">
-        🏠 Accueil · {{ ville.nom }}
+        🏠 Tableau de bord
       </a>
       <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
          class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.portrait' %}bg-emerald-800{% endif %}"
@@ -178,12 +190,22 @@
         {{ nav_icon }} {{ nav_label }}
       </a>
       {% endfor %}
-      {% endif %}
-      <a href="{{ url_for('public.comparer', v=ville.slug, retour=ville.slug) if (ville is defined and ville) else url_for('public.comparer') }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition"
+      <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.conseils' %}bg-emerald-800{% endif %}"
          onclick="toggleMobileMenu()">
-        ⚖️ Comparer des communes
+        🏛️ Conseils municipaux
       </a>
+      <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.documents' %}bg-emerald-800{% endif %}"
+         onclick="toggleMobileMenu()">
+        📁 Documents
+      </a>
+      <a href="{{ url_for('public.methodologie') }}"
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.methodologie' %}bg-emerald-800{% endif %}"
+         onclick="toggleMobileMenu()">
+        📖 Méthodologie
+      </a>
+      {% endif %}
       <div class="border-t border-emerald-600 mt-1 pt-2">
         {% if session.get('user_id') %}
         <a href="{{ url_for('admin.dashboard') }}"

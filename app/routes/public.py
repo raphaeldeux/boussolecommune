@@ -514,3 +514,21 @@ def methodologie():
     retour_slug = request.args.get("retour")
     ville_retour = ville_model.get_by_slug(retour_slug) if retour_slug else None
     return render_template("public/methodologie.html", ville=ville_retour)
+
+
+@bp.route("/v/<ville_slug>/conseils")
+def conseils(ville_slug):
+    """Page des conseils municipaux (US-T5 — à implémenter)."""
+    ville = ville_model.get_by_slug(ville_slug)
+    if not ville:
+        abort(404)
+    return render_template("public/conseils.html", ville=ville)
+
+
+@bp.route("/v/<ville_slug>/documents")
+def documents(ville_slug):
+    """Page des documents publics (US-T8 — à implémenter)."""
+    ville = ville_model.get_by_slug(ville_slug)
+    if not ville:
+        abort(404)
+    return render_template("public/documents.html", ville=ville)
