@@ -6,7 +6,7 @@ BoussoleCommune est une application web libre et open source qui agrège et publ
 
 L'objectif : rendre les données publiques lisibles par tous, pas seulement par les élus et les techniciens.
 
-**Stack** : Flask + SQLite + Docker
+**Stack** : Flask + PostgreSQL + Docker
 
 ---
 
@@ -66,9 +66,11 @@ L'application est accessible sur **http://localhost:5001**
 
 ## Sans Docker (développement local)
 
+Un serveur PostgreSQL doit être disponible localement.
+
 ```bash
 pip install -r requirements.txt
-cp .env.example .env  # puis éditer
+cp .env.example .env  # puis éditer (DATABASE_URL vers votre PostgreSQL local)
 
 python seed.py        # initialiser les indicateurs
 python wsgi.py        # lancer le serveur
@@ -80,11 +82,12 @@ python wsgi.py        # lancer le serveur
 
 | Variable | Description | Requis |
 |----------|-------------|--------|
-| `ANTHROPIC_API_KEY` | Clé API Anthropic (Claude) pour les interprétations | Oui |
+| `DATABASE_URL` | URL de connexion PostgreSQL | Oui (défaut : `postgresql://boussole:boussole@localhost:5432/boussolecommune`) |
+| `POSTGRES_PASSWORD` | Mot de passe PostgreSQL (utilisé par le conteneur `db`) | Oui |
+| `ADMIN_USERNAME` | Nom d'utilisateur interface admin | Oui |
 | `ADMIN_PASSWORD` | Mot de passe interface admin | Oui |
 | `SECRET_KEY` | Clé secrète Flask (sessions) | Oui |
 | `FLASK_ENV` | `production` ou `development` | Non (défaut : development) |
-| `DATABASE_PATH` | Chemin vers le fichier SQLite | Non (défaut : `data/boussolecommune.db`) |
 
 ---
 
@@ -185,7 +188,7 @@ boussolecommune/
 ├── app/
 │   ├── __init__.py              # Application factory
 │   ├── config.py                # Variables d'environnement
-│   ├── database.py              # SQLite : init schéma
+│   ├── database.py              # PostgreSQL : connexion psycopg2 + init schéma
 │   ├── auth.py                  # Auth admin (session + décorateur)
 │   ├── models/                  # Accès base de données
 │   │   ├── indicateur.py
@@ -206,7 +209,6 @@ boussolecommune/
 │       ├── base.html
 │       ├── public/              # dashboard, thematique, comparer, methodologie
 │       └── admin/               # login, dashboard, saisie, upload, subventions
-├── data/                        # Base SQLite (volume Docker)
 ├── uploads/                     # CSV uploadés temporairement
 ├── seed.py                      # Initialisation des 41 indicateurs
 ├── wsgi.py                      # Point d'entrée Flask
