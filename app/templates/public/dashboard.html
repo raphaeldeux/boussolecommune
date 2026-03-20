@@ -33,27 +33,7 @@
       <span>Données {{ derniere_maj | format_date }}</span>
       {% endif %}
     </div>
-
-    <!-- Décompte points forts / défis -->
-    {% if score_global %}
-    <div class="flex flex-wrap gap-3 mt-4">
-      {% if nb_forts %}
-      <span class="inline-flex items-center gap-1.5 text-sm font-medium text-green-700 bg-green-100 px-3 py-1 rounded-full">
-        ✅ {{ nb_forts }} point{{ 's' if nb_forts > 1 }} fort{{ 's' if nb_forts > 1 }}
-      </span>
-      {% endif %}
-      {% if nb_defis %}
-      <span class="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 bg-red-100 px-3 py-1 rounded-full">
-        ⚠️ {{ nb_defis }} défi{{ 's' if nb_defis > 1 }}
-      </span>
-      {% endif %}
-      {% if nb_neutres %}
-      <span class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-        ➖ {{ nb_neutres }} neutre{{ 's' if nb_neutres > 1 }}
-      </span>
-      {% endif %}
-    </div>
-    {% else %}
+    {% if not score_global %}
     <p class="mt-3 text-sm text-gray-400 italic">La note apparaîtra dès que suffisamment de données seront saisies.</p>
     {% endif %}
   </div>
@@ -77,46 +57,14 @@
   {% endif %}
 </div>
 
-{# ── Scores par thématique ─────────────────────────────────────────── #}
-{% if score_global and cartes %}
-<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Scores par thématique</h2>
-  <div class="space-y-2.5">
-    {% for carte in cartes %}
-    {% if carte.score %}
-    {% set score_pct = {'A': 100, 'B': 80, 'C': 60, 'D': 40, 'E': 20}[carte.score] | default(0) %}
-    <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
-       class="flex items-center gap-3 group hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition">
-      <span class="text-lg flex-shrink-0 w-6 text-center">{{ carte.icon }}</span>
-      <span class="text-xs text-gray-600 w-36 sm:w-40 flex-shrink-0 group-hover:text-emerald-700 transition">{{ carte.label }}</span>
-      <div class="flex-1 bg-gray-100 rounded-full h-3 min-w-0 overflow-hidden">
-        <div class="h-3 rounded-full transition-all score-{{ carte.score }}"
-             style="width: {{ score_pct }}%; opacity: 0.85;"></div>
-      </div>
-      <span class="score-badge score-{{ carte.score }} flex-shrink-0 ml-1"
-            style="width:1.5rem;height:1.5rem;font-size:.7rem;border-radius:.2rem">{{ carte.score }}</span>
-    </a>
-    {% endif %}
-    {% endfor %}
-  </div>
-  <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-gray-300">
-    <span>A · Très satisfaisant</span>
-    <span>B · Bon</span>
-    <span>C · Vigilance</span>
-    <span>D · Préoccupant</span>
-    <span>E · Critique</span>
-  </div>
-</div>
-{% endif %}
-
-{# ── Cartes thématiques compactes ─────────────────────────────────── #}
+{# ── Cartes thématiques ────────────────────────────────────────────── #}
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
   {% for carte in cartes %}
   <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
      class="bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-md transition p-4 flex flex-col group">
 
     <!-- Header : icône + label + score -->
-    <div class="flex items-center justify-between mb-3">
+    <div class="flex items-center justify-between mb-2">
       <div class="flex items-center gap-2 min-w-0">
         <span class="text-xl flex-shrink-0">{{ carte.icon }}</span>
         <span class="font-semibold text-gray-800 text-sm leading-tight truncate">{{ carte.label }}</span>
@@ -129,6 +77,16 @@
       {% endif %}
     </div>
 
+    <!-- Mini-barre de score -->
+    {% if carte.score %}
+    {% set score_pct = {'A': 100, 'B': 80, 'C': 60, 'D': 40, 'E': 20}[carte.score] | default(0) %}
+    <div class="bg-gray-100 rounded-full h-1.5 mb-2">
+      <div class="h-1.5 rounded-full score-{{ carte.score }}" style="width: {{ score_pct }}%; opacity: 0.85;"></div>
+    </div>
+    {% else %}
+    <div class="bg-gray-100 rounded-full h-1.5 mb-2"></div>
+    {% endif %}
+
     <!-- Nombre d'indicateurs disponibles -->
     <div class="text-xs text-gray-400 mb-3">{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs disponibles</div>
 
@@ -139,42 +97,58 @@
   {% endfor %}
 </div>
 
-{# ── Indicateurs clés ─────────────────────────────────────────────── #}
-{% if meilleur or pire %}
-<div class="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-  <div class="mb-4">
-    <h2 class="font-semibold text-gray-800">Indicateurs clés</h2>
-  </div>
-  <div class="space-y-3">
-    {% if meilleur and meilleur.donnee %}
-    <div class="flex items-center gap-3">
-      <span class="score-badge score-{{ meilleur.score }}"
-            style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.25rem;flex-shrink:0">{{ meilleur.score }}</span>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm text-gray-700 truncate">{{ meilleur.libelle_citoyen }}</div>
-        <div class="text-xs text-gray-400">{{ meilleur._them_label }}</div>
+{# ── Points forts / Points d'attention ───────────────────────────── #}
+{% if top_inds or flop_inds %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+
+  {% if top_inds %}
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Points forts</h2>
+    <div class="space-y-3">
+      {% for ind in top_inds %}
+      <div class="flex items-center gap-3">
+        <span class="score-badge score-{{ ind.score }}"
+              style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.25rem;flex-shrink:0">{{ ind.score }}</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-gray-700 truncate">{{ ind.libelle_citoyen }}</div>
+          <div class="text-xs text-gray-400">{{ ind._them_label }}</div>
+        </div>
+        {% if ind.donnee %}
+        <div class="text-sm font-semibold text-gray-800 flex-shrink-0 text-right">
+          {{ ind.donnee.valeur | format_valeur }}
+          <span class="text-gray-400 font-normal text-xs">{{ ind.unite }}</span>
+        </div>
+        {% endif %}
       </div>
-      <div class="text-sm font-semibold text-gray-800 flex-shrink-0 text-right">
-        {{ meilleur.donnee.valeur | format_valeur }}
-        <span class="text-gray-400 font-normal text-xs">{{ meilleur.unite }}</span>
-      </div>
+      {% endfor %}
     </div>
-    {% endif %}
-    {% if pire and pire.donnee %}
-    <div class="flex items-center gap-3">
-      <span class="score-badge score-{{ pire.score }}"
-            style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.25rem;flex-shrink:0">{{ pire.score }}</span>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm text-gray-700 truncate">{{ pire.libelle_citoyen }}</div>
-        <div class="text-xs text-gray-400">{{ pire._them_label }}</div>
-      </div>
-      <div class="text-sm font-semibold text-gray-800 flex-shrink-0 text-right">
-        {{ pire.donnee.valeur | format_valeur }}
-        <span class="text-gray-400 font-normal text-xs">{{ pire.unite }}</span>
-      </div>
-    </div>
-    {% endif %}
   </div>
+  {% endif %}
+
+  {% if flop_inds %}
+  <div class="bg-white rounded-xl border border-gray-200 p-5">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Points d'attention</h2>
+    <div class="space-y-3">
+      {% for ind in flop_inds %}
+      <div class="flex items-center gap-3">
+        <span class="score-badge score-{{ ind.score }}"
+              style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.25rem;flex-shrink:0">{{ ind.score }}</span>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm text-gray-700 truncate">{{ ind.libelle_citoyen }}</div>
+          <div class="text-xs text-gray-400">{{ ind._them_label }}</div>
+        </div>
+        {% if ind.donnee %}
+        <div class="text-sm font-semibold text-gray-800 flex-shrink-0 text-right">
+          {{ ind.donnee.valeur | format_valeur }}
+          <span class="text-gray-400 font-normal text-xs">{{ ind.unite }}</span>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 {% endif %}
 

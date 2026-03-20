@@ -145,12 +145,12 @@ def _build_cartes(ville_id=1):
 
     ORDRE = {"A": 5, "B": 4, "C": 3, "D": 2, "E": 1}
     scored = [e for e in tous_enrichis if e.get("score") in ORDRE]
-    meilleur = max(scored, key=lambda e: ORDRE[e["score"]], default=None)
-    pire = min(scored, key=lambda e: ORDRE[e["score"]], default=None)
-    if meilleur and pire and meilleur["id"] == pire["id"]:
-        pire = None
+    scored_desc = sorted(scored, key=lambda e: ORDRE[e["score"]], reverse=True)
+    top_inds = scored_desc[:3]
+    top_ids = {e["id"] for e in top_inds}
+    flop_inds = [e for e in reversed(scored_desc) if e["id"] not in top_ids][:3]
 
-    return cartes, score_global, meilleur, pire
+    return cartes, score_global, top_inds, flop_inds
 
 
 # ── Page de sélection des villes ────────────────────────────────────────
@@ -279,11 +279,8 @@ def commune(slug):
 @bp.route("/v/<ville_slug>/")
 def dashboard(ville_slug):
     ville = _get_ville_or_404(ville_slug)
-    cartes, score_global, meilleur, pire = _build_cartes(ville["id"])
+    cartes, score_global, top_inds, flop_inds = _build_cartes(ville["id"])
     derniere_maj = donnee_model.get_derniere_maj(ville["id"])
-    nb_forts   = sum(1 for c in cartes if c.get("score") in ("A", "B"))
-    nb_defis   = sum(1 for c in cartes if c.get("score") in ("D", "E"))
-    nb_neutres = len(cartes) - nb_forts - nb_defis
     return render_template(
         "public/dashboard.html",
         ville=ville,
@@ -291,11 +288,8 @@ def dashboard(ville_slug):
         score_global=score_global,
         score_global_couleur=SCORE_COULEURS.get(score_global) or "#9ca3af",
         derniere_maj=derniere_maj,
-        meilleur=meilleur,
-        pire=pire,
-        nb_forts=nb_forts,
-        nb_defis=nb_defis,
-        nb_neutres=nb_neutres,
+        top_inds=top_inds,
+        flop_inds=flop_inds,
         radar_labels=[c["label"] for c in cartes],
         radar_values=[SCORE_VALEURS.get(c["score"], 0) for c in cartes],
         radar_colors=[c["score_couleur"] for c in cartes],
