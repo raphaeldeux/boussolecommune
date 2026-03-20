@@ -88,7 +88,7 @@
     <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
        class="flex items-center gap-3 group hover:bg-gray-50 rounded-lg px-2 py-1 -mx-2 transition">
       <span class="text-lg flex-shrink-0 w-6 text-center">{{ carte.icon }}</span>
-      <span class="text-xs text-gray-600 w-24 sm:w-28 flex-shrink-0 group-hover:text-emerald-700 transition truncate">{{ carte.label }}</span>
+      <span class="text-xs text-gray-600 w-36 sm:w-40 flex-shrink-0 group-hover:text-emerald-700 transition">{{ carte.label }}</span>
       <div class="flex-1 bg-gray-100 rounded-full h-3 min-w-0 overflow-hidden">
         <div class="h-3 rounded-full transition-all score-{{ carte.score }}"
              style="width: {{ score_pct }}%; opacity: 0.85;"></div>
@@ -110,7 +110,7 @@
 {% endif %}
 
 {# ── Cartes thématiques compactes ─────────────────────────────────── #}
-<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
   {% for carte in cartes %}
   <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
      class="bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-md transition p-4 flex flex-col group">
