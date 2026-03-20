@@ -85,8 +85,12 @@ def _table_exists(conn: PgConnection, table: str) -> bool:
 
 # ── Schema creation ───────────────────────────────────────────────────────
 
-def init_db():
+def init_db():  # noqa: C901
     conn = get_db()
+
+    # Advisory lock — held for the entire init to prevent race conditions
+    # between Gunicorn workers starting simultaneously.
+    conn.execute("SELECT pg_advisory_lock(42)")
 
     conn.execute("""
         CREATE TABLE IF NOT EXISTS villes (
@@ -202,45 +206,35 @@ def init_db():
     """)
 
     conn.commit()
-    conn.close()
 
     # Seed ville Sautron par défaut
-    conn = get_db()
     conn.execute(
         "INSERT INTO villes (id, nom, slug, population) VALUES (1, 'Sautron', 'sautron', 8600) "
         "ON CONFLICT DO NOTHING"
     )
     conn.commit()
-    conn.close()
 
     # Migration: ajouter code_insee à villes (US-001)
-    conn = get_db()
     if not _column_exists(conn, 'villes', 'code_insee'):
         try:
             conn.execute("ALTER TABLE villes ADD COLUMN code_insee TEXT")
             conn.commit()
         except Exception:
             conn.rollback()
-    conn.close()
 
     # Index perf pour l'autocomplétion (US-001)
-    conn = get_db()
     conn.execute("CREATE INDEX IF NOT EXISTS idx_communes_nom ON communes(nom_normalise)")
     conn.commit()
-    conn.close()
 
     # Migration: ajouter colonne format_csv à imports si absente (US10)
-    conn = get_db()
     if not _column_exists(conn, 'imports', 'format_csv'):
         try:
             conn.execute("ALTER TABLE imports ADD COLUMN format_csv TEXT")
             conn.commit()
         except Exception:
             conn.rollback()
-    conn.close()
 
     # Créer la table donnees si elle n'existe pas (avec ville_id inclus dès le départ)
-    conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS donnees (
             id SERIAL PRIMARY KEY,
@@ -256,10 +250,8 @@ def init_db():
         )
     """)
     conn.commit()
-    conn.close()
 
     # Créer la table interpretations si elle n'existe pas (avec ville_id)
-    conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS interpretations (
             id SERIAL PRIMARY KEY,
@@ -274,10 +266,8 @@ def init_db():
         )
     """)
     conn.commit()
-    conn.close()
 
     # Créer la table pyramide_ages si elle n'existe pas
-    conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS pyramide_ages (
             id SERIAL PRIMARY KEY,
@@ -291,10 +281,8 @@ def init_db():
         )
     """)
     conn.commit()
-    conn.close()
 
     # Créer la table subventions si elle n'existe pas
-    conn = get_db()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS subventions (
             id SERIAL PRIMARY KEY,
@@ -308,10 +296,8 @@ def init_db():
         )
     """)
     conn.commit()
-    conn.close()
 
     # Migration: ajouter colonne thematique à subventions
-    conn = get_db()
     if not _column_exists(conn, 'subventions', 'thematique'):
         try:
             conn.execute(
@@ -320,10 +306,8 @@ def init_db():
             conn.commit()
         except Exception:
             conn.rollback()
-    conn.close()
 
     # Migration banque de références : nouvelle table refs_banque + colonnes indicateur_ville_ref
-    conn = get_db()
     if not _table_exists(conn, 'refs_banque'):
         conn.execute("""
             CREATE TABLE refs_banque (
@@ -366,10 +350,8 @@ def init_db():
           AND ref_banque_id IS NULL
     """)
     conn.commit()
-    conn.close()
 
     # Seed indicateurs de base
-    conn = get_db()
     for row in [
         ('portrait_population',    'portrait', 'Population',                'Population municipale INSEE',       'hab.',  'neutre', 'saisie_manuelle', 1),
         ('portrait_age_median',    'portrait', 'Âge médian',                'Âge médian de la population INSEE', 'ans',   'neutre', 'saisie_manuelle', 1),
