@@ -284,6 +284,8 @@ def dashboard(ville_slug):
         radar_labels=[c["label"] for c in cartes],
         radar_values=[SCORE_VALEURS.get(c["score"], 0) for c in cartes],
         radar_colors=[c["score_couleur"] for c in cartes],
+        derniers_conseils=[],
+        documents_recents=[],
     )
 
 
