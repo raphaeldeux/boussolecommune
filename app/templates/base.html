@@ -36,26 +36,19 @@
   <header class="bg-emerald-700 text-white sticky top-0 z-40 shadow">
     <div class="max-w-6xl mx-auto px-4 h-12 flex items-center gap-3">
 
-      <!-- Retour landing -->
+      <!-- Logo -->
       <a href="{{ url_for('public.index') }}"
-         class="flex items-center gap-1.5 text-emerald-200 hover:text-white transition flex-shrink-0 group">
-        <svg class="w-4 h-4 flex-shrink-0 group-hover:-translate-x-0.5 transition-transform"
-             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-        </svg>
-        <span class="font-bold text-white text-sm leading-none">BoussoleCommune</span>
-        <span class="text-xs text-emerald-300 hidden sm:inline">/ toutes les communes</span>
+         class="flex items-center gap-1.5 text-white hover:text-emerald-200 transition flex-shrink-0">
+        <span class="font-bold text-sm leading-none">BoussoleCommune</span>
       </a>
 
       <!-- Séparateur -->
       <span class="text-emerald-600 hidden sm:inline select-none flex-shrink-0">·</span>
 
-      <!-- Centre : nom de ville OU champ de recherche inline (flex-1) -->
-      <div class="flex-1 min-w-0 relative self-stretch flex items-center">
-
-        <!-- Nom de la ville + score (masqué quand recherche active) -->
+      <!-- Centre : nom de ville + score -->
+      <div class="flex-1 min-w-0 flex items-center">
         {% if ville is defined and ville %}
-        <div id="city-info" class="flex items-center gap-2 min-w-0 justify-center sm:justify-start w-full">
+        <div class="flex items-center gap-2 min-w-0">
           <span class="font-semibold text-white truncate">{{ ville.nom }}</span>
           {% if ville.departement_code is defined and ville.departement_code %}
           <span class="text-xs text-emerald-300 flex-shrink-0">({{ ville.departement_code }})</span>
@@ -66,39 +59,11 @@
                 title="Score global : {{ score_global }}">{{ score_global }}</span>
           {% endif %}
         </div>
-        {% else %}
-        <div id="city-info" class="flex-1"></div>
         {% endif %}
-
-        <!-- Champ de recherche inline (affiché à la place du nom de ville) -->
-        <div id="search-inline" class="hidden absolute inset-0 flex items-center">
-          <input id="nav-search-input"
-                 type="text"
-                 placeholder="Rechercher une commune…"
-                 autocomplete="off"
-                 class="w-full px-3 py-1.5 rounded-lg bg-emerald-800 border border-emerald-500 text-white placeholder-emerald-300 text-sm focus:outline-none focus:ring-1 focus:ring-white">
-          <ul id="nav-autocomplete"
-              role="listbox"
-              class="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-gray-200 z-50 hidden text-sm divide-y divide-gray-100 overflow-hidden">
-          </ul>
-        </div>
       </div>
 
-      <!-- Droite : loupe + Admin + hamburger -->
+      <!-- Droite : Admin + hamburger -->
       <div class="flex items-center gap-1 flex-shrink-0">
-
-        <!-- Loupe / Croix selon l'état de la recherche -->
-        <button id="search-toggle"
-                aria-label="Rechercher une commune"
-                aria-expanded="false"
-                class="p-1.5 rounded-md text-emerald-200 hover:text-white hover:bg-emerald-600 transition">
-          <svg id="icon-search-open" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/>
-          </svg>
-          <svg id="icon-search-close" class="w-4 h-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
 
         {% if session.get('user_id') %}
         <a href="{{ url_for('admin.dashboard') }}"
@@ -311,103 +276,8 @@
     if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
       toggleMobileMenu();
     }
-    // Ferme search si clic hors de la zone inline
-    var inline = document.getElementById('search-inline');
-    var toggle = document.getElementById('search-toggle');
-    if (inline && !inline.classList.contains('hidden') && !inline.contains(e.target) && toggle && !toggle.contains(e.target)) {
-      closeSearchPanel();
-    }
   });
 
-  // ── Search expand ──────────────────────────────────────────────────
-  var _navSearchTimer = null;
-  var _navItems = [];
-  var _navActiveIdx = -1;
-
-  document.getElementById('search-toggle').addEventListener('click', function() {
-    var inline = document.getElementById('search-inline');
-    if (inline.classList.contains('hidden')) {
-      // Ouvrir
-      document.getElementById('city-info').classList.add('hidden');
-      inline.classList.remove('hidden');
-      document.getElementById('icon-search-open').classList.add('hidden');
-      document.getElementById('icon-search-close').classList.remove('hidden');
-      this.setAttribute('aria-expanded', 'true');
-      setTimeout(function() { document.getElementById('nav-search-input').focus(); }, 50);
-    } else {
-      closeSearchPanel();
-    }
-  });
-
-  function closeSearchPanel() {
-    document.getElementById('search-inline').classList.add('hidden');
-    document.getElementById('city-info').classList.remove('hidden');
-    document.getElementById('icon-search-open').classList.remove('hidden');
-    document.getElementById('icon-search-close').classList.add('hidden');
-    document.getElementById('search-toggle').setAttribute('aria-expanded', 'false');
-    document.getElementById('nav-autocomplete').classList.add('hidden');
-    document.getElementById('nav-search-input').value = '';
-    _navItems = [];
-    _navActiveIdx = -1;
-  }
-
-  document.getElementById('nav-search-input').addEventListener('input', function() {
-    clearTimeout(_navSearchTimer);
-    var q = this.value.trim();
-    if (q.length < 2) { document.getElementById('nav-autocomplete').classList.add('hidden'); return; }
-    _navSearchTimer = setTimeout(function() { _navDoSearch(q); }, 200);
-  });
-
-  document.getElementById('nav-search-input').addEventListener('keydown', function(e) {
-    var list = document.getElementById('nav-autocomplete');
-    if (list.classList.contains('hidden')) return;
-    if (e.key === 'ArrowDown') { e.preventDefault(); _navActiveIdx = Math.min(_navActiveIdx + 1, _navItems.length - 1); _navUpdateActive(); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); _navActiveIdx = Math.max(_navActiveIdx - 1, -1); _navUpdateActive(); }
-    else if (e.key === 'Enter') { if (_navActiveIdx >= 0) { e.preventDefault(); _navSelectItem(_navActiveIdx); } }
-    else if (e.key === 'Escape') { closeSearchPanel(); }
-  });
-
-  function _navDoSearch(q) {
-    fetch('/api/recherche?q=' + encodeURIComponent(q))
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        _navItems = data;
-        _navActiveIdx = -1;
-        var list = document.getElementById('nav-autocomplete');
-        list.innerHTML = '';
-        if (!data.length) { list.classList.add('hidden'); return; }
-        data.forEach(function(item, i) {
-          var li = document.createElement('li');
-          li.className = 'px-4 py-2.5 cursor-pointer hover:bg-gray-50 flex items-center justify-between gap-3';
-          li.setAttribute('role', 'option');
-          var nom = item.nom || '';
-          var dep = item.departement_nom
-            ? item.departement_nom + (item.departement_code ? ' (' + item.departement_code + ')' : '')
-            : '';
-          var h = nom.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i'), '<strong>$1</strong>');
-          li.innerHTML = '<span class="truncate"><span class="text-gray-900">' + h + '</span>'
-            + (dep ? '<span class="text-xs text-gray-400 ml-1">' + dep + '</span>' : '')
-            + '</span>'
-            + (item.score ? '<span class="score-badge score-' + item.score + '" style="width:1.5rem;height:1.5rem;font-size:.7rem;flex-shrink:0">' + item.score + '</span>' : '');
-          li.addEventListener('mousedown', function(e) { e.preventDefault(); _navSelectItem(i); });
-          list.appendChild(li);
-        });
-        list.classList.remove('hidden');
-      })
-      .catch(function() {});
-  }
-
-  function _navSelectItem(i) {
-    var item = _navItems[i];
-    if (!item) return;
-    window.location.href = item.ville_slug ? '/v/' + item.ville_slug + '/' : '/commune/' + item.slug;
-  }
-
-  function _navUpdateActive() {
-    document.querySelectorAll('#nav-autocomplete li').forEach(function(li, i) {
-      li.classList.toggle('bg-emerald-50', i === _navActiveIdx);
-    });
-  }
   </script>
 
 </body>
