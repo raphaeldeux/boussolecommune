@@ -752,7 +752,7 @@ def seed():
 
     for ind in INDICATEURS:
         existing = conn.execute(
-            "SELECT id, thematique, libelle_citoyen, actif FROM indicateurs WHERE id = ?", (ind["id"],)
+            "SELECT id, thematique, libelle_citoyen, actif FROM indicateurs WHERE id = %s", (ind["id"],)
         ).fetchone()
         if existing:
             needs_update = (
@@ -762,7 +762,7 @@ def seed():
             )
             if needs_update:
                 conn.execute(
-                    "UPDATE indicateurs SET thematique = ?, libelle_citoyen = ?, actif = 1 WHERE id = ?",
+                    "UPDATE indicateurs SET thematique = %s, libelle_citoyen = %s, actif = 1 WHERE id = %s",
                     (ind["thematique"], ind["libelle_citoyen"], ind["id"])
                 )
                 updated += 1
@@ -775,9 +775,9 @@ def seed():
                 sens_positif, seuil_vert, seuil_orange, seuil_rouge,
                 valeur_reference, libelle_reference, description, source_type
             ) VALUES (
-                :id, :thematique, :libelle_citoyen, :libelle_technique, :unite,
-                :sens_positif, :seuil_vert, :seuil_orange, :seuil_rouge,
-                :valeur_reference, :libelle_reference, :description, :source_type
+                %(id)s, %(thematique)s, %(libelle_citoyen)s, %(libelle_technique)s, %(unite)s,
+                %(sens_positif)s, %(seuil_vert)s, %(seuil_orange)s, %(seuil_rouge)s,
+                %(valeur_reference)s, %(libelle_reference)s, %(description)s, %(source_type)s
             )
         """, ind)
         inserted += 1

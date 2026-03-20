@@ -17,26 +17,26 @@ def get_all():
 def get_by_id(strate_id):
     with get_db() as conn:
         row = conn.execute(
-            "SELECT * FROM banque_references WHERE id = ?", (strate_id,)
+            "SELECT * FROM banque_references WHERE id = %s", (strate_id,)
         ).fetchone()
     return dict(row) if row else None
 
 
 def create(nom, description=""):
     with get_db() as conn:
-        conn.execute(
-            "INSERT INTO banque_references (nom, description) VALUES (?, ?)",
+        cur = conn.execute(
+            "INSERT INTO banque_references (nom, description) VALUES (%s, %s) RETURNING id",
             (nom, description or "")
         )
+        new_id = cur.fetchone()["id"]
         conn.commit()
-        new_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     return new_id
 
 
 def update(strate_id, nom, description=""):
     with get_db() as conn:
         conn.execute(
-            "UPDATE banque_references SET nom=?, description=? WHERE id=?",
+            "UPDATE banque_references SET nom=%s, description=%s WHERE id=%s",
             (nom, description or "", strate_id)
         )
         conn.commit()
@@ -44,17 +44,17 @@ def update(strate_id, nom, description=""):
 
 def delete(strate_id):
     with get_db() as conn:
-        conn.execute("DELETE FROM banque_references WHERE id = ?", (strate_id,))
+        conn.execute("DELETE FROM banque_references WHERE id = %s", (strate_id,))
         conn.commit()
 
 
 def count_refs_for_strate(strate_id):
     """Nombre d'entrées banque rattachées à cette strate."""
     with get_db() as conn:
-        n = conn.execute(
-            "SELECT COUNT(*) FROM refs_banque WHERE strate_id = ?", (strate_id,)
-        ).fetchone()[0]
-    return n
+        row = conn.execute(
+            "SELECT COUNT(*) AS nb FROM refs_banque WHERE strate_id = %s", (strate_id,)
+        ).fetchone()
+    return row["nb"]
 
 
 # ── Assignation ville ↔ indicateur ────────────────────────────────────────
@@ -75,7 +75,7 @@ def get_ref_for_indicateur_ville(indicateur_id, ville_id):
             FROM indicateur_ville_ref ivr
             LEFT JOIN refs_banque      rb ON ivr.ref_banque_id = rb.id AND rb.statut = 'valide'
             LEFT JOIN banque_references s ON rb.strate_id = s.id
-            WHERE ivr.indicateur_id = ? AND ivr.ville_id = ?
+            WHERE ivr.indicateur_id = %s AND ivr.ville_id = %s
         """, (indicateur_id, ville_id)).fetchone()
     if not row:
         return None
@@ -99,7 +99,7 @@ def set_ref_banque(indicateur_id, ville_id, ref_banque_id):
         conn.execute("""
             INSERT INTO indicateur_ville_ref
                 (indicateur_id, ville_id, ref_banque_id, valeur_locale, justification_locale)
-            VALUES (?, ?, ?, NULL, NULL)
+            VALUES (%s, %s, %s, NULL, NULL)
             ON CONFLICT(indicateur_id, ville_id) DO UPDATE SET
                 ref_banque_id        = excluded.ref_banque_id,
                 valeur_locale        = NULL,
@@ -114,7 +114,7 @@ def set_ref_locale(indicateur_id, ville_id, valeur_locale, justification=""):
         conn.execute("""
             INSERT INTO indicateur_ville_ref
                 (indicateur_id, ville_id, ref_banque_id, valeur_locale, justification_locale)
-            VALUES (?, ?, NULL, ?, ?)
+            VALUES (%s, %s, NULL, %s, %s)
             ON CONFLICT(indicateur_id, ville_id) DO UPDATE SET
                 ref_banque_id        = NULL,
                 valeur_locale        = excluded.valeur_locale,
@@ -126,7 +126,7 @@ def set_ref_locale(indicateur_id, ville_id, valeur_locale, justification=""):
 def clear_ref_for_indicateur_ville(indicateur_id, ville_id):
     with get_db() as conn:
         conn.execute(
-            "DELETE FROM indicateur_ville_ref WHERE indicateur_id=? AND ville_id=?",
+            "DELETE FROM indicateur_ville_ref WHERE indicateur_id=%s AND ville_id=%s",
             (indicateur_id, ville_id)
         )
         conn.commit()
@@ -144,7 +144,7 @@ def get_all_refs_for_ville(ville_id):
             JOIN indicateurs i ON ivr.indicateur_id = i.id
             LEFT JOIN refs_banque      rb ON ivr.ref_banque_id = rb.id AND rb.statut = 'valide'
             LEFT JOIN banque_references s ON rb.strate_id = s.id
-            WHERE ivr.ville_id = ?
+            WHERE ivr.ville_id = %s
             ORDER BY i.thematique, i.id
         """, (ville_id,)).fetchall()
     result = []

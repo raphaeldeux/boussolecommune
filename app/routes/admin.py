@@ -467,7 +467,7 @@ def upload():
             conn = get_db()
             conn.execute("""
                 INSERT INTO imports (fichier, format_csv, nb_lignes_traitees, nb_lignes_importees, nb_erreurs, rapport, statut)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (
                 nom_fichier,
                 format_csv,
@@ -845,7 +845,7 @@ def supprimer_subvention(id_):
         return redirect(url_for("admin.subventions"))
     # Vérifier que la subvention appartient à la ville courante (IDOR)
     conn = get_db()
-    row = conn.execute("SELECT ville_id FROM subventions WHERE id = ?", (id_,)).fetchone()
+    row = conn.execute("SELECT ville_id FROM subventions WHERE id = %s", (id_,)).fetchone()
     conn.close()
     if not row or row["ville_id"] != ville["id"]:
         flash("Subvention introuvable.", "danger")

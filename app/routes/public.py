@@ -224,7 +224,7 @@ def _sync_ville_code_insee(ville_id: int, code_insee: str) -> None:
     try:
         from app.database import get_db
         conn = get_db()
-        conn.execute("UPDATE villes SET code_insee = ? WHERE id = ? AND code_insee IS NULL",
+        conn.execute("UPDATE villes SET code_insee = %s WHERE id = %s AND code_insee IS NULL",
                      (code_insee, ville_id))
         conn.commit()
         conn.close()

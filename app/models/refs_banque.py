@@ -8,13 +8,13 @@ def get_all(statut=None, indicateur_id=None, strate_id=None):
     where = []
     params = []
     if statut:
-        where.append("rb.statut = ?")
+        where.append("rb.statut = %s")
         params.append(statut)
     if indicateur_id:
-        where.append("rb.indicateur_id = ?")
+        where.append("rb.indicateur_id = %s")
         params.append(indicateur_id)
     if strate_id:
-        where.append("rb.strate_id = ?")
+        where.append("rb.strate_id = %s")
         params.append(strate_id)
     clause = ("WHERE " + " AND ".join(where)) if where else ""
     conn = get_db()
@@ -49,7 +49,7 @@ def get_by_id(ref_id):
         JOIN banque_references s ON rb.strate_id = s.id
         LEFT JOIN users up ON rb.propose_par = up.id
         LEFT JOIN users uv ON rb.valide_par  = uv.id
-        WHERE rb.id = ?
+        WHERE rb.id = %s
     """, (ref_id,)).fetchone()
     conn.close()
     return dict(row) if row else None
@@ -62,7 +62,7 @@ def get_valide_for_indicateur_strate(indicateur_id, strate_id):
         SELECT rb.*, s.nom AS strate_nom
         FROM refs_banque rb
         JOIN banque_references s ON rb.strate_id = s.id
-        WHERE rb.indicateur_id = ? AND rb.strate_id = ? AND rb.statut = 'valide'
+        WHERE rb.indicateur_id = %s AND rb.strate_id = %s AND rb.statut = 'valide'
     """, (indicateur_id, strate_id)).fetchone()
     conn.close()
     return dict(row) if row else None
@@ -75,7 +75,7 @@ def get_valides_for_indicateur(indicateur_id):
         SELECT rb.*, s.nom AS strate_nom
         FROM refs_banque rb
         JOIN banque_references s ON rb.strate_id = s.id
-        WHERE rb.indicateur_id = ? AND rb.statut = 'valide'
+        WHERE rb.indicateur_id = %s AND rb.statut = 'valide'
         ORDER BY s.nom
     """, (indicateur_id,)).fetchall()
     conn.close()
@@ -94,7 +94,7 @@ def get_by_user(user_id):
         JOIN indicateurs i  ON rb.indicateur_id = i.id
         JOIN banque_references s ON rb.strate_id = s.id
         LEFT JOIN users uv ON rb.valide_par = uv.id
-        WHERE rb.propose_par = ?
+        WHERE rb.propose_par = %s
         ORDER BY rb.date_proposition DESC
     """, (user_id,)).fetchall()
     conn.close()
@@ -103,11 +103,11 @@ def get_by_user(user_id):
 
 def count_pending():
     conn = get_db()
-    n = conn.execute(
-        "SELECT COUNT(*) FROM refs_banque WHERE statut = 'en_attente'"
-    ).fetchone()[0]
+    row = conn.execute(
+        "SELECT COUNT(*) AS nb FROM refs_banque WHERE statut = 'en_attente'"
+    ).fetchone()
     conn.close()
-    return n
+    return row["nb"]
 
 
 # ── Création ──────────────────────────────────────────────────────────────
@@ -116,17 +116,18 @@ def create(indicateur_id, strate_id, valeur, source, annee=None,
            statut='en_attente', propose_par=None, valide_par=None):
     conn = get_db()
     try:
-        conn.execute("""
+        cur = conn.execute("""
             INSERT INTO refs_banque
                 (indicateur_id, strate_id, valeur, source, annee,
                  statut, propose_par, valide_par,
                  date_validation)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?,
-                    CASE WHEN ? = 'valide' THEN CURRENT_TIMESTAMP ELSE NULL END)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s,
+                    CASE WHEN %s = 'valide' THEN CURRENT_TIMESTAMP ELSE NULL END)
+            RETURNING id
         """, (indicateur_id, strate_id, valeur, source, annee,
               statut, propose_par, valide_par, statut))
+        new_id = cur.fetchone()["id"]
         conn.commit()
-        new_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
         conn.close()
         return new_id
     except Exception as e:
@@ -140,11 +141,11 @@ def update_statut(ref_id, statut, valide_par=None, commentaire_rejet=None):
     conn = get_db()
     conn.execute("""
         UPDATE refs_banque SET
-            statut            = ?,
-            valide_par        = ?,
-            commentaire_rejet = ?,
-            date_validation   = CASE WHEN ? IN ('valide','rejete') THEN CURRENT_TIMESTAMP ELSE NULL END
-        WHERE id = ?
+            statut            = %s,
+            valide_par        = %s,
+            commentaire_rejet = %s,
+            date_validation   = CASE WHEN %s IN ('valide','rejete') THEN CURRENT_TIMESTAMP ELSE NULL END
+        WHERE id = %s
     """, (statut, valide_par, commentaire_rejet, statut, ref_id))
     conn.commit()
     conn.close()
@@ -154,7 +155,7 @@ def update_valeur(ref_id, valeur, source, annee=None):
     """Mise à jour des données d'une entrée par le super-admin."""
     conn = get_db()
     conn.execute(
-        "UPDATE refs_banque SET valeur=?, source=?, annee=? WHERE id=?",
+        "UPDATE refs_banque SET valeur=%s, source=%s, annee=%s WHERE id=%s",
         (valeur, source, annee, ref_id)
     )
     conn.commit()
@@ -163,6 +164,6 @@ def update_valeur(ref_id, valeur, source, annee=None):
 
 def delete(ref_id):
     conn = get_db()
-    conn.execute("DELETE FROM refs_banque WHERE id = ?", (ref_id,))
+    conn.execute("DELETE FROM refs_banque WHERE id = %s", (ref_id,))
     conn.commit()
     conn.close()

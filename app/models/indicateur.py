@@ -10,14 +10,14 @@ def get_all(actif_only=True):
 
 def get_by_id(indicateur_id):
     with get_db() as conn:
-        row = conn.execute("SELECT * FROM indicateurs WHERE id = ?", (indicateur_id,)).fetchone()
+        row = conn.execute("SELECT * FROM indicateurs WHERE id = %s", (indicateur_id,)).fetchone()
     return dict(row) if row else None
 
 
 def get_by_thematique(thematique):
     with get_db() as conn:
         rows = conn.execute(
-            "SELECT * FROM indicateurs WHERE thematique = ? AND actif = 1 ORDER BY id",
+            "SELECT * FROM indicateurs WHERE thematique = %s AND actif = 1 ORDER BY id",
             (thematique,)
         ).fetchall()
     return [dict(r) for r in rows]
@@ -27,8 +27,8 @@ def update_reference(indicateur_id, valeur, libelle, annee):
     with get_db() as conn:
         conn.execute(
             """UPDATE indicateurs
-               SET valeur_reference = ?, libelle_reference = ?, annee_reference = ?
-               WHERE id = ?""",
+               SET valeur_reference = %s, libelle_reference = %s, annee_reference = %s
+               WHERE id = %s""",
             (valeur, libelle, annee, indicateur_id)
         )
         conn.commit()
@@ -37,7 +37,7 @@ def update_reference(indicateur_id, valeur, libelle, annee):
 def clear_reference(indicateur_id):
     with get_db() as conn:
         conn.execute(
-            "UPDATE indicateurs SET valeur_reference=NULL, libelle_reference=NULL, annee_reference=NULL WHERE id=?",
+            "UPDATE indicateurs SET valeur_reference=NULL, libelle_reference=NULL, annee_reference=NULL WHERE id=%s",
             (indicateur_id,)
         )
         conn.commit()

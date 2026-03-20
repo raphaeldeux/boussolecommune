@@ -29,9 +29,9 @@ def search(q: str, limit: int = 8) -> list:
             FROM communes c
             LEFT JOIN scores_globaux sg ON sg.code_insee = c.code_insee
             LEFT JOIN villes v ON v.code_insee = c.code_insee
-            WHERE c.nom_normalise LIKE ?
+            WHERE c.nom_normalise LIKE %s
             ORDER BY dans_la_base DESC, c.nom
-            LIMIT ?
+            LIMIT %s
         """, (q_norm + "%", limit)).fetchall()
     return [dict(r) for r in rows]
 
@@ -43,8 +43,8 @@ def search_fallback(q: str, limit: int = 8) -> list:
         rows = conn.execute("""
             SELECT v.id, v.nom, v.slug, v.code_insee
             FROM villes v
-            WHERE lower(v.nom) LIKE ? AND v.actif = 1
-            LIMIT ?
+            WHERE lower(v.nom) LIKE %s AND v.actif = 1
+            LIMIT %s
         """, (q_lower, limit)).fetchall()
     results = []
     for r in rows:
@@ -70,13 +70,13 @@ def is_empty() -> bool:
 
 def get_by_slug(slug: str) -> dict | None:
     with get_db() as conn:
-        row = conn.execute("SELECT * FROM communes WHERE slug = ?", (slug,)).fetchone()
+        row = conn.execute("SELECT * FROM communes WHERE slug = %s", (slug,)).fetchone()
     return dict(row) if row else None
 
 
 def get_by_code_insee(code_insee: str) -> dict | None:
     with get_db() as conn:
-        row = conn.execute("SELECT * FROM communes WHERE code_insee = ?", (code_insee,)).fetchone()
+        row = conn.execute("SELECT * FROM communes WHERE code_insee = %s", (code_insee,)).fetchone()
     return dict(row) if row else None
 
 
@@ -106,7 +106,7 @@ def upsert_score_global(code_insee: str, score: str) -> None:
     with get_db() as conn:
         conn.execute("""
             INSERT INTO scores_globaux (code_insee, score)
-            VALUES (?, ?)
+            VALUES (%s, %s)
             ON CONFLICT(code_insee) DO UPDATE SET
                 score = excluded.score,
                 date_calcul = CURRENT_TIMESTAMP
@@ -146,7 +146,8 @@ def set_vedettes(code_insees: list) -> None:
         for i, code in enumerate(code_insees[:3], start=1):
             if code:
                 conn.execute(
-                    "INSERT OR IGNORE INTO communes_vedette (code_insee, ordre, actif) VALUES (?, ?, 1)",
+                    "INSERT INTO communes_vedette (code_insee, ordre, actif) VALUES (%s, %s, 1) "
+                    "ON CONFLICT DO NOTHING",
                     (code, i)
                 )
         conn.commit()

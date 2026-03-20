@@ -1,10 +1,24 @@
 services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: boussolecommune
+      POSTGRES_USER: boussole
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   web:
     build: .
     restart: always
+    depends_on:
+      - db
     ports:
-      - "127.0.0.1:5001:5000"   # Exposé uniquement en local — Nginx fait le reverse proxy
+      - "127.0.0.1:5001:5000"
     volumes:
-      - ./data:/app/data
       - ./uploads:/app/uploads
     env_file: .env
+
+volumes:
+  postgres_data:

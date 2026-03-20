@@ -56,7 +56,7 @@ def create_app():
 
         # Seed auto des indicateurs si table vide
         conn = get_db()
-        nb = conn.execute("SELECT COUNT(*) FROM indicateurs").fetchone()[0]
+        nb = conn.execute("SELECT COUNT(*) AS nb FROM indicateurs").fetchone()["nb"]
         conn.close()
         if nb == 0:
             try:
@@ -83,7 +83,7 @@ def create_app():
 
         # Créer le super-admin par défaut si aucun utilisateur n'existe
         conn = get_db()
-        nb_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        nb_users = conn.execute("SELECT COUNT(*) AS nb FROM users").fetchone()["nb"]
         conn.close()
         if nb_users == 0:
             from app.config import ADMIN_USERNAME, ADMIN_PASSWORD
