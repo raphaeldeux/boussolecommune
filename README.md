@@ -1,8 +1,8 @@
-# CommuneSanté
+# BoussoleCommune
 
 **L'observatoire citoyen de la vie communale.**
 
-CommuneSanté est une application web libre et open source qui agrège et publie les indicateurs clés d'une commune sur 6 dimensions : finances, cadre de vie, personnes, lien social, démocratie et vivant. Chaque indicateur est noté de A à E et commenté par les administrateurs en langage citoyen.
+BoussoleCommune est une application web libre et open source qui agrège et publie les indicateurs clés d'une commune sur 6 dimensions : finances, cadre de vie, personnes, lien social, démocratie et vivant. Chaque indicateur est noté de A à E et commenté par les administrateurs en langage citoyen.
 
 L'objectif : rendre les données publiques lisibles par tous, pas seulement par les élus et les techniciens.
 
@@ -47,7 +47,7 @@ L'objectif : rendre les données publiques lisibles par tous, pas seulement par 
 ```bash
 # 1. Cloner le dépôt
 git clone <url-du-repo>
-cd communesante
+cd boussolecommune
 
 # 2. Configurer les variables d'environnement
 cp .env.example .env
@@ -80,10 +80,11 @@ python wsgi.py        # lancer le serveur
 
 | Variable | Description | Requis |
 |----------|-------------|--------|
+| `ANTHROPIC_API_KEY` | Clé API Anthropic (Claude) pour les interprétations | Oui |
 | `ADMIN_PASSWORD` | Mot de passe interface admin | Oui |
 | `SECRET_KEY` | Clé secrète Flask (sessions) | Oui |
 | `FLASK_ENV` | `production` ou `development` | Non (défaut : development) |
-| `DATABASE_PATH` | Chemin vers le fichier SQLite | Non (défaut : `data/communesante.db`) |
+| `DATABASE_PATH` | Chemin vers le fichier SQLite | Non (défaut : `data/boussolecommune.db`) |
 
 ---
 
@@ -152,27 +153,35 @@ La méthodologie complète est disponible sur `/methodologie`.
 
 ---
 
-## Déploiement (reverse proxy)
+## Déploiement sur VPS (Nginx + HTTPS)
 
-Exemple de configuration Apache2 pour un déploiement en HTTPS :
+L'application tourne dans Docker, exposée uniquement en local sur le port 5001. Nginx assure le reverse proxy et HTTPS via Let's Encrypt.
 
-```apache
-<VirtualHost *:443>
-    ServerName votre-commune.example.fr
+```bash
+# Prérequis
+apt install nginx certbot python3-certbot-nginx
 
-    ProxyPass / http://127.0.0.1:5001/
-    ProxyPassReverse / http://127.0.0.1:5001/
+# Copier la config Nginx
+cp nginx/boussolecommune.conf /etc/nginx/sites-available/boussolecommune
+ln -s /etc/nginx/sites-available/boussolecommune /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
 
-    # SSL via Certbot / Let's Encrypt
-</VirtualHost>
+# Obtenir le certificat SSL
+certbot --nginx -d votre-commune.example.fr
+
+# Lancer l'application
+docker compose up -d --build
+docker compose exec web python seed.py
 ```
+
+La configuration Nginx complète est dans [`nginx/boussolecommune.conf`](nginx/boussolecommune.conf).
 
 ---
 
 ## Structure du projet
 
 ```
-communesante/
+boussolecommune/
 ├── app/
 │   ├── __init__.py              # Application factory
 │   ├── config.py                # Variables d'environnement
@@ -215,12 +224,6 @@ communesante/
 - [ ] **Journal d'audit** — traçabilité des saisies admin (qui, quand, quelle valeur)
 - [ ] **Intégrations supplémentaires** — connecteurs automatiques vers INSEE et data.gouv.fr
 - [ ] **API publique JSON** — exposer les données pour intégration dans d'autres outils (site municipal, etc.)
-
----
-
-## Cahier des charges
-
-Le cahier des charges complet est disponible dans [`CAHIER_DES_CHARGES.md`](CAHIER_DES_CHARGES.md).
 
 ---
 

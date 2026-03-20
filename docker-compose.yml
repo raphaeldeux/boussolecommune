@@ -3,21 +3,8 @@ services:
     build: .
     restart: always
     ports:
-      - "5001:5000"
+      - "127.0.0.1:5001:5000"   # Exposé uniquement en local — Nginx fait le reverse proxy
     volumes:
       - ./data:/app/data
       - ./uploads:/app/uploads
     env_file: .env
-    depends_on:
-      - ollama
-
-  ollama:
-    image: ollama/ollama
-    restart: always
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
-volumes:
-  ollama_data:

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}CommuneSanté{% endblock %}</title>
+  <title>{% block title %}BoussoleCommune{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .score-A { background-color: #16a34a; }
@@ -29,7 +29,7 @@
   <header class="bg-emerald-700 text-white h-12 flex items-center px-4 sticky top-0 z-40 shadow">
     <a href="{{ url_for('public.index') }}"
        class="font-bold text-base tracking-tight flex items-center gap-1.5 mr-auto">
-      🏡 <span>CommuneSanté</span>
+      🏡 <span>BoussoleCommune</span>
     </a>
     <div class="flex items-center gap-1 text-sm">
       <a href="{{ url_for('public.comparer') }}"
@@ -79,7 +79,7 @@
   <!-- Footer minimaliste -->
   <footer class="bg-white border-t border-gray-100 mt-12">
     <div class="max-w-3xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-gray-400">
-      <span>🏡 CommuneSanté · Observatoire citoyen indépendant</span>
+      <span>🏡 BoussoleCommune · Observatoire citoyen indépendant</span>
       <div class="flex gap-4">
         <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
         <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Connexion admin — CommuneSanté{% endblock %}
+{% block title %}Connexion admin — BoussoleCommune{% endblock %}
 
 {% block content %}
 <div class="max-w-sm mx-auto mt-16">
@@ -7,7 +7,7 @@
     <div class="text-center mb-6">
       <div class="text-4xl mb-2">🔐</div>
       <h1 class="text-xl font-bold text-gray-800">Administration</h1>
-      <p class="text-sm text-gray-400">CommuneSanté</p>
+      <p class="text-sm text-gray-400">BoussoleCommune</p>
     </div>
     <form method="POST">
       <input type="hidden" name="_csrf" value="{{ csrf_token() }}">

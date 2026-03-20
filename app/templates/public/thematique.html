@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ label }} — CommuneSanté {{ ville.nom }}{% endblock %}
+{% block title %}{{ label }} — BoussoleCommune {{ ville.nom }}{% endblock %}
 
 {% block content %}
 <!-- Fil d'Ariane + retour -->
@@ -394,7 +394,7 @@ function exportGraphique(btn) {
   ctx.font = '10px system-ui, sans-serif';
   ctx.fillStyle = '#d1d5db';
   ctx.textAlign = 'right';
-  ctx.fillText('CommuneSanté · Sautron Autrement', W - PAD, H - 10);
+  ctx.fillText('BoussoleCommune · Sautron Autrement', W - PAD, H - 10);
   triggerDownload(c.toDataURL('image/png'), 'sautron-graphique-' + d.canvasId + '.png');
 }
 
@@ -466,7 +466,7 @@ function exportPost(btn) {
 
   ctx.font = '11px system-ui, sans-serif';
   ctx.fillStyle = '#d1d5db';
-  ctx.fillText('CommuneSanté · Sautron Autrement', PAD, H - 20);
+  ctx.fillText('BoussoleCommune · Sautron Autrement', PAD, H - 20);
 
   var cx = PL + (W - PL) / 2;
   ctx.textAlign = 'center';
