@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ conseil.titre }} · {{ ville.nom }}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <!-- Fil d'Ariane -->
+  <div class="flex items-center gap-2 text-sm text-gray-400 mb-5">
+    <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}" class="hover:text-emerald-600 transition">Conseils municipaux</a>
+    <span>›</span>
+    <span class="text-gray-600 truncate">{{ conseil.titre }}</span>
+  </div>
+
+  <!-- Header -->
+  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-5">
+    <div class="flex items-start gap-4">
+      <div class="flex-shrink-0 w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-2xl">🏛️</div>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-xl font-bold text-gray-900">{{ conseil.titre }}</h1>
+        <div class="text-sm text-gray-400 mt-1">{{ conseil.date_conseil }}</div>
+      </div>
+    </div>
+    {% if conseil.fichier_pdf %}
+    <div class="mt-4 pt-4 border-t border-gray-100">
+      <a href="{{ url_for('static', filename='conseils/' + conseil.fichier_pdf) }}"
+         target="_blank"
+         class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-medium transition">
+        📄 Télécharger le procès-verbal (PDF)
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Résumé citoyen -->
+  {% if conseil.resume_citoyen %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Résumé en langage citoyen</h2>
+    <div class="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-line">{{ conseil.resume_citoyen }}</div>
+  </div>
+  {% else %}
+  <div class="bg-gray-50 rounded-xl border border-gray-200 p-8 text-center text-gray-400">
+    <p class="text-sm">Le résumé citoyen est en cours de rédaction.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

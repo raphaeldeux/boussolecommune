@@ -284,7 +284,7 @@ def dashboard(ville_slug):
         radar_labels=[c["label"] for c in cartes],
         radar_values=[SCORE_VALEURS.get(c["score"], 0) for c in cartes],
         radar_colors=[c["score_couleur"] for c in cartes],
-        derniers_conseils=[],
+        derniers_conseils=__import__('app.models.conseil', fromlist=['get_publies']).get_publies(ville["id"], limit=3),
         documents_recents=[],
     )
 
@@ -520,11 +520,26 @@ def methodologie():
 
 @bp.route("/v/<ville_slug>/conseils")
 def conseils(ville_slug):
-    """Page des conseils municipaux (US-T5 — à implémenter)."""
+    """Page des conseils municipaux."""
+    import app.models.conseil as conseil_model
     ville = ville_model.get_by_slug(ville_slug)
     if not ville:
         abort(404)
-    return render_template("public/conseils.html", ville=ville)
+    items = conseil_model.get_publies(ville["id"], limit=50)
+    return render_template("public/conseils.html", ville=ville, conseils=items)
+
+
+@bp.route("/v/<ville_slug>/conseils/<int:conseil_id>")
+def conseil_detail(ville_slug, conseil_id):
+    """Détail d'un conseil municipal."""
+    import app.models.conseil as conseil_model
+    ville = ville_model.get_by_slug(ville_slug)
+    if not ville:
+        abort(404)
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"] or not conseil["publie"]:
+        abort(404)
+    return render_template("public/conseil_detail.html", ville=ville, conseil=conseil)
 
 
 @bp.route("/v/<ville_slug>/documents")

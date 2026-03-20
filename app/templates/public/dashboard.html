@@ -164,12 +164,12 @@
     {% if derniers_conseils %}
     <div class="space-y-2">
       {% for conseil in derniers_conseils %}
-      <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
+      <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=conseil.id) }}"
          class="flex items-start gap-3 py-2 hover:bg-gray-50 rounded-lg transition px-2 -mx-2">
         <span class="text-xl flex-shrink-0 mt-0.5">🏛️</span>
         <div class="min-w-0">
           <div class="text-sm text-gray-800 font-medium truncate">{{ conseil.titre }}</div>
-          <div class="text-xs text-gray-400">{{ conseil.date }}</div>
+          <div class="text-xs text-gray-400">{{ conseil.date_conseil }}</div>
         </div>
       </a>
       {% endfor %}

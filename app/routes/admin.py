@@ -1306,7 +1306,7 @@ def _save_pdf(fichier):
 @bp.route("/conseils")
 @login_required
 def conseils():
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     if not ville:
         flash("Aucune ville sélectionnée.", "danger")
         return redirect(url_for("admin.dashboard"))
@@ -1317,7 +1317,7 @@ def conseils():
 @bp.route("/conseils/nouveau", methods=["GET", "POST"])
 @login_required
 def conseil_nouveau():
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     if not ville:
         abort(403)
     if request.method == "POST":
@@ -1342,7 +1342,7 @@ def conseil_nouveau():
 @bp.route("/conseils/<int:conseil_id>/modifier", methods=["GET", "POST"])
 @login_required
 def conseil_modifier(conseil_id):
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
@@ -1368,7 +1368,7 @@ def conseil_modifier(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/publier", methods=["POST"])
 @login_required
 def conseil_publier(conseil_id):
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
@@ -1379,7 +1379,7 @@ def conseil_publier(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/supprimer", methods=["POST"])
 @login_required
 def conseil_supprimer(conseil_id):
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
@@ -1396,7 +1396,7 @@ def conseil_supprimer(conseil_id):
 @login_required
 def conseil_generer_resume(conseil_id):
     from app.services.ollama_service import generer_resume
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
@@ -1424,7 +1424,7 @@ def conseil_generer_resume(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/resume", methods=["GET", "POST"])
 @login_required
 def conseil_resume(conseil_id):
-    ville = ville_model.get_by_id(session.get("ville_id"))
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
