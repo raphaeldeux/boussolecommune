@@ -1390,3 +1390,59 @@ def conseil_supprimer(conseil_id):
             os.remove(path)
     flash("Conseil supprimé.", "success")
     return redirect(url_for("admin.conseils"))
+
+
+@bp.route("/conseils/<int:conseil_id>/generer-resume", methods=["POST"])
+@login_required
+def conseil_generer_resume(conseil_id):
+    from app.services.ollama_service import generer_resume
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    if not conseil.get("fichier_pdf"):
+        flash("Aucun PDF associé à ce conseil.", "danger")
+        return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+    pdf_path = os.path.join(CONSEILS_UPLOAD_DIR, conseil["fichier_pdf"])
+    if not os.path.exists(pdf_path):
+        flash("Fichier PDF introuvable.", "danger")
+        return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+    try:
+        resume = generer_resume(pdf_path)
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE conseils SET resume_citoyen=%s WHERE id=%s",
+                (resume, conseil_id)
+            )
+            conn.commit()
+        flash("Résumé généré avec succès.", "success")
+    except Exception as e:
+        flash(f"Erreur lors de la génération : {e}", "danger")
+    return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+
+
+@bp.route("/conseils/<int:conseil_id>/resume", methods=["GET", "POST"])
+@login_required
+def conseil_resume(conseil_id):
+    ville = ville_model.get_by_id(session.get("ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    if request.method == "POST":
+        resume = request.form.get("resume_citoyen", "").strip()
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE conseils SET resume_citoyen=%s WHERE id=%s",
+                (resume, conseil_id)
+            )
+            conn.commit()
+        flash("Résumé enregistré.", "success")
+        return redirect(url_for("admin.conseils"))
+    from app.services.ollama_service import is_ollama_ready
+    ollama_ok = is_ollama_ready()
+    return render_template(
+        "admin/conseil_resume.html",
+        ville=ville,
+        conseil=conseil,
+        ollama_ok=ollama_ok,
+    )

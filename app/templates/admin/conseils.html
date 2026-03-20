@@ -46,6 +46,8 @@
         </td>
         <td class="px-4 py-3 text-right">
           <div class="flex items-center justify-end gap-2">
+            <a href="{{ url_for('admin.conseil_resume', conseil_id=c.id) }}"
+               class="text-purple-600 hover:text-purple-800 text-xs font-medium">Résumé</a>
             <a href="{{ url_for('admin.conseil_modifier', conseil_id=c.id) }}"
                class="text-blue-600 hover:text-blue-800 text-xs font-medium">Modifier</a>
             <form method="POST" action="{{ url_for('admin.conseil_supprimer', conseil_id=c.id) }}"
