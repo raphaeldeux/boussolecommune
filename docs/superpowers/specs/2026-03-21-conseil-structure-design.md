@@ -53,46 +53,89 @@ Utiliser le helper `_column_exists` existant. Type `TEXT` (JSON sérialisé), pa
 
 ### 2. Modèle (`app/models/conseil.py`)
 
-- `set_statut_resume(conseil_id, statut, resume_citoyen=None, resume_structure=None)` — signature étendue pour sauvegarder optionnellement les deux champs en une seule requête UPDATE
+Signature étendue de `set_statut_resume` :
+```python
+def set_statut_resume(conseil_id, statut, resume_citoyen=None, resume_structure=None)
+```
+
+Les 4 combinaisons de champs optionnels produisent ces clauses SET :
+- `resume_citoyen=None, resume_structure=None` → `SET statut_resume=%s`
+- `resume_citoyen=<val>, resume_structure=None` → `SET statut_resume=%s, resume_citoyen=%s`
+- `resume_citoyen=None, resume_structure=<val>` → `SET statut_resume=%s, resume_structure=%s`
+- `resume_citoyen=<val>, resume_structure=<val>` → `SET statut_resume=%s, resume_citoyen=%s, resume_structure=%s`
+
+Implémentation recommandée : construire la clause SET dynamiquement avec une liste de `(colonne, valeur)` filtrée sur `is not None`.
 
 ### 3. Service Groq (`app/services/ollama_service.py`)
 
-- Nouveau prompt `PROMPT_STRUCTURE` qui demande à Groq de générer le JSON structuré
-- `generer_resume(pdf_path)` retourne un tuple `(resume_texte: str, resume_structure: str | None)` :
-  - `resume_texte` : résumé en prose, compatible avec le textarea admin existant
-  - `resume_structure` : JSON sérialisé, `None` si la génération JSON échoue
-- Stratégie : un seul appel Groq avec instructions pour générer les deux formats dans une réponse délimitée, ou deux appels séparés si un seul échoue à produire du JSON valide. Priorité : fiabilité (le résumé texte ne doit jamais être bloqué par un JSON malformé).
+**Stratégie : deux appels Groq séquentiels.**
+
+1. **Premier appel** — prompt `PROMPT_TEMPLATE` existant → produit `resume_texte` (prose)
+2. **Deuxième appel** — nouveau prompt `PROMPT_STRUCTURE` → produit uniquement le JSON structuré
+
+`PROMPT_STRUCTURE` demande à Groq de répondre **exclusivement** avec du JSON valide, sans texte autour, en utilisant le même contenu PDF tronqué. Exemple de fin de prompt : `"Réponds uniquement avec du JSON valide, sans texte avant ni après."`
+
+`generer_resume(pdf_path)` retourne un tuple `(resume_texte: str, resume_structure: str | None)` :
+- `resume_texte` : toujours retourné (exception si échec)
+- `resume_structure` : JSON sérialisé si le deuxième appel réussit et produit du JSON valide ; `None` sinon (erreur loguée, pas propagée)
+
+Validation du JSON : `json.loads()` après réception. Si `json.loads` lève une exception, `resume_structure = None`.
 
 ### 4. Route admin (`app/routes/admin.py`)
 
-- Le thread `_run()` dans `conseil_generer_resume` appelle `generer_resume()`, récupère le tuple, sauvegarde les deux champs via `set_statut_resume()`
-- L'endpoint JSON `/statut-resume` retourne aussi `resume_structure` pour permettre une mise à jour côté client
+- Le thread `_run()` dans `conseil_generer_resume` appelle `generer_resume()`, récupère le tuple `(texte, structure)`, sauvegarde les deux via `set_statut_resume(conseil_id, "termine", resume_citoyen=texte, resume_structure=structure)`
+- L'endpoint GET `/statut-resume` retourne `resume_structure` **comme objet JSON parsé** (pas comme string) dans la réponse :
+  ```python
+  import json as _json
+  structure = conseil.get("resume_structure")
+  return jsonify({
+      "statut": conseil.get("statut_resume", "idle"),
+      "resume": conseil.get("resume_citoyen"),
+      "structure": _json.loads(structure) if structure else None,
+  })
+  ```
 
-### 5. Page publique (`app/templates/public/conseil_detail.html`)
+### 5. Route publique (`app/routes/public.py`)
 
-Si `conseil.resume_structure` est présent et valide :
-- Affichage par thèmes : une carte par thème avec titre, résumé de synthèse
-- Sous chaque carte : liste des délibérations avec titre, description, badge de vote
-- Badge vote : `Pour X · Contre Y · Abstentions Z` (couleur verte si majorité pour, rouge si rejet, gris si pas de vote)
-- Lien PDF inchangé en haut
+La route `conseil_detail` pré-parse `resume_structure` avant de passer les données au template :
+```python
+import json as _json
+structure = None
+raw = conseil.get("resume_structure")
+if raw:
+    try:
+        structure = _json.loads(raw)
+    except Exception:
+        structure = None
+return render_template("public/conseil_detail.html", ..., structure=structure)
+```
+Le template reçoit `structure` (dict Python ou `None`), jamais une string JSON brute.
 
-Si `resume_structure` est absent/invalide :
-- Fallback sur le texte brut `resume_citoyen` (comportement actuel)
+### 6. Page publique (`app/templates/public/conseil_detail.html`)
 
-### 6. Page admin résumé (`app/templates/admin/conseil_resume.html`)
+Si `structure` est truthy (dict parsé avec une clé `themes`) :
+- Pour chaque thème : carte blanche avec titre en gras, résumé de synthèse en texte normal
+- Sous chaque carte : liste des délibérations avec titre, description, et badge de vote coloré
+- Badge vote : `Pour X · Contre Y · Abstentions Z` — vert si `pour > contre`, rouge si `contre >= pour`, gris si `vote` est null
+- Lien PDF inchangé en haut de page
 
-- Le polling JS existant est étendu : quand `statut === 'termine'`, on reçoit aussi `resume_structure` et on le stocke dans un champ caché pour un usage futur éventuel (pas d'affichage admin du JSON — le textarea texte reste l'outil d'édition)
+Si `structure` est `None` (absent ou parse échoué) :
+- Fallback sur le bloc `conseil.resume_citoyen` avec `whitespace-pre-line` (comportement actuel)
+
+### 7. Page admin résumé (`app/templates/admin/conseil_resume.html`)
+
+Le polling JS est étendu : quand `statut === 'termine'`, le champ `structure` de la réponse JSON est ignoré côté admin (pas d'affichage — le textarea texte reste l'outil d'édition). Aucune modification JS requise au-delà de l'existant.
 
 ---
 
-## Comportement en cas d'erreur JSON
+## Comportement en cas d'erreur
 
-Si Groq génère un JSON malformé, `generer_resume()` :
-1. Tente de parser le JSON
-2. En cas d'échec : log l'erreur, retourne `None` pour `resume_structure`
-3. Le résumé texte est toujours sauvegardé — la structure est un enrichissement optionnel
-
-La page publique se rabat sur l'affichage texte si `resume_structure` est `NULL` ou invalide.
+| Situation | Comportement |
+|-----------|--------------|
+| Groq retourne JSON malformé | `resume_structure = None`, `resume_texte` sauvegardé normalement |
+| Deuxième appel Groq échoue (timeout, erreur réseau) | Idem — `resume_structure = None` |
+| `resume_structure` en DB est NULL | Page publique affiche texte brut |
+| `resume_structure` en DB est JSON invalide (corruption) | Route publique catch l'exception, `structure = None`, affichage texte brut |
 
 ---
 
