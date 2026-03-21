@@ -36,7 +36,7 @@
           </svg>
           Génération en cours…
         {% else %}
-          ✨ Générer le résumé via Ollama
+          ✨ Générer le résumé via IA
         {% endif %}
       </span>
     </button>
@@ -79,7 +79,7 @@
     var btn = document.getElementById('btn-generer');
     var label = document.getElementById('btn-label');
     if (btn) btn.disabled = false;
-    if (label) label.textContent = '✨ Générer le résumé via Ollama';
+    if (label) label.textContent = '✨ Générer le résumé via IA';
   }
 
   function stopPolling() {
