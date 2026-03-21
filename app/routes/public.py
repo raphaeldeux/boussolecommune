@@ -285,7 +285,7 @@ def dashboard(ville_slug):
         radar_values=[SCORE_VALEURS.get(c["score"], 0) for c in cartes],
         radar_colors=[c["score_couleur"] for c in cartes],
         derniers_conseils=__import__('app.models.conseil', fromlist=['get_publies']).get_publies(ville["id"], limit=3),
-        documents_recents=[],
+        documents_recents=__import__('app.models.document', fromlist=['get_publies']).get_publies(ville["id"], limit=3),
     )
 
 
@@ -544,8 +544,10 @@ def conseil_detail(ville_slug, conseil_id):
 
 @bp.route("/v/<ville_slug>/documents")
 def documents(ville_slug):
-    """Page des documents publics (US-T8 — à implémenter)."""
+    """Page des documents publics."""
+    import app.models.document as document_model
     ville = ville_model.get_by_slug(ville_slug)
     if not ville:
         abort(404)
-    return render_template("public/documents.html", ville=ville)
+    items = document_model.get_publies(ville["id"], limit=50)
+    return render_template("public/documents.html", ville=ville, documents=items)

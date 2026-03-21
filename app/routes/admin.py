@@ -1446,3 +1446,81 @@ def conseil_resume(conseil_id):
         conseil=conseil,
         ollama_ok=ollama_ok,
     )
+
+
+# ── Documents publics ─────────────────────────────────────────────────────
+
+import app.models.document as document_model
+
+DOCUMENTS_UPLOAD_DIR = "/app/uploads/documents"
+
+
+def _save_document(fichier):
+    os.makedirs(DOCUMENTS_UPLOAD_DIR, exist_ok=True)
+    filename = werkzeug.utils.secure_filename(fichier.filename)
+    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    filename = f"{ts}_{filename}"
+    fichier.save(os.path.join(DOCUMENTS_UPLOAD_DIR, filename))
+    return filename
+
+
+@bp.route("/documents")
+@login_required
+def documents():
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        flash("Aucune ville sélectionnée.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    items = document_model.get_all(ville["id"])
+    return render_template("admin/documents.html", ville=ville, documents=items)
+
+
+@bp.route("/documents/nouveau", methods=["GET", "POST"])
+@login_required
+def document_nouveau():
+    from app.models.document import CATEGORIES
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        abort(403)
+    if request.method == "POST":
+        titre = request.form.get("titre", "").strip()
+        categorie = request.form.get("categorie", "autre").strip()
+        fichier = request.files.get("fichier")
+        if not titre:
+            flash("Le titre est obligatoire.", "danger")
+            return render_template("admin/document_form.html", ville=ville, document=None, categories=CATEGORIES)
+        fichier_path = None
+        if fichier and fichier.filename:
+            fichier_path = _save_document(fichier)
+        document_model.create(ville["id"], titre, categorie, fichier_path)
+        flash("Document ajouté.", "success")
+        return redirect(url_for("admin.documents"))
+    from app.models.document import CATEGORIES
+    return render_template("admin/document_form.html", ville=ville, document=None, categories=CATEGORIES)
+
+
+@bp.route("/documents/<int:doc_id>/publier", methods=["POST"])
+@login_required
+def document_publier(doc_id):
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    doc = document_model.get_by_id(doc_id)
+    if not doc or doc["ville_id"] != ville["id"]:
+        abort(404)
+    document_model.set_publie(doc_id, not doc["publie"])
+    return redirect(url_for("admin.documents"))
+
+
+@bp.route("/documents/<int:doc_id>/supprimer", methods=["POST"])
+@login_required
+def document_supprimer(doc_id):
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    doc = document_model.get_by_id(doc_id)
+    if not doc or doc["ville_id"] != ville["id"]:
+        abort(404)
+    fichier = document_model.delete(doc_id)
+    if fichier:
+        path = os.path.join(DOCUMENTS_UPLOAD_DIR, fichier)
+        if os.path.exists(path):
+            os.remove(path)
+    flash("Document supprimé.", "success")
+    return redirect(url_for("admin.documents"))

@@ -1,0 +1,60 @@
+{% extends "admin_base.html" %}
+{% block title %}Documents publics — Admin{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Documents publics</h1>
+  <a href="{{ url_for('admin.document_nouveau') }}"
+     class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+    + Ajouter un document
+  </a>
+</div>
+
+{% if documents %}
+<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
+      <tr>
+        <th class="px-4 py-3 text-left">Titre</th>
+        <th class="px-4 py-3 text-left">Catégorie</th>
+        <th class="px-4 py-3 text-center">Fichier</th>
+        <th class="px-4 py-3 text-center">Statut</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for d in documents %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 font-medium text-gray-900">{{ d.titre }}</td>
+        <td class="px-4 py-3 text-gray-500 capitalize">{{ d.categorie }}</td>
+        <td class="px-4 py-3 text-center">
+          {% if d.fichier %}<span class="text-emerald-600">✓</span>{% else %}<span class="text-gray-300">—</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          <form method="POST" action="{{ url_for('admin.document_publier', doc_id=d.id) }}" class="inline">
+            <button type="submit"
+                    class="px-2 py-1 rounded text-xs font-medium transition
+                      {% if d.publie %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
+                      {% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
+              {{ 'Publié' if d.publie else 'Brouillon' }}
+            </button>
+          </form>
+        </td>
+        <td class="px-4 py-3 text-right">
+          <form method="POST" action="{{ url_for('admin.document_supprimer', doc_id=d.id) }}"
+                onsubmit="return confirm('Supprimer ce document ?')">
+            <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
+  <div class="text-4xl mb-3">📁</div>
+  <p class="text-sm">Aucun document ajouté pour l'instant.</p>
+</div>
+{% endif %}
+{% endblock %}

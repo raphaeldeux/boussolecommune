@@ -127,8 +127,13 @@
           <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Transparence</div>
           <a href="{{ url_for('admin.conseils') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint in ('admin.conseils', 'admin.conseil_nouveau', 'admin.conseil_modifier') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+               {% if request.endpoint in ('admin.conseils', 'admin.conseil_nouveau', 'admin.conseil_modifier', 'admin.conseil_resume') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             🏛️ Conseils municipaux
+          </a>
+          <a href="{{ url_for('admin.documents') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint in ('admin.documents', 'admin.document_nouveau') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            📁 Documents
           </a>
         </div>
 
