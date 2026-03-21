@@ -71,3 +71,19 @@ def delete(conseil_id):
         conn.execute("DELETE FROM conseils WHERE id=%s", (conseil_id,))
         conn.commit()
     return dict(row)["fichier_pdf"] if row else None
+
+
+def set_statut_resume(conseil_id, statut, resume_citoyen=None):
+    """Met à jour statut_resume et optionnellement resume_citoyen."""
+    with get_db() as conn:
+        if resume_citoyen is not None:
+            conn.execute(
+                "UPDATE conseils SET statut_resume=%s, resume_citoyen=%s WHERE id=%s",
+                (statut, resume_citoyen, conseil_id)
+            )
+        else:
+            conn.execute(
+                "UPDATE conseils SET statut_resume=%s WHERE id=%s",
+                (statut, conseil_id)
+            )
+        conn.commit()
