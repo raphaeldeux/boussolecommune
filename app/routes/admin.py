@@ -1,6 +1,7 @@
 import json
 import os
 import tempfile
+import threading
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response, abort
 from app.auth import login_required, super_admin_required, is_rate_limited, record_attempt
@@ -1395,30 +1396,51 @@ def conseil_supprimer(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/generer-resume", methods=["POST"])
 @login_required
 def conseil_generer_resume(conseil_id):
-    from app.services.ollama_service import generer_resume
     ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        abort(403)
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
     if not conseil.get("fichier_pdf"):
         flash("Aucun PDF associé à ce conseil.", "danger")
         return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+    if conseil.get("statut_resume") == "en_cours":
+        flash("Une génération est déjà en cours.", "warning")
+        return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+
     pdf_path = os.path.join(CONSEILS_UPLOAD_DIR, conseil["fichier_pdf"])
     if not os.path.exists(pdf_path):
         flash("Fichier PDF introuvable.", "danger")
         return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
-    try:
-        resume = generer_resume(pdf_path)
-        with get_db() as conn:
-            conn.execute(
-                "UPDATE conseils SET resume_citoyen=%s WHERE id=%s",
-                (resume, conseil_id)
-            )
-            conn.commit()
-        flash("Résumé généré avec succès.", "success")
-    except Exception as e:
-        flash(f"Erreur lors de la génération : {e}", "danger")
+
+    conseil_model.set_statut_resume(conseil_id, "en_cours")
+
+    def _run():
+        from app.services.ollama_service import generer_resume
+        try:
+            resume = generer_resume(pdf_path)
+            conseil_model.set_statut_resume(conseil_id, "termine", resume_citoyen=resume)
+        except Exception:
+            conseil_model.set_statut_resume(conseil_id, "erreur")
+
+    threading.Thread(target=_run, daemon=True).start()
     return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+
+
+@bp.route("/conseils/<int:conseil_id>/statut-resume", methods=["GET"])
+@login_required
+def conseil_statut_resume(conseil_id):
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        abort(403)
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    return jsonify({
+        "statut": conseil.get("statut_resume", "idle"),
+        "resume": conseil.get("resume_citoyen"),
+    })
 
 
 @bp.route("/conseils/<int:conseil_id>/resume", methods=["GET", "POST"])
