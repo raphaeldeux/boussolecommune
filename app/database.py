@@ -381,6 +381,18 @@ def init_db():  # noqa: C901
     """)
     conn.commit()
 
+    if not _column_exists(conn, "conseils", "statut_resume"):
+        conn.execute(
+            "ALTER TABLE conseils ADD COLUMN statut_resume TEXT NOT NULL DEFAULT 'idle'"
+        )
+        conn.commit()
+
+    # Reset any rows stuck in 'en_cours' from a previous interrupted generation
+    conn.execute(
+        "UPDATE conseils SET statut_resume = 'idle' WHERE statut_resume = 'en_cours'"
+    )
+    conn.commit()
+
     # Table documents publics (US-T7)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS documents (
