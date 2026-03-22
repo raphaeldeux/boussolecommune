@@ -196,6 +196,78 @@ Réponds UNIQUEMENT avec du JSON valide :
         return raw[:500], None
 
 
+def generer_synthese_thematique(thematique_label: str, indicateurs_enrichis: list) -> list[str] | None:
+    """
+    Génère 2-3 bullet points de synthèse pour une thématique à partir des indicateurs enrichis.
+
+    Args:
+        thematique_label: Label d'affichage, ex. "Soin de la maison" (pas le slug).
+        indicateurs_enrichis: Liste de dicts enrichis (tendance, libelle_citoyen, donnee, pct_evolution).
+
+    Returns:
+        list[str] avec 2-3 éléments, ou None si échec.
+    """
+    if not MISTRAL_API_KEY:
+        return None
+
+    # Sélection des évolutions les plus notables
+    renseignes = [e for e in indicateurs_enrichis if e.get("donnee")]
+    amelioration = sorted(
+        [e for e in renseignes if e.get("tendance") == "↗"],
+        key=lambda e: abs(e.get("pct_evolution") or 0),
+        reverse=True,
+    )[:3]
+    surveiller = sorted(
+        [e for e in renseignes if e.get("tendance") == "↘"],
+        key=lambda e: abs(e.get("pct_evolution") or 0),
+        reverse=True,
+    )[:3]
+    notables = amelioration + surveiller
+
+    if not notables:
+        return None
+
+    lignes = []
+    for e in notables:
+        tendance = e.get("tendance", "")
+        libelle = e.get("libelle_citoyen", "")
+        valeur = e.get("donnee", {}).get("valeur", "")
+        unite = e.get("unite", "")
+        pct = e.get("pct_evolution")
+        pct_str = f" ({'+' if pct and pct > 0 else ''}{pct}%)" if pct is not None else ""
+        lignes.append(f"{tendance} {libelle} : {valeur} {unite}{pct_str}")
+
+    donnees_str = "\n".join(f"- {l}" for l in lignes)
+
+    prompt = f"""Tu analyses la thématique "{thematique_label}" d'une commune française.
+
+Voici les évolutions notables des indicateurs :
+{donnees_str}
+
+Rédige exactement 2 ou 3 bullet points synthétisant CE QUI ÉVOLUE (positivement ou négativement).
+Règles :
+- 1 phrase max par bullet point, en français citoyen (pas de jargon)
+- Commence chaque ligne par ↗ si amélioration, ⚠ si dégradation
+- Pas de titre, pas d'introduction, UNIQUEMENT les bullet points
+- Ne mentionne pas "IA", "modèle", "généré"
+
+Exemple de format attendu :
+↗ Le budget d'investissement a progressé de 15% cette année.
+⚠ La dette par habitant reste au-dessus de la moyenne régionale."""
+
+    try:
+        raw = _appel_mistral(prompt)
+        bullets = [line.strip() for line in raw.strip().splitlines() if line.strip()]
+        bullets = [b for b in bullets if b.startswith(("↗", "⚠", "↘", "•", "-"))]
+        if not bullets:
+            # Fallback : découper en phrases si le modèle a répondu autrement
+            bullets = [s.strip() for s in raw.strip().split("\n") if s.strip()]
+        return bullets[:3] if bullets else None
+    except Exception as e:
+        print(f"[WARN] generer_synthese_thematique échoué : {e}", flush=True)
+        return None
+
+
 def is_ollama_ready() -> bool:
     """Vérifie si Mistral AI est configuré."""
     return bool(MISTRAL_API_KEY)
