@@ -541,7 +541,10 @@ def conseil_pdf(ville_slug, conseil_id):
         abort(404)
     if not conseil.get("fichier_pdf"):
         abort(404)
-    return send_from_directory("/app/uploads/conseils", conseil["fichier_pdf"])
+    import re
+    download_name = re.sub(r'[^\w\s\-]', '', conseil["titre"]).strip()
+    download_name = re.sub(r'\s+', '_', download_name) + ".pdf"
+    return send_from_directory("/app/uploads/conseils", conseil["fichier_pdf"], download_name=download_name)
 
 
 @bp.route("/v/<ville_slug>/conseils/<int:conseil_id>")
