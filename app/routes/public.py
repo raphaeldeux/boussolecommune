@@ -532,6 +532,7 @@ def conseils(ville_slug):
 @bp.route("/v/<ville_slug>/conseils/<int:conseil_id>")
 def conseil_detail(ville_slug, conseil_id):
     """Détail d'un conseil municipal."""
+    import json as _json
     import app.models.conseil as conseil_model
     ville = ville_model.get_by_slug(ville_slug)
     if not ville:
@@ -539,7 +540,16 @@ def conseil_detail(ville_slug, conseil_id):
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"] or not conseil["publie"]:
         abort(404)
-    return render_template("public/conseil_detail.html", ville=ville, conseil=conseil)
+    structure = None
+    raw = conseil.get("resume_structure")
+    if raw:
+        try:
+            parsed = _json.loads(raw)
+            if isinstance(parsed, dict) and "themes" in parsed:
+                structure = parsed
+        except Exception:
+            structure = None
+    return render_template("public/conseil_detail.html", ville=ville, conseil=conseil, structure=structure)
 
 
 @bp.route("/v/<ville_slug>/documents")
