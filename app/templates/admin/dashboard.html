@@ -218,7 +218,7 @@
       {% endif %}
 
       <form method="POST" action="{{ url_for('admin.synthese_thematique_modifier') }}" class="mb-2">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="thematique" value="{{ s.slug }}">
         <input type="hidden" name="annee" value="{{ s.derniere_annee }}">
         <textarea name="texte" rows="3"
@@ -231,7 +231,7 @@
       </form>
 
       <form method="POST" action="{{ url_for('admin.synthese_thematique_generer') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <input type="hidden" name="thematique" value="{{ s.slug }}">
         <input type="hidden" name="annee" value="{{ s.derniere_annee }}">
         <button type="submit"
