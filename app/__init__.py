@@ -39,6 +39,21 @@ def create_app():
 
     app.jinja_env.globals["csrf_token"] = _csrf_token
 
+    @app.template_filter("date_fr")
+    def date_fr(value):
+        """Formate une date en JJ/MM/AAAA."""
+        if not value:
+            return ""
+        import datetime
+        if isinstance(value, str):
+            try:
+                value = datetime.date.fromisoformat(value)
+            except ValueError:
+                return value
+        if isinstance(value, (datetime.date, datetime.datetime)):
+            return value.strftime("%d/%m/%Y")
+        return str(value)
+
     # Vérification CSRF sur tous les POST admin (sauf login)
     @app.before_request
     def _check_csrf():

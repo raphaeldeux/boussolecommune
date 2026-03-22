@@ -45,7 +45,7 @@
         <div class="flex-shrink-0 w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-lg">🏛️</div>
         <div class="flex-1 min-w-0">
           <div class="font-semibold text-sm text-gray-900 group-hover:text-emerald-700 transition truncate">{{ c.titre }}</div>
-          <div class="text-xs text-gray-400 mt-0.5">{{ c.date_conseil }}</div>
+          <div class="text-xs text-gray-400 mt-0.5">{{ c.date_conseil | date_fr }}</div>
           {% if c.resume_citoyen %}
           <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{ c.resume_citoyen }}</p>
           {% else %}
@@ -90,7 +90,7 @@
         <div class="flex-shrink-0 w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-lg">🏙️</div>
         <div class="flex-1 min-w-0">
           <div class="font-semibold text-sm text-gray-900 group-hover:text-amber-700 transition truncate">{{ c.titre }}</div>
-          <div class="text-xs text-gray-400 mt-0.5">{{ c.date_conseil }}</div>
+          <div class="text-xs text-gray-400 mt-0.5">{{ c.date_conseil | date_fr }}</div>
           {% if c.resume_citoyen %}
           <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{ c.resume_citoyen }}</p>
           {% else %}

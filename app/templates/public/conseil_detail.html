@@ -29,7 +29,7 @@
       <div class="flex-1 min-w-0">
         <h1 class="text-base font-bold text-gray-900">Conseil municipal</h1>
         <div class="flex flex-wrap gap-x-3 mt-0.5 text-xs text-gray-400">
-          <span>📅 {{ conseil.date_conseil }}</span>
+          <span>📅 {{ conseil.date_conseil | date_fr }}</span>
           {% if structure and structure.nb_presents %}
           <span>👥 {{ structure.nb_presents }} présents</span>
           {% endif %}
@@ -38,11 +38,6 @@
           {% endif %}
         </div>
       </div>
-      {% if conseil.fichier_pdf %}
-      <a href="{{ url_for('public.conseil_pdf', ville_slug=ville.slug, conseil_id=conseil.id) }}"
-         target="_blank"
-         class="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex-shrink-0 transition">📄 PDF</a>
-      {% endif %}
     </div>
 
     {# Stats #}
@@ -180,7 +175,7 @@
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
             {{ '✅ Adopté' if adopte else '❌ Rejeté' }}
           </span>
-          <p class="text-xs text-gray-400 mt-0.5">✓{{ delib.vote.pour }} ✗{{ delib.vote.contre }}{% if delib.vote.abstentions %} ○{{ delib.vote.abstentions }}{% endif %}</p>
+          <p class="text-xs text-gray-400 mt-0.5">✅ {{ delib.vote.pour }} · ❌ {{ delib.vote.contre }}{% if delib.vote.abstentions %} · ○ {{ delib.vote.abstentions }} abstention{{ 's' if delib.vote.abstentions > 1 }}{% endif %}</p>
           {% else %}
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">○ Abstention</span>
           {% endif %}
@@ -192,6 +187,13 @@
   </div>
   {% endif %}
   {% endfor %}
+
+  {% if conseil.fichier_pdf %}
+  <a href="{{ url_for('public.conseil_pdf', ville_slug=ville.slug, conseil_id=conseil.id) }}"
+     class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-3 rounded-xl transition">
+    📄 Télécharger le procès-verbal complet
+  </a>
+  {% endif %}
 
   {% elif conseil.resume_citoyen %}
   <div class="bg-white rounded-xl border border-gray-200 p-6 text-sm text-gray-600 leading-relaxed">
