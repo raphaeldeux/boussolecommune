@@ -1,10 +1,10 @@
 {% extends "admin_base.html" %}
-{% block title %}{{ 'Modifier' if conseil else 'Nouveau' }} conseil — Admin{% endblock %}
+{% block title %}{{ 'Modifier' if conseil else 'Nouveau' }} conseil · Admin{% endblock %}
 
 {% block content %}
 <div class="max-w-xl">
   <h1 class="text-2xl font-bold text-gray-900 mb-6">
-    {{ 'Modifier le conseil' if conseil else 'Ajouter un conseil municipal' }}
+    {{ 'Modifier le conseil' if conseil else 'Ajouter un conseil' }}
   </h1>
 
   <form method="POST" enctype="multipart/form-data"

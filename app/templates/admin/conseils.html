@@ -1,16 +1,20 @@
 {% extends "admin_base.html" %}
-{% block title %}Conseils municipaux — Admin{% endblock %}
+{% block title %}Conseils — Admin{% endblock %}
 
 {% block content %}
 <div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold text-gray-900">Conseils municipaux</h1>
+  <h1 class="text-2xl font-bold text-gray-900">Conseils</h1>
   <a href="{{ url_for('admin.conseil_nouveau') }}"
      class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
     + Ajouter un PV
   </a>
 </div>
 
-{% if conseils %}
+{% set municipaux = conseils | selectattr('type_conseil', 'equalto', 'municipal') | list %}
+{% set metropolitains = conseils | selectattr('type_conseil', 'equalto', 'metropolitain') | list %}
+
+{% macro conseil_table(items) %}
+{% if items %}
 <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
@@ -23,16 +27,13 @@
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
-      {% for c in conseils %}
+      {% for c in items %}
       <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.date_conseil }}</td>
+        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.date_conseil | date_fr }}</td>
         <td class="px-4 py-3 font-medium text-gray-900">{{ c.titre }}</td>
         <td class="px-4 py-3 text-center">
-          {% if c.fichier_pdf %}
-          <span class="text-emerald-600">✓</span>
-          {% else %}
-          <span class="text-gray-300">—</span>
-          {% endif %}
+          {% if c.fichier_pdf %}<span class="text-emerald-600">✓</span>
+          {% else %}<span class="text-gray-300">—</span>{% endif %}
         </td>
         <td class="px-4 py-3 text-center">
           <form method="POST" action="{{ url_for('admin.conseil_publier', conseil_id=c.id) }}" class="inline">
@@ -64,9 +65,32 @@
   </table>
 </div>
 {% else %}
+<p class="text-sm text-gray-400 italic px-1">Aucun conseil ajouté.</p>
+{% endif %}
+{% endmacro %}
+
+{# ── Municipaux ── #}
+<div class="mb-8">
+  <h2 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+    🏛️ Conseils municipaux
+    {% if municipaux %}<span class="text-xs font-normal text-gray-400">({{ municipaux | length }})</span>{% endif %}
+  </h2>
+  {{ conseil_table(municipaux) }}
+</div>
+
+{# ── Métropolitains ── #}
+<div>
+  <h2 class="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
+    🏙️ Conseils métropolitains
+    {% if metropolitains %}<span class="text-xs font-normal text-gray-400">({{ metropolitains | length }})</span>{% endif %}
+  </h2>
+  {{ conseil_table(metropolitains) }}
+</div>
+
+{% if not conseils %}
 <div class="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
   <div class="text-4xl mb-3">🏛️</div>
-  <p class="text-sm">Aucun conseil municipal ajouté pour l'instant.</p>
+  <p class="text-sm">Aucun conseil ajouté pour l'instant.</p>
   <a href="{{ url_for('admin.conseil_nouveau') }}"
      class="mt-4 inline-block text-emerald-600 hover:text-emerald-800 text-sm font-medium">
     Ajouter le premier →
