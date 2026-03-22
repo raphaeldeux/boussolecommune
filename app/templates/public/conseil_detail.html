@@ -191,7 +191,7 @@
           <p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>
           {% endif %}
           {% if delib.description %}
-          <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">{{ delib.description }}</p>
+          <div class="text-xs text-gray-600 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
           {% endif %}
         </div>
         <div class="flex-shrink-0 text-right">

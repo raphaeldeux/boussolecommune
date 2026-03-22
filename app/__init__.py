@@ -39,6 +39,28 @@ def create_app():
 
     app.jinja_env.globals["csrf_token"] = _csrf_token
 
+    @app.template_filter("format_delib_desc")
+    def format_delib_desc(text):
+        """Transforme une description IA en HTML lisible.
+        Si un paragraphe contient plusieurs montants séparés par des virgules,
+        le convertit en liste à puces."""
+        import re
+        if not text:
+            return ""
+        parts = []
+        for para in text.split("\n"):
+            para = para.strip()
+            if not para:
+                continue
+            # Détecte une liste de montants (≥2 occurrences de '€')
+            if para.count("€") >= 2 and "," in para:
+                items = [i.strip() for i in para.split(",") if i.strip()]
+                lis = "".join(f"<li>{i}</li>" for i in items)
+                parts.append(f"<ul class='list-disc list-inside space-y-0.5'>{lis}</ul>")
+            else:
+                parts.append(f"<p>{para}</p>")
+        return "\n".join(parts)
+
     @app.template_filter("date_fr")
     def date_fr(value):
         """Formate une date en JJ/MM/AAAA."""
