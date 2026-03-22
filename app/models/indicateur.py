@@ -48,27 +48,27 @@ def get_thematiques():
 
 
 THEMATIQUE_LABELS = {
-    "finances":   "Soin des finances",
-    "cadre_vie":  "Soin du cadre de vie",
-    "personnes":  "Soin des personnes",
-    "lien_social": "Soin du lien social",
-    "democratie": "Soin de la démocratie",
-    "vivant":     "Soin du vivant",
-    "portrait":   "Portrait de la commune",
+    "finances":    "Soin de la maison",
+    "cadre_vie":   "Soin du territoire",
+    "personnes":   "Soin des habitant·es",
+    "lien_social": "Soin du lien",
+    "democratie":  "Soin de la parole",
+    "vivant":      "Soin du vivant",
+    "portrait":    "Portrait de la commune",
 }
 
 THEMATIQUE_QUESTIONS = {
-    "finances":   "La commune gère-t-elle sainement l'argent public ?",
-    "cadre_vie":  "La commune entretient-elle son territoire ?",
-    "personnes":  "La commune prend-elle soin de ses habitants ?",
+    "finances":    "La commune se donne-t-elle les moyens d'agir ?",
+    "cadre_vie":   "La commune entretient-elle son territoire ?",
+    "personnes":   "La commune prend-elle soin de ses habitant·es ?",
     "lien_social": "La commune fait-elle vivre sa communauté ?",
-    "democratie": "La commune gouverne-t-elle avec transparence ?",
-    "vivant":     "La commune ménage-t-elle son environnement ?",
-    "portrait":   "",
+    "democratie":  "La commune gouverne-t-elle avec transparence ?",
+    "vivant":      "La commune ménage-t-elle son environnement ?",
+    "portrait":    "",
 }
 
 THEMATIQUE_ICONS = {
-    "finances":   "💰",
+    "finances":   "🏠",
     "cadre_vie":  "🌳",
     "personnes":  "❤️",
     "lien_social": "🤝",
