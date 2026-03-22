@@ -29,6 +29,39 @@ Pour chaque thématique :
 
 Commence directement par le résumé, sans introduction."""
 
+PROMPT_STRUCTURE = """Tu es un assistant qui extrait les délibérations d'un procès-verbal de conseil municipal.
+
+Voici le contenu du procès-verbal :
+
+{contenu}
+
+---
+
+Génère un JSON structuré représentant les thématiques et délibérations. Réponds UNIQUEMENT avec du JSON valide, sans texte avant ni après.
+
+Format attendu :
+{{
+  "themes": [
+    {{
+      "titre": "Nom de la thématique",
+      "resume": "Résumé de synthèse en 2-4 phrases accessibles aux citoyens.",
+      "deliberations": [
+        {{
+          "titre": "Intitulé de la délibération",
+          "description": "Description claire de la décision prise.",
+          "vote": {{"pour": 15, "contre": 2, "abstentions": 1}}
+        }}
+      ]
+    }}
+  ]
+}}
+
+Règles :
+- "vote" est null si aucun vote n'est mentionné
+- "deliberations" peut être [] si le thème n'a pas de délibération formelle
+- N'inclure que les thèmes réellement présents dans le document
+- Répondre UNIQUEMENT avec le JSON, sans explication"""
+
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extrait le texte brut d'un PDF."""
@@ -71,21 +104,39 @@ def _generer_via_ollama(prompt: str) -> str:
     return response.json().get("response", "").strip()
 
 
-def generer_resume(pdf_path: str) -> str:
+def generer_resume(pdf_path: str):
     """
-    Extrait le texte du PDF et génère un résumé citoyen.
-    Utilise Groq si GROQ_API_KEY est défini, sinon Ollama.
+    Extrait le texte du PDF et génère résumé + structure JSON.
+    Retourne un tuple (resume_texte: str, resume_structure: str | None).
     """
+    import json as _json
+
     texte = extract_text_from_pdf(pdf_path)
     if not texte.strip():
         raise ValueError("Le PDF ne contient pas de texte extractible.")
 
     texte_tronque = texte[:12000]
-    prompt = PROMPT_TEMPLATE.format(contenu=texte_tronque)
 
+    # Premier appel : résumé en prose
+    prompt_prose = PROMPT_TEMPLATE.format(contenu=texte_tronque)
     if GROQ_API_KEY:
-        return _generer_via_groq(prompt)
-    return _generer_via_ollama(prompt)
+        resume_texte = _generer_via_groq(prompt_prose)
+    else:
+        resume_texte = _generer_via_ollama(prompt_prose)
+
+    # Deuxième appel : JSON structuré (enrichissement optionnel, Groq uniquement)
+    resume_structure = None
+    if GROQ_API_KEY:
+        try:
+            prompt_json = PROMPT_STRUCTURE.format(contenu=texte_tronque)
+            raw_json = _generer_via_groq(prompt_json)
+            parsed = _json.loads(raw_json)
+            if "themes" in parsed:
+                resume_structure = raw_json
+        except Exception as e:
+            print(f"[WARN] Génération JSON structuré échouée : {e}", flush=True)
+
+    return resume_texte, resume_structure
 
 
 def is_ollama_ready() -> bool:
