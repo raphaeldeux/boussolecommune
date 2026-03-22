@@ -7,60 +7,94 @@
 
 <!-- Sources automatiques -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-8">
-  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Sources automatiques</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Sources automatiques</h2>
+
+  <p class="text-xs font-medium text-emerald-700 uppercase tracking-wide mb-2">En fonctionnement</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
 
     <!-- ma-cantine -->
-    <div class="border border-gray-100 rounded-lg p-4 flex flex-col gap-3">
-      <div class="flex items-start gap-3">
-        <span class="text-2xl">🥗</span>
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">🥗</span>
         <div>
-          <p class="text-sm font-medium text-gray-800">ma-cantine.agriculture.gouv.fr</p>
-          <p class="text-xs text-gray-400 mt-0.5">% de produits bio en restauration collective</p>
-          {% if ville and ville.code_insee %}
-          <p class="text-xs text-emerald-600 mt-1">Toutes les années disponibles</p>
-          {% else %}
-          <p class="text-xs text-amber-600 mt-1">⚠ Code INSEE non renseigné</p>
-          {% endif %}
+          <p class="text-xs font-medium text-gray-800 leading-tight">ma-cantine</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">% bio restauration collective</p>
         </div>
       </div>
       <form method="POST" action="{{ url_for('admin.fetch_macantine') }}" class="mt-auto">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <button type="submit"
                 {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
-                class="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded transition font-medium">
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
           Récupérer
         </button>
       </form>
     </div>
 
     <!-- OFGL -->
-    <div class="border border-gray-100 rounded-lg p-4 flex flex-col gap-3">
-      <div class="flex items-start gap-3">
-        <span class="text-2xl">💰</span>
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">💰</span>
         <div>
-          <p class="text-sm font-medium text-gray-800">OFGL — data.ofgl.fr</p>
-          <p class="text-xs text-gray-400 mt-0.5">Finances communales (épargne, dette, investissement…)</p>
-          {% if ville and ville.code_insee %}
-          <p class="text-xs text-emerald-600 mt-1">Code INSEE : {{ ville.code_insee }}</p>
-          {% else %}
-          <p class="text-xs text-amber-600 mt-1">⚠ Code INSEE non renseigné</p>
-          {% endif %}
+          <p class="text-xs font-medium text-gray-800 leading-tight">OFGL</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Finances communales</p>
         </div>
       </div>
       <form method="POST" action="{{ url_for('admin.fetch_ofgl') }}" class="mt-auto">
         <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
         <button type="submit"
                 {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
-                class="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded transition font-medium">
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
           Récupérer
         </button>
       </form>
     </div>
 
+    <!-- RPLS / Loi SRU -->
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">🏠</span>
+        <div>
+          <p class="text-xs font-medium text-gray-800 leading-tight">Inventaire SRU</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Taux SRU + nb logements</p>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('admin.fetch_sru') }}" class="mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
+    </div>
+
+    <!-- ZAN / Cerema -->
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">🌱</span>
+        <div>
+          <p class="text-xs font-medium text-gray-800 leading-tight">ZAN / Cerema</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Artificialisation ENAF (2009–2023)</p>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('admin.fetch_zan') }}" class="mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Placeholders sources en développement -->
+  <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">En développement</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
     {% set sources_futures = [
       ('📊', 'INSEE', 'Population, revenus, âge médian, chômage…', 'Portrait'),
-      ('🏠', 'RPLS / Loi SRU', '% logements sociaux — objectif légal 20 ou 25 %', 'Personnes'),
       ('🌱', 'Cerema / ZAN', 'Artificialisation des sols — objectif Zéro net 2050', 'Vivant'),
       ('♿', 'AccesLibre', '% ERP communaux accessibles PMR (loi 2005)', 'Cadre de vie'),
       ('💧', 'Hub\'Eau', 'Conformité eau potable (microbiologique + chimique)', 'Vivant'),
@@ -73,19 +107,19 @@
       ('🚌', 'Transport.data.gouv.fr', 'Couverture en transports en commun (GTFS)', 'Cadre de vie'),
     ] %}
     {% for icon, nom, desc, theme in sources_futures %}
-    <div class="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col gap-2 opacity-40">
-      <div class="flex items-start gap-3">
-        <span class="text-2xl">{{ icon }}</span>
+    <div class="border border-dashed border-gray-200 rounded-lg p-3 flex flex-col gap-2 opacity-40">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">{{ icon }}</span>
         <div>
-          <p class="text-sm font-medium text-gray-500">{{ nom }}</p>
-          <p class="text-xs text-gray-400 mt-0.5">{{ desc }}</p>
-          <p class="text-xs text-gray-300 mt-1">{{ theme }} · À venir</p>
+          <p class="text-xs font-medium text-gray-500 leading-tight">{{ nom }}</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">{{ desc }}</p>
+          <p class="text-[11px] text-gray-300 mt-1">{{ theme }} · À venir</p>
         </div>
       </div>
     </div>
     {% endfor %}
-
   </div>
+
 </div>
 
 {# ── Prévisualisation ma-cantine ─────────────────────────────────────── #}
@@ -127,8 +161,10 @@
             class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
       ✅ Confirmer l'import
     </button>
-    <a href="{{ url_for('admin.upload') }}"
-       class="text-gray-500 hover:text-gray-700 text-sm">Annuler</a>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='mc') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
   </form>
 </div>
 {% endif %}
@@ -172,8 +208,128 @@
             class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
       ✅ Confirmer l'import
     </button>
-    <a href="{{ url_for('admin.upload') }}"
-       class="text-gray-500 hover:text-gray-700 text-sm">Annuler</a>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='ofgl') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
+  </form>
+</div>
+{% endif %}
+
+{# ── Prévisualisation RPLS / SRU ──────────────────────────────────────────── #}
+{% if session.get('sru_preview') %}
+{% set sru_data = session['sru_preview'] | from_json %}
+<div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-1">Prévisualisation — Inventaire SRU officiel (DGALN)</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ sru_data.lignes | length }} valeur(s) prêtes à importer
+    (années : {{ sru_data.annees | join(', ') }})
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2 text-left">Indicateur</th>
+          <th class="px-3 py-2 text-center">Année</th>
+          <th class="px-3 py-2 text-right">Valeur</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in sru_data.lignes | sort(attribute='annee', reverse=True) %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-1.5 text-gray-700">{{ l.indicateur_id }}</td>
+          <td class="px-3 py-1.5 text-center text-gray-500">{{ l.annee }}</td>
+          <td class="px-3 py-1.5 text-right font-mono text-gray-800">
+            {%- if 'taux' in l.indicateur_id -%}{{ "%.2f"|format(l.valeur) }} %{%- else -%}{{ l.valeur | int }}{%- endif -%}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('admin.confirm_sru') }}" class="flex flex-wrap items-center gap-4">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <input type="checkbox" name="force" class="rounded">
+      Forcer la mise à jour (écraser les données existantes)
+    </label>
+    <button type="submit"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✅ Confirmer l'import
+    </button>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='sru') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
+  </form>
+</div>
+{% endif %}
+
+{# ── Prévisualisation ZAN / Cerema ───────────────────────────────────────── #}
+{% if session.get('zan_preview') %}
+{% set zan_data = session['zan_preview'] | from_json %}
+<div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-1">Prévisualisation — ZAN / Cerema (Fichiers Fonciers)</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ zan_data.lignes | length }} valeur(s) prêtes à importer
+    (années : {{ zan_data.annees | join(', ') }})
+  </p>
+
+  <!-- Encart quota ZAN -->
+  <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mb-5 grid grid-cols-3 gap-4 text-center">
+    <div>
+      <p class="text-xs text-gray-500 mb-0.5">Quota 2021–2031</p>
+      <p class="text-xl font-bold text-gray-800">{{ "%.2f"|format(zan_data.quota_total) }} ha</p>
+      <p class="text-[11px] text-gray-400">50 % de la baseline 2011–2020</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-500 mb-0.5">Déjà consommé</p>
+      <p class="text-xl font-bold text-amber-700">{{ "%.2f"|format(zan_data.quota_total - zan_data.quota_restant) }} ha</p>
+      <p class="text-[11px] text-gray-400">depuis 2021</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-500 mb-0.5">Restant</p>
+      <p class="text-xl font-bold {% if zan_data.quota_restant > 5 %}text-green-700{% elif zan_data.quota_restant > 2 %}text-amber-600{% else %}text-red-600{% endif %}">
+        {{ "%.2f"|format(zan_data.quota_restant) }} ha
+      </p>
+      <p class="text-[11px] text-gray-400">d'ici 2031</p>
+    </div>
+  </div>
+
+  <!-- Tableau annuel -->
+  <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2 text-center">Année</th>
+          <th class="px-3 py-2 text-right">Total (ha)</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in zan_data.lignes | selectattr('indicateur_id', 'equalto', 'zan_conso_enaf_annuelle') | sort(attribute='annee', reverse=True) %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-1.5 text-center text-gray-500">{{ l.annee }}</td>
+          <td class="px-3 py-1.5 text-right font-mono text-gray-800">{{ "%.4f"|format(l.valeur) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <form method="POST" action="{{ url_for('admin.confirm_zan') }}" class="flex flex-wrap items-center gap-4">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <input type="checkbox" name="force" class="rounded">
+      Forcer la mise à jour (écraser les données existantes)
+    </label>
+    <button type="submit"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✅ Confirmer l'import
+    </button>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='zan') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
   </form>
 </div>
 {% endif %}
