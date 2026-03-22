@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort, redirect, url_for, session, request, jsonify
+from flask import Blueprint, render_template, abort, redirect, url_for, session, request, jsonify, send_from_directory
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
@@ -527,6 +527,21 @@ def conseils(ville_slug):
         abort(404)
     items = conseil_model.get_publies(ville["id"], limit=50)
     return render_template("public/conseils.html", ville=ville, conseils=items)
+
+
+@bp.route("/v/<ville_slug>/conseils/<int:conseil_id>/pdf")
+def conseil_pdf(ville_slug, conseil_id):
+    """Sert le PDF d'un conseil municipal."""
+    import app.models.conseil as conseil_model
+    ville = ville_model.get_by_slug(ville_slug)
+    if not ville:
+        abort(404)
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"] or not conseil["publie"]:
+        abort(404)
+    if not conseil.get("fichier_pdf"):
+        abort(404)
+    return send_from_directory("/app/uploads/conseils", conseil["fichier_pdf"])
 
 
 @bp.route("/v/<ville_slug>/conseils/<int:conseil_id>")
