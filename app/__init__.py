@@ -43,20 +43,37 @@ def create_app():
     def format_delib_desc(text):
         """Transforme une description IA en HTML lisible.
         Si un paragraphe contient plusieurs montants séparés par des virgules,
-        le convertit en liste à puces."""
+        le convertit en tableau label/montant."""
         import re
         if not text:
             return ""
+        # Pattern : "MONTANT € [HT] (libellé)" ou "libellé : MONTANT €"
+        item_re = re.compile(
+            r'^([\d\s\u202f]+[,\.]?\d*\s*€\s*(?:HT|TTC)?)\s*\((.+)\)$|'
+            r'^(.+?)\s*[:\-]\s*([\d\s\u202f]+[,\.]?\d*\s*€\s*(?:HT|TTC)?)$'
+        )
         parts = []
         for para in text.split("\n"):
             para = para.strip()
             if not para:
                 continue
-            # Détecte une liste de montants (≥2 occurrences de '€')
             if para.count("€") >= 2 and "," in para:
-                items = [i.strip() for i in para.split(",") if i.strip()]
-                lis = "".join(f"<li>{i}</li>" for i in items)
-                parts.append(f"<ul class='list-disc list-inside space-y-0.5'>{lis}</ul>")
+                rows = ""
+                for raw in para.split(","):
+                    raw = raw.strip()
+                    if not raw:
+                        continue
+                    m = item_re.match(raw)
+                    if m:
+                        if m.group(1):  # montant (libellé)
+                            montant, label = m.group(1).strip(), m.group(2).strip()
+                        else:           # libellé : montant
+                            label, montant = m.group(3).strip(), m.group(4).strip()
+                        rows += (f"<tr><td class='py-0.5 pr-3 text-gray-700'>{label}</td>"
+                                 f"<td class='py-0.5 font-semibold text-emerald-700 text-right whitespace-nowrap'>{montant}</td></tr>")
+                    else:
+                        rows += f"<tr><td colspan='2' class='py-0.5 text-gray-700'>{raw}</td></tr>"
+                parts.append(f"<table class='w-full text-xs mt-1'>{rows}</table>")
             else:
                 parts.append(f"<p>{para}</p>")
         return "\n".join(parts)
