@@ -214,6 +214,11 @@ def init_db():  # noqa: C901
     )
     conn.commit()
 
+    # Migration: ajouter nb_conseillers à villes
+    if not _column_exists(conn, 'villes', 'nb_conseillers'):
+        conn.execute("ALTER TABLE villes ADD COLUMN nb_conseillers INTEGER DEFAULT NULL")
+        conn.commit()
+
     # Migration: ajouter code_insee à villes (US-001)
     if not _column_exists(conn, 'villes', 'code_insee'):
         try:

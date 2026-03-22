@@ -39,7 +39,7 @@
         <div class="flex flex-wrap gap-x-3 mt-0.5 text-xs text-gray-400">
           <span>📅 {{ conseil.date_conseil | date_fr }}</span>
           {% if structure and structure.nb_presents %}
-          <span>👥 {{ structure.nb_presents }} présents</span>
+          <span>👥 {{ structure.nb_presents }}{% if ville.nb_conseillers %}/{{ ville.nb_conseillers }}{% endif %} présents</span>
           {% endif %}
           {% if structure and structure.nb_points_odj %}
           <span>📋 {{ structure.nb_points_odj }} points à l'ODJ</span>
