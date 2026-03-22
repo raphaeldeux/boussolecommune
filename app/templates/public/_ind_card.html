@@ -32,11 +32,14 @@
       </span>
       {% endif %}
     </div>
+    {% if ind.interpretation and ind.interpretation.phrase_courte %}
+    <div class="mt-1 text-xs text-gray-500 leading-snug">{{ ind.interpretation.phrase_courte }}</div>
+    {% endif %}
   </div>
 
   <!-- Score + chevron -->
   <div class="flex items-center gap-2 flex-shrink-0">
-    {% if ind.score %}
+    {% if ind.score and (ind.valeur_reference is not none or (ind.source_type and ind.source_type in ('api_rpls', 'api_cerema'))) %}
     <div class="score-badge score-badge-lg score-{{ ind.score }}">{{ ind.score }}</div>
     {% endif %}
     <svg data-chevron class="w-4 h-4 text-gray-300 transition-transform duration-200 flex-shrink-0"
@@ -104,11 +107,6 @@
   </div>
   {% endif %}
 
-  <!-- Interprétation courte -->
-  {% if ind.interpretation and ind.interpretation.phrase_courte %}
-  <div class="text-sm font-medium text-gray-700 leading-relaxed">{{ ind.interpretation.phrase_courte }}</div>
-  {% endif %}
-
   <!-- Graphique historique (lazy) -->
   {% if has_historique %}
   <div>
@@ -169,48 +167,6 @@
       Source : {{ ind.donnee.source if ind.donnee.source else "Source non renseignée" }}
     </div>
     <div class="flex items-center gap-3">
-      {% if has_historique %}
-      <button
-        data-canvas-id="chart-{{ ind.id }}"
-        data-label="{{ label | e }}"
-        data-libelle="{{ ind.libelle_citoyen | e }}"
-        data-valeur="{{ ind.donnee.valeur | format_valeur | e }}"
-        data-unite="{{ ind.unite | e }}"
-        data-annee="{{ ind.donnee.annee }}"
-        data-score="{{ ind.score or '' }}"
-        data-couleur="{{ ind.score_couleur or '#10b981' }}"
-        data-tendance="{{ ind.tendance or '' }}"
-        data-pct="{{ ind.pct_evolution if ind.pct_evolution is not none else '' }}"
-        data-annee-ancienne="{{ ind.annee_ancienne or '' }}"
-        onclick="exportGraphique(this)"
-        class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
-        </svg>
-        Graphique
-      </button>
-      {% endif %}
-      <button
-        data-ind-id="{{ ind.id }}"
-        data-label="{{ label | e }}"
-        data-icon="{{ icon }}"
-        data-libelle="{{ ind.libelle_citoyen | e }}"
-        data-valeur="{{ ind.donnee.valeur | format_valeur | e }}"
-        data-unite="{{ ind.unite | e }}"
-        data-annee="{{ ind.donnee.annee }}"
-        data-score="{{ ind.score or '' }}"
-        data-couleur="{{ ind.score_couleur or '#10b981' }}"
-        data-tendance="{{ ind.tendance or '' }}"
-        data-pct="{{ ind.pct_evolution if ind.pct_evolution is not none else '' }}"
-        data-annee-ancienne="{{ ind.annee_ancienne or '' }}"
-        data-phrase="{{ ind.interpretation.phrase_courte | e if ind.interpretation and ind.interpretation.phrase_courte else '' }}"
-        onclick="exportPost(this)"
-        class="text-xs text-gray-400 hover:text-emerald-600 transition flex items-center gap-1">
-        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
-        </svg>
-        Post Facebook
-      </button>
       {% if ind.description %}
       <button onclick="openModal('modal-{{ ind.id }}')"
               class="text-xs text-emerald-600 hover:text-emerald-800 hover:underline transition">
