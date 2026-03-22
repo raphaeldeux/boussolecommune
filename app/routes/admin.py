@@ -1419,8 +1419,12 @@ def conseil_generer_resume(conseil_id):
     def _run():
         from app.services.ollama_service import generer_resume
         try:
-            resume = generer_resume(pdf_path)
-            conseil_model.set_statut_resume(conseil_id, "termine", resume_citoyen=resume)
+            resume_texte, resume_structure = generer_resume(pdf_path)
+            conseil_model.set_statut_resume(
+                conseil_id, "termine",
+                resume_citoyen=resume_texte,
+                resume_structure=resume_structure,
+            )
         except Exception:
             conseil_model.set_statut_resume(conseil_id, "erreur")
 
@@ -1431,15 +1435,24 @@ def conseil_generer_resume(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/statut-resume", methods=["GET"])
 @login_required
 def conseil_statut_resume(conseil_id):
+    import json as _json
     ville = ville_model.get_by_id(session.get("admin_ville_id"))
     if not ville:
         abort(403)
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
+    raw_structure = conseil.get("resume_structure")
+    structure = None
+    if raw_structure:
+        try:
+            structure = _json.loads(raw_structure)
+        except Exception:
+            structure = None
     return jsonify({
         "statut": conseil.get("statut_resume", "idle"),
         "resume": conseil.get("resume_citoyen"),
+        "structure": structure,
     })
 
 
