@@ -50,9 +50,6 @@ def fetch_all_cantine_data(code_insee: str) -> dict:
         if not result["ok"]:
             erreurs.append(f"{annee} : {result['error']}")
             continue
-        if not result["indicateurs"]:
-            erreurs.append(f"{annee} : aucun indicateur retourné")
-            continue
         annees_ok.append(annee)
         for ind_id, valeur in result["indicateurs"].items():
             lignes.append({
@@ -122,6 +119,13 @@ def fetch_cantine_data(code_insee: str, annee: int) -> dict:
         # On n'insère pas si la valeur est None ou si c'est 0 sans déclaration
         if val is not None:
             indicateurs[ind_id] = float(val)
+
+    if not indicateurs:
+        campaign_info = data.get("notes", {}).get("campaignInfo", "")
+        msg = f"{teledecl_count} télédéclaration(s) mais données non encore publiées"
+        if campaign_info:
+            msg += f" ({campaign_info[:80]}…)"
+        return {"ok": False, "error": msg}
 
     return {
         "ok": True,
