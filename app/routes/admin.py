@@ -16,6 +16,7 @@ import app.models.user as user_model
 import app.models.banque_reference as banque_ref_model
 import app.models.commune as commune_model
 import app.models.refs_banque as refs_banque_model
+import app.models.synthese_thematique as synthese_model
 from app.database import get_db
 from app.services.scoring import calculer_score, ajuster_score, calculer_score_thematique, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
@@ -202,12 +203,39 @@ def dashboard():
         "interp_ok": total_interp_ok,
         "interp_needed": total_interp_needed,
     }
+
+    # Synthèses thématiques
+    from app.models import synthese_thematique as synthese_model_dash
+    from app.models.indicateur import get_thematiques, THEMATIQUE_LABELS, THEMATIQUE_ICONS
+    from app.routes.public import _enrichir_indicateur
+    import app.models.indicateur as ind_model_admin
+
+    syntheses_existantes = {
+        s["thematique"]: s
+        for s in synthese_model_dash.get_all_for_ville(ville["id"])
+    }
+
+    syntheses_info = []
+    for slug in get_thematiques():
+        indicateurs_them = ind_model_admin.get_by_thematique(slug)
+        enrichis_them = [_enrichir_indicateur(i, ville["id"]) for i in indicateurs_them]
+        renseignes_them = [e for e in enrichis_them if e["donnee"]]
+        derniere_annee = max((e["donnee"]["annee"] for e in renseignes_them), default=None)
+        syntheses_info.append({
+            "slug": slug,
+            "label": THEMATIQUE_LABELS[slug],
+            "icon": THEMATIQUE_ICONS[slug],
+            "derniere_annee": derniere_annee,
+            "synthese": syntheses_existantes.get(slug),
+        })
+
     return render_template(
         "admin/dashboard.html",
         stats=stats,
         ville=ville,
         user_villes=user_villes,
         global_stats=global_stats,
+        syntheses_info=syntheses_info,
     )
 
 
@@ -1976,3 +2004,68 @@ def document_supprimer(doc_id):
             os.remove(path)
     flash("Document supprimé.", "success")
     return redirect(url_for("admin.documents"))
+
+
+@bp.route("/synthese-thematique/generer", methods=["POST"])
+@login_required
+def synthese_thematique_generer():
+    """Génère et sauvegarde une synthèse thématique via Mistral."""
+    ville_id = session.get("admin_ville_id")
+    if not ville_id:
+        flash("Aucune ville sélectionnée.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    thematique = request.form.get("thematique")
+    annee = request.form.get("annee", type=int)
+
+    if not thematique or not annee:
+        flash("Paramètres manquants.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    from app.models import indicateur as ind_model
+    from app.routes.public import _enrichir_indicateur
+    from app.services.ollama_service import generer_synthese_thematique, MISTRAL_API_KEY
+
+    if not MISTRAL_API_KEY:
+        flash("Clé API Mistral non configurée.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    indicateurs = ind_model.get_by_thematique(thematique)
+    enrichis = [_enrichir_indicateur(i, ville_id) for i in indicateurs]
+
+    label = ind_model.THEMATIQUE_LABELS.get(thematique, thematique)
+    bullets = generer_synthese_thematique(label, enrichis)
+
+    if not bullets:
+        flash("La génération a échoué. Vérifiez la clé API Mistral.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    texte = "\n".join(bullets)
+    synthese_model.upsert(ville_id, thematique, annee, texte)
+    flash(f"Synthèse générée pour « {label} » ({annee}).", "success")
+    return redirect(url_for("admin.dashboard"))
+
+
+@bp.route("/synthese-thematique/modifier", methods=["POST"])
+@login_required
+def synthese_thematique_modifier():
+    """Enregistre la modification manuelle d'une synthèse thématique."""
+    ville_id = session.get("admin_ville_id")
+    if not ville_id:
+        flash("Aucune ville sélectionnée.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    thematique = request.form.get("thematique")
+    annee = request.form.get("annee", type=int)
+    texte = request.form.get("texte", "").strip()
+
+    if not thematique or not annee or not texte:
+        flash("Paramètres manquants.", "error")
+        return redirect(url_for("admin.dashboard"))
+
+    synthese_model.upsert(ville_id, thematique, annee, texte)
+
+    from app.models.indicateur import THEMATIQUE_LABELS
+    label = THEMATIQUE_LABELS.get(thematique, thematique)
+    flash(f"Synthèse mise à jour pour « {label} » ({annee}).", "success")
+    return redirect(url_for("admin.dashboard"))

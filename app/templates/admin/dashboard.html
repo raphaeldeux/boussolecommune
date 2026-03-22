@@ -195,6 +195,60 @@
   {% endfor %}
 </div>
 
+<!-- Synthèses thématiques -->
+{% if syntheses_info %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 mt-6">
+  <h2 class="text-sm font-semibold text-gray-700 mb-4">📌 Synthèses thématiques</h2>
+  <div class="space-y-4">
+    {% for s in syntheses_info %}
+    <div class="border border-gray-100 rounded-lg p-4">
+      <div class="flex items-center gap-2 mb-2">
+        <span>{{ s.icon }}</span>
+        <span class="font-medium text-sm text-gray-800">{{ s.label }}</span>
+        {% if s.synthese %}
+        <span class="ml-auto text-xs text-gray-400">Mis à jour {{ s.synthese.date_generation.strftime('%d/%m/%Y') if s.synthese.date_generation else '' }}</span>
+        {% endif %}
+      </div>
+
+      {% if s.derniere_annee %}
+      {% if s.synthese %}
+      <div class="text-xs text-gray-600 bg-gray-50 rounded p-2 mb-3 whitespace-pre-wrap">{{ s.synthese.texte }}</div>
+      {% else %}
+      <p class="text-xs text-gray-400 italic mb-3">Aucune synthèse générée.</p>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('admin.synthese_thematique_modifier') }}" class="mb-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="thematique" value="{{ s.slug }}">
+        <input type="hidden" name="annee" value="{{ s.derniere_annee }}">
+        <textarea name="texte" rows="3"
+                  class="w-full text-xs border border-gray-200 rounded px-2 py-1.5 mb-1 resize-y"
+                  placeholder="Entrez les bullet points (un par ligne, commencer par ↗ ou ⚠)">{{ s.synthese.texte if s.synthese else '' }}</textarea>
+        <button type="submit"
+                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded transition">
+          Enregistrer
+        </button>
+      </form>
+
+      <form method="POST" action="{{ url_for('admin.synthese_thematique_generer') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="thematique" value="{{ s.slug }}">
+        <input type="hidden" name="annee" value="{{ s.derniere_annee }}">
+        <button type="submit"
+                class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded transition">
+          ✨ Générer via IA
+        </button>
+      </form>
+
+      {% else %}
+      <p class="text-xs text-gray-400 italic">Aucune donnée disponible pour cette thématique.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <script>
 function toggleCard(id) {
   var el = document.getElementById(id);
