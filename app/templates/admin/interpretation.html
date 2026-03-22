@@ -73,10 +73,15 @@
           </div>
         </div>
 
-        <div class="flex gap-3">
+        <div class="flex gap-3 flex-wrap">
           <button type="submit"
                   class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition">
             💾 Enregistrer
+          </button>
+          <button type="button" id="btn-generer-ia"
+                  onclick="genererIA()"
+                  class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-1.5">
+            ✨ Générer via IA
           </button>
           {% if interp %}
           <button type="submit" name="phrase_courte" value=""
@@ -116,5 +121,35 @@
   document.getElementById('input-longue').addEventListener('input', function() {
     document.getElementById('count-longue').textContent = this.value.length;
   });
+
+  function genererIA() {
+    var btn = document.getElementById('btn-generer-ia');
+    btn.disabled = true;
+    btn.textContent = '⏳ Génération…';
+    var fd = new FormData();
+    fd.append('_csrf', '{{ csrf_token() }}');
+    fetch('{{ url_for("admin.interpretation_generer_ia", indicateur_id=ind.id, annee=annee) }}', {
+      method: 'POST',
+      body: fd,
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        alert('Erreur : ' + data.error);
+      } else {
+        var courte = document.getElementById('input-courte');
+        var longue = document.getElementById('input-longue');
+        courte.value = data.phrase_courte || '';
+        longue.value = data.phrase_longue || '';
+        document.getElementById('count-courte').textContent = courte.value.length;
+        document.getElementById('count-longue').textContent = longue.value.length;
+      }
+    })
+    .catch(function() { alert('Erreur de connexion.'); })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = '✨ Générer via IA';
+    });
+  }
 </script>
 {% endblock %}

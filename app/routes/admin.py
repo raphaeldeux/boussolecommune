@@ -425,6 +425,48 @@ def interpretation(indicateur_id, annee):
     )
 
 
+@bp.route("/interpretation/<indicateur_id>/<int:annee>/generer-ia", methods=["POST"])
+@login_required
+def interpretation_generer_ia(indicateur_id, annee):
+    """Génère phrase_courte + phrase_longue via Mistral, retourne JSON."""
+    from app.services.ollama_service import generer_interpretation_indicateur, MISTRAL_API_KEY
+    from flask import jsonify
+
+    if not MISTRAL_API_KEY:
+        return jsonify({"error": "Clé API Mistral non configurée."}), 400
+
+    ville = _get_current_ville()
+    ind = ind_model.get_by_id(indicateur_id)
+    donnee = donnee_model.get_by_indicateur_annee(indicateur_id, annee, ville["id"]) if ville else None
+    if not ind or not donnee:
+        return jsonify({"error": "Indicateur ou donnée introuvable."}), 404
+
+    from app.models import donnee as donnee_model2
+    historique = donnee_model2.get_by_indicateur(indicateur_id, ville["id"])
+    donnee_ancienne = historique[-1] if len(historique) > 1 else None
+    valeur_ancienne = donnee_ancienne["valeur"] if donnee_ancienne else None
+    annee_ancienne = donnee_ancienne["annee"] if donnee_ancienne else None
+    pct_evolution = None
+    if valeur_ancienne and valeur_ancienne != 0:
+        pct_evolution = round((donnee["valeur"] - valeur_ancienne) / abs(valeur_ancienne) * 100, 1)
+
+    from app.models.banque_reference import get_ref_for_indicateur_ville
+    ref_ville = get_ref_for_indicateur_ville(indicateur_id, ville["id"])
+    valeur_reference = ref_ville["valeur"] if ref_ville else ind.get("valeur_reference")
+
+    result = generer_interpretation_indicateur(
+        ind, donnee,
+        valeur_ancienne=valeur_ancienne,
+        annee_ancienne=annee_ancienne,
+        pct_evolution=pct_evolution,
+        valeur_reference=valeur_reference,
+    )
+    if not result:
+        return jsonify({"error": "La génération a échoué."}), 500
+
+    return jsonify(result)
+
+
 # ── Upload CSV ────────────────────────────────────────────────────────────
 
 @bp.route("/upload", methods=["GET", "POST"])

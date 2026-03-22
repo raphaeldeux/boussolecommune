@@ -268,6 +268,81 @@ Exemple de format attendu :
         return None
 
 
+def generer_interpretation_indicateur(
+    ind: dict,
+    donnee: dict,
+    valeur_ancienne=None,
+    annee_ancienne=None,
+    pct_evolution=None,
+    valeur_reference=None,
+) -> dict | None:
+    """
+    Génère phrase_courte et phrase_longue pour un indicateur via Mistral.
+    Retourne {"phrase_courte": str, "phrase_longue": str} ou None si échec.
+    """
+    if not MISTRAL_API_KEY:
+        return None
+
+    libelle = ind.get("libelle_citoyen", ind.get("id", ""))
+    libelle_tech = ind.get("libelle_technique") or libelle
+    unite = ind.get("unite", "")
+    valeur = donnee.get("valeur")
+    annee = donnee.get("annee")
+    sens = ind.get("sens_positif", "neutre")
+
+    sens_explication = {
+        "haut": "une valeur élevée est favorable",
+        "bas":  "une valeur basse est favorable",
+        "neutre": "la valeur est neutre (ni bonne ni mauvaise en soi)",
+    }.get(sens, "")
+
+    contexte_tendance = ""
+    if valeur_ancienne is not None and annee_ancienne:
+        signe = "+" if pct_evolution and pct_evolution > 0 else ""
+        contexte_tendance = (
+            f"\n- Évolution depuis {annee_ancienne} : "
+            f"{'hausse' if valeur > valeur_ancienne else 'baisse'} "
+            f"({signe}{pct_evolution}%) — était {valeur_ancienne} {unite}"
+        )
+
+    contexte_ref = ""
+    if valeur_reference is not None:
+        try:
+            ecart = round((valeur - valeur_reference) / abs(valeur_reference) * 100, 1)
+            signe = "+" if ecart > 0 else ""
+            contexte_ref = (
+                f"\n- Référence communes similaires : {valeur_reference} {unite} "
+                f"(écart : {signe}{ecart}%)"
+            )
+        except Exception:
+            pass
+
+    prompt = f"""Tu es un assistant spécialisé dans l'analyse des données d'une commune française à destination des citoyen·nes.
+
+Indicateur : {libelle}
+Libellé technique : {libelle_tech}
+Valeur actuelle ({annee}) : {valeur} {unite}
+Sens de l'indicateur : {sens_explication}{contexte_tendance}{contexte_ref}
+
+Génère une interprétation de cet indicateur pour un public citoyen non expert.
+Réponds UNIQUEMENT avec du JSON valide :
+{{
+  "phrase_courte": "1 phrase max (80 caractères idéalement), résumé neutre et factuel de la situation",
+  "phrase_longue": "2-4 phrases, contexte, tendance et comparaison si disponible. Langage accessible, sans jargon."
+}}"""
+
+    try:
+        raw = _appel_mistral(prompt)
+        parsed = _parse_json(raw)
+        return {
+            "phrase_courte": parsed.get("phrase_courte", "").strip(),
+            "phrase_longue": parsed.get("phrase_longue", "").strip(),
+        }
+    except Exception as e:
+        print(f"[WARN] generer_interpretation_indicateur : {e}", flush=True)
+        return None
+
+
 def is_ollama_ready() -> bool:
     """Vérifie si Mistral AI est configuré."""
     return bool(MISTRAL_API_KEY)
