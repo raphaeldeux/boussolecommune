@@ -181,7 +181,11 @@
             → {{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}
           </p>
           {% elif delib.montant %}
-          <p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>
+            {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}
+            <div class="text-xs mt-1">{{ delib.montant | format_delib_desc | safe }}</div>
+            {% else %}
+            <p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>
+            {% endif %}
           {% endif %}
           {% if delib.description %}
           <div class="text-xs text-gray-600 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
