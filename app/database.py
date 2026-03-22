@@ -456,4 +456,18 @@ def init_db():  # noqa: C901
     """)
     conn.commit()
 
+    # Table synthèses thématiques (redesign-thematiques)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS syntheses_thematiques (
+            id              SERIAL PRIMARY KEY,
+            ville_id        INTEGER NOT NULL REFERENCES villes(id) ON DELETE CASCADE,
+            thematique      TEXT NOT NULL,
+            annee           INTEGER NOT NULL,
+            texte           TEXT NOT NULL,
+            date_generation TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(ville_id, thematique, annee)
+        )
+    """)
+    conn.commit()
+
     conn.close()

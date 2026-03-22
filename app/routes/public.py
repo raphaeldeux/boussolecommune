@@ -301,12 +301,16 @@ def thematique(ville_slug, slug):
     renseignes = [e for e in enrichis if e["donnee"]]
 
     grouped = {
-        "forts":    [e for e in renseignes if e["score"] in ("A", "B")],
-        "vigil":    [e for e in renseignes if e["score"] == "C"],
-        "preocc":   [e for e in renseignes if e["score"] in ("D", "E")],
-        "no_score": [e for e in renseignes if not e["score"]],
-        "unset":    [e for e in enrichis   if not e["donnee"]],
+        "amelioration": [e for e in renseignes if e["tendance"] == "↗"],
+        "surveiller":   [e for e in renseignes if e["tendance"] == "↘"],
+        "stable":       [e for e in renseignes if e["tendance"] == "→"],
+        "no_history":   [e for e in renseignes if not e["tendance"]],  # 1 seule année de données
+        "unset":        [e for e in enrichis   if not e["donnee"]],
     }
+
+    from app.models import synthese_thematique as synthese_model
+    derniere_annee = max(e["donnee"]["annee"] for e in renseignes) if renseignes else None
+    synthese = synthese_model.get(ville["id"], slug, derniere_annee) if derniere_annee else None
 
     score_them = calculer_score_thematique([{"score": e["score"]} for e in renseignes])
 
@@ -367,6 +371,7 @@ def thematique(ville_slug, slug):
         icon=ind_model.THEMATIQUE_ICONS[slug],
         indicateurs=enrichis,
         grouped=grouped,
+        synthese=synthese,
         score=score_them,
         score_couleur=SCORE_COULEURS.get(score_them),
         interpretation=interpretation_them,

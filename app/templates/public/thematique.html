@@ -27,62 +27,75 @@
 
 <!-- En-tête thématique -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 mb-6">
-  <div class="flex items-start gap-4">
-    <span class="text-4xl sm:text-5xl flex-shrink-0 mt-0.5">{{ icon }}</span>
-    <div class="flex-1 min-w-0">
-      <div class="flex items-start justify-between gap-3 flex-wrap">
-        <div class="min-w-0">
-          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{{ label }}</h1>
-          <p class="text-gray-500 italic text-sm mt-1">{{ question }}</p>
+  <div class="lg:grid lg:grid-cols-3 lg:gap-6">
+
+    <!-- 2/3 : icône + titre + question + légende -->
+    <div class="lg:col-span-2 flex items-start gap-4 mb-4 lg:mb-0">
+      <span class="text-4xl sm:text-5xl flex-shrink-0 mt-0.5">{{ icon }}</span>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div class="min-w-0">
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{{ label }}</h1>
+            <p class="text-gray-500 italic text-sm mt-1">{{ question }}</p>
+          </div>
+          <div class="flex-shrink-0">
+            {% if score %}
+            <div class="score-badge score-badge-lg score-{{ score }}">{{ score }}</div>
+            {% else %}
+            <span class="text-sm text-gray-400 italic">Score insuffisant</span>
+            {% endif %}
+          </div>
         </div>
-        <div class="flex-shrink-0">
-          {% if score %}
-          <div class="score-badge score-badge-lg score-{{ score }}">{{ score }}</div>
-          {% else %}
-          <span class="text-sm text-gray-400 italic">Score insuffisant</span>
-          {% endif %}
+        <!-- Légende A–E -->
+        <div class="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+          <span class="flex-shrink-0">Scores :</span>
+          <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
+          <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
+          <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
+          <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
+          <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
         </div>
-      </div>
-      {% if interpretation %}
-      <p class="text-gray-600 text-sm mt-3 leading-relaxed">{{ interpretation }}</p>
-      {% endif %}
-      <!-- Légende des scores -->
-      <div class="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
-        <span class="flex-shrink-0">Scores :</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-C">C</span> Vigilance</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-D">D</span> Préoccupant</span>
-        <span class="flex items-center gap-1"><span class="score-badge-xs score-E">E</span> Critique</span>
       </div>
     </div>
+
+    <!-- 1/3 : bloc "Ce qu'il faut retenir" -->
+    {% if synthese %}
+    <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col">
+      <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">📌 Ce qu'il faut retenir</p>
+      <ul class="space-y-2">
+        {% for ligne in synthese.texte.split('\n') if ligne.strip() %}
+        <li class="text-sm text-gray-700 flex items-start gap-2">
+          <span class="shrink-0">{% if '↗' in ligne %}↗{% elif '⚠' in ligne or '↘' in ligne %}⚠{% else %}•{% endif %}</span>
+          <span>{{ ligne.lstrip('↗↘⚠•- ') }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
   </div>
 </div>
 
-{# ─── Triptyque par score ──────────────────────────────────────────────────── #}
+{# ─── Sections par tendance ─────────────────────────────────────────────── #}
 
-{# Macro : en-tête de section (emoji, label, sous-label plage, couleurs, liste d'indicateurs) #}
-{% macro section_header(emoji, label_sg, label_pl, score_range, items, cls_h2, cls_count) %}
+{% macro section_header(emoji, label_sg, label_pl, items, cls_h2, cls_count) %}
 <div class="flex items-center gap-2 mb-3 px-1">
   <span class="text-base leading-none">{{ emoji }}</span>
-  <div>
-    <h2 class="text-sm font-semibold {{ cls_h2 }} uppercase tracking-wide leading-tight">
-      {{ label_sg if items | length == 1 else label_pl }}
-    </h2>
-    <span class="text-xs text-gray-400 font-normal">{{ score_range }}</span>
-  </div>
+  <h2 class="text-sm font-semibold {{ cls_h2 }} uppercase tracking-wide leading-tight">
+    {{ label_sg if items | length == 1 else label_pl }}
+  </h2>
   <span class="ml-auto text-xs {{ cls_count }} font-medium">{{ items | length }} indicateur{{ 's' if items | length > 1 }}</span>
 </div>
 {% endmacro %}
 
 <div class="space-y-6">
 
-{# ── Atouts (A/B) ──────────────────────────────────────────────────────────── #}
-{% if grouped.forts %}
+{# ── ↗ En amélioration ─────────────────────────────────────────────────── #}
+{% if grouped.amelioration %}
 <section>
-  {{ section_header('✅', 'Atout', 'Atouts', 'scores A et B', grouped.forts, 'text-emerald-700', 'text-emerald-500') }}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for ind in grouped.forts %}
+  {{ section_header('↗', 'En amélioration', 'En amélioration', grouped.amelioration, 'text-emerald-700', 'text-emerald-500') }}
+  <div class="space-y-3">
+    {% for ind in grouped.amelioration %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -91,26 +104,12 @@
 </section>
 {% endif %}
 
-{# ── Vigilance (C) ─────────────────────────────────────────────────────────── #}
-{% if grouped.vigil %}
+{# ── ↘ À surveiller ────────────────────────────────────────────────────── #}
+{% if grouped.surveiller %}
 <section>
-  {{ section_header('⚠️', 'À surveiller', 'À surveiller', 'score C', grouped.vigil, 'text-amber-700', 'text-amber-500') }}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for ind in grouped.vigil %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-amber-400 overflow-hidden">
-      {% include "public/_ind_card.html" %}
-    </div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
-
-{# ── Préoccupants (D/E) ────────────────────────────────────────────────────── #}
-{% if grouped.preocc %}
-<section>
-  {{ section_header('🔴', 'Point faible', 'Points faibles', 'scores D et E', grouped.preocc, 'text-red-700', 'text-red-400') }}
-  <div class="grid grid-cols-1 gap-4">
-    {% for ind in grouped.preocc %}
+  {{ section_header('↘', 'À surveiller', 'À surveiller', grouped.surveiller, 'text-red-700', 'text-red-500') }}
+  <div class="space-y-3">
+    {% for ind in grouped.surveiller %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -119,12 +118,12 @@
 </section>
 {% endif %}
 
-{# ── Renseignés sans score ─────────────────────────────────────────────────── #}
-{% if grouped.no_score %}
+{# ── → Stable ──────────────────────────────────────────────────────────── #}
+{% if grouped.stable %}
 <section>
-  {{ section_header('📊', 'Donnée contextuelle', 'Données contextuelles', 'sans référentiel de comparaison', grouped.no_score, 'text-gray-500', 'text-gray-400') }}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for ind in grouped.no_score %}
+  {{ section_header('→', 'Stable', 'Stables', grouped.stable, 'text-gray-500', 'text-gray-400') }}
+  <div class="sm:grid sm:grid-cols-2 sm:gap-4 space-y-3 sm:space-y-0">
+    {% for ind in grouped.stable %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300 overflow-hidden">
       {% include "public/_ind_card.html" %}
     </div>
@@ -133,7 +132,33 @@
 </section>
 {% endif %}
 
-{# ── Non renseignés ────────────────────────────────────────────────────────── #}
+{# ── 📊 Manque d'historique ────────────────────────────────────────────── #}
+{% if grouped.no_history %}
+<div class="border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
+  <button onclick="this.nextElementSibling.classList.toggle('hidden')"
+          class="w-full flex items-center justify-between px-4 sm:px-5 py-3 text-left hover:bg-gray-50 transition">
+    <span class="text-sm text-gray-500 font-medium flex items-center gap-2">
+      <span>📊</span>
+      <span>Manque d'historique</span>
+      <span class="ml-1.5 text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ grouped.no_history | length }}</span>
+    </span>
+    <svg class="w-4 h-4 text-gray-300 flex-shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+    </svg>
+  </button>
+  <div class="hidden border-t border-gray-100">
+    <div class="p-4 sm:grid sm:grid-cols-2 sm:gap-4 space-y-3 sm:space-y-0">
+      {% for ind in grouped.no_history %}
+      <div class="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden opacity-80">
+        {% include "public/_ind_card.html" %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ── Non renseignés ────────────────────────────────────────────────────── #}
 {% if grouped.unset %}
 <div class="border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
   <button onclick="this.nextElementSibling.classList.toggle('hidden')"
@@ -285,211 +310,6 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ── Helpers Canvas ───────────────────────────────────────────────────────────
-function triggerDownload(dataUrl, filename) {
-  var a = document.createElement('a');
-  a.href = dataUrl; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
-
-function splitLines(ctx, text, maxWidth) {
-  var words = String(text).split(' '), lines = [], line = '';
-  for (var i = 0; i < words.length; i++) {
-    var test = line ? line + ' ' + words[i] : words[i];
-    if (ctx.measureText(test).width > maxWidth && line) {
-      lines.push(line); line = words[i];
-    } else { line = test; }
-  }
-  if (line) lines.push(line);
-  return lines;
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-// ── Export Graphique (900 × 480) ─────────────────────────────────────────────
-function exportGraphique(btn) {
-  var d = btn.dataset;
-  var srcCanvas = document.querySelector('[data-chart-id="' + d.canvasId + '"]');
-  if (!srcCanvas) return;
-
-  var W = 900, H = 480, PAD = 36;
-  var c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  var ctx = c.getContext('2d');
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = d.couleur;
-  ctx.fillRect(0, 0, W, 8);
-
-  var y = 8 + PAD;
-
-  if (d.score) {
-    roundRect(ctx, W - PAD - 52, 18, 52, 52, 10);
-    ctx.fillStyle = d.couleur; ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(d.score, W - PAD - 26, 55);
-    ctx.textAlign = 'left';
-  }
-
-  ctx.fillStyle = '#059669';
-  ctx.font = 'bold 11px system-ui, sans-serif';
-  ctx.fillText((d.label).toUpperCase(), PAD, y);
-  y += 22;
-
-  ctx.fillStyle = '#111827';
-  ctx.font = 'bold 20px system-ui, sans-serif';
-  var titleLines = splitLines(ctx, d.libelle, W - PAD * 2 - 70);
-  titleLines.slice(0, 2).forEach(function(l) { ctx.fillText(l, PAD, y); y += 27; });
-  y += 6;
-
-  ctx.font = 'bold 48px system-ui, sans-serif';
-  ctx.fillStyle = '#111827';
-  var valW = ctx.measureText(d.valeur).width;
-  ctx.fillText(d.valeur, PAD, y);
-  ctx.font = '18px system-ui, sans-serif';
-  ctx.fillStyle = '#6b7280';
-  ctx.fillText(' ' + d.unite, PAD + valW, y);
-  ctx.font = '12px system-ui, sans-serif';
-  ctx.fillStyle = '#9ca3af';
-  ctx.fillText(String(d.annee), PAD, y + 18);
-
-  var tY = y + 42;
-  if (d.tendance && d.pct !== '') {
-    var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
-    var sign = parseFloat(d.pct) > 0 ? '+' : '';
-    var tSymbol = d.tendance + '  ' + sign + d.pct + '%';
-    ctx.font = 'bold 15px system-ui, sans-serif';
-    ctx.fillStyle = tColor;
-    ctx.fillText(tSymbol, PAD, tY);
-    ctx.font = '11px system-ui, sans-serif';
-    ctx.fillStyle = '#9ca3af';
-    ctx.fillText('depuis ' + d.anneeAncienne, PAD + ctx.measureText(tSymbol).width + 10, tY);
-    y = tY + 20;
-  } else {
-    y = tY;
-  }
-  y += 10;
-
-  var availW = W - PAD * 2;
-  var availH = H - y - PAD - 16;
-  if (availH > 40 && srcCanvas.height > 0) {
-    var ar = srcCanvas.width / srcCanvas.height;
-    var drawW = availW;
-    var drawH = Math.round(drawW / ar);
-    if (drawH > availH) { drawH = availH; drawW = Math.round(drawH * ar); }
-    ctx.drawImage(srcCanvas, PAD, y, drawW, drawH);
-  }
-
-  ctx.font = '10px system-ui, sans-serif';
-  ctx.fillStyle = '#d1d5db';
-  ctx.textAlign = 'right';
-  ctx.fillText('BoussoleCommune · Sautron Autrement', W - PAD, H - 10);
-  triggerDownload(c.toDataURL('image/png'), 'sautron-graphique-' + d.canvasId + '.png');
-}
-
-// ── Export Post Facebook (1200 × 630) ────────────────────────────────────────
-function exportPost(btn) {
-  var d = btn.dataset;
-  var W = 1200, H = 630, PL = 700, PAD = 52;
-  var c = document.createElement('canvas');
-  c.width = W; c.height = H;
-  var ctx = c.getContext('2d');
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, PL, H);
-  ctx.fillStyle = d.couleur;
-  ctx.fillRect(PL, 0, W - PL, H);
-
-  var y = PAD + 14;
-  ctx.textAlign = 'left';
-
-  ctx.fillStyle = '#059669';
-  ctx.font = 'bold 12px system-ui, sans-serif';
-  ctx.fillText((d.label).toUpperCase(), PAD, y);
-  y += 30;
-
-  ctx.fillStyle = '#111827';
-  ctx.font = 'bold 22px system-ui, sans-serif';
-  var titleLines = splitLines(ctx, d.libelle, PL - PAD * 2);
-  titleLines.slice(0, 3).forEach(function(l) { ctx.fillText(l, PAD, y); y += 30; });
-  y += 14;
-
-  ctx.font = 'bold 64px system-ui, sans-serif';
-  ctx.fillStyle = '#111827';
-  var valW = ctx.measureText(d.valeur).width;
-  ctx.fillText(d.valeur, PAD, y);
-  ctx.font = '400 22px system-ui, sans-serif';
-  ctx.fillStyle = '#6b7280';
-  ctx.fillText(' ' + d.unite, PAD + valW + 4, y);
-  ctx.font = '13px system-ui, sans-serif';
-  ctx.fillStyle = '#9ca3af';
-  ctx.fillText(String(d.annee), PAD, y + 22);
-  y += 60;
-
-  if (d.tendance && d.pct !== '') {
-    var tColor = (d.tendance === '↗') ? '#16a34a' : (d.tendance === '↘') ? '#dc2626' : '#9ca3af';
-    ctx.font = 'bold 26px system-ui, sans-serif';
-    ctx.fillStyle = tColor;
-    ctx.fillText(d.tendance, PAD, y);
-    var sign = parseFloat(d.pct) > 0 ? '+' : '';
-    ctx.font = 'bold 18px system-ui, sans-serif';
-    var pctText = sign + d.pct + '%';
-    ctx.fillText(pctText, PAD + 38, y);
-    ctx.font = '12px system-ui, sans-serif';
-    ctx.fillStyle = '#9ca3af';
-    ctx.fillText('depuis ' + d.anneeAncienne, PAD + 38 + ctx.measureText(pctText).width + 12, y);
-    y += 40;
-  }
-
-  if (d.phrase) {
-    ctx.fillStyle = '#d1fae5';
-    ctx.fillRect(PAD, y, 3, 86);
-    ctx.font = 'italic 14px system-ui, sans-serif';
-    ctx.fillStyle = '#374151';
-    var phraseLines = splitLines(ctx, d.phrase, PL - PAD * 2 - 18);
-    phraseLines.slice(0, 4).forEach(function(l) {
-      ctx.fillText(l, PAD + 14, y + 18);
-      y += 21;
-    });
-  }
-
-  ctx.font = '11px system-ui, sans-serif';
-  ctx.fillStyle = '#d1d5db';
-  ctx.fillText('BoussoleCommune · Sautron Autrement', PAD, H - 20);
-
-  var cx = PL + (W - PL) / 2;
-  ctx.textAlign = 'center';
-
-  if (d.score) {
-    roundRect(ctx, cx - 75, H / 2 - 160, 150, 150, 18);
-    ctx.fillStyle = '#ffffff'; ctx.fill();
-    ctx.font = 'bold 88px system-ui, sans-serif';
-    ctx.fillStyle = d.couleur;
-    ctx.fillText(d.score, cx, H / 2 - 42);
-    ctx.font = 'bold 12px system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.fillText('SCORE DE SANTÉ', cx, H / 2 + 12);
-  }
-
-  ctx.globalAlpha = 0.3;
-  ctx.font = '56px system-ui, sans-serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(d.icon, cx, H / 2 + 100);
-  ctx.globalAlpha = 1.0;
-  ctx.textAlign = 'left';
-  triggerDownload(c.toDataURL('image/png'), 'sautron-post-' + d.indId + '.png');
-}
 </script>
 
 {% if subventions_years | length > 1 %}

@@ -2,7 +2,7 @@
 
 **L'observatoire citoyen de la vie communale.**
 
-BoussoleCommune est une application web libre et open source qui agrège et publie les indicateurs clés d'une commune sur 6 dimensions : finances, cadre de vie, personnes, lien social, démocratie et vivant. Chaque indicateur est noté de A à E et commenté par les administrateurs en langage citoyen.
+BoussoleCommune est une application web libre et open source qui agrège et publie les indicateurs clés d'une commune sur 6 dimensions : soin de la maison (finances), soin du territoire, soin des habitant·es, soin du lien, soin de la parole et soin du vivant. Chaque indicateur est présenté avec sa tendance d'évolution et commenté par les administrateurs en langage citoyen.
 
 L'objectif : rendre les données publiques lisibles par tous, pas seulement par les élus et les techniciens.
 
@@ -13,26 +13,29 @@ L'objectif : rendre les données publiques lisibles par tous, pas seulement par 
 ## Fonctionnalités
 
 - **Dashboard public** avec scores A–E par thématique et score global pondéré
-- **41 indicateurs** répartis sur 6 thématiques
+- **Pages thématiques par tendance** — indicateurs groupés en "En amélioration / À surveiller / Stable / Manque d'historique"
+- **43 indicateurs** répartis sur 6 thématiques (dont 2 indicateurs ZAN loi Climat & Résilience)
+- **Synthèses thématiques** — bloc "Ce qu'il faut retenir" généré par Mistral AI, éditable par l'admin
 - **Comparaison intercommunale** — jusqu'à 4 communes côte à côte (`/comparer`)
 - **Subventions** — tableau public des subventions aux associations, par domaine et thématique
 - **Portrait démographique** — pyramide des âges par commune
+- **Conseils municipaux** — PV uploadés, résumés citoyens générés par Mistral AI
 - **Interprétations manuelles** — phrases courte et longue rédigées par les administrateurs
 - **Page Méthodologie** publique expliquant le calcul des scores
-- **Interface d'administration** : saisie, import CSV, gestion des références
+- **Interface d'administration** : saisie, import CSV (OFGL, générique, Cerema ENAF), gestion des références
 
 ---
 
 ## Les 6 thématiques
 
-| Thématique | Slug |
-|------------|------|
-| Soin des finances | `finances` |
-| Soin du cadre de vie | `cadre_vie` |
-| Soin des personnes | `personnes` |
-| Soin du lien social | `lien_social` |
-| Soin de la démocratie | `democratie` |
-| Soin du vivant | `vivant` |
+| Icône | Thématique | Slug | Question |
+|-------|-----------|------|---------|
+| 🏠 | Soin de la maison | `finances` | La commune se donne-t-elle les moyens d'agir ? |
+| 🌳 | Soin du territoire | `cadre_vie` | La commune entretient-elle son territoire ? |
+| ❤️ | Soin des habitant·es | `personnes` | La commune prend-elle soin de ses habitant·es ? |
+| 🤝 | Soin du lien | `lien_social` | La commune fait-elle vivre sa communauté ? |
+| 🏛️ | Soin de la parole | `democratie` | La commune gouverne-t-elle avec transparence ? |
+| 🌿 | Soin du vivant | `vivant` | La commune ménage-t-elle son environnement ? |
 
 ---
 
@@ -88,6 +91,8 @@ python wsgi.py        # lancer le serveur
 | `ADMIN_PASSWORD` | Mot de passe interface admin | Oui |
 | `SECRET_KEY` | Clé secrète Flask (sessions) | Oui |
 | `FLASK_ENV` | `production` ou `development` | Non (défaut : development) |
+| `MISTRAL_API_KEY` | Clé API Mistral AI (résumés PV conseils + synthèses thématiques) | Non |
+| `MISTRAL_MODEL` | Modèle Mistral à utiliser | Non (défaut : `mistral-small-latest`) |
 
 ---
 
@@ -112,6 +117,11 @@ code_commune;libelle_commune;annee;libelle_compte;montant
 ```
 
 Aller sur `/admin/upload` → format OFGL → déposer le fichier → valider l'aperçu.
+
+**Cerema ENAF — Zéro Artificialisation Nette**
+Les 2 indicateurs ZAN (consommation annuelle d'espaces NAF et quota restant 2031) sont récupérés depuis les Fichiers Fonciers Cerema. La commune doit avoir son code INSEE renseigné dans sa fiche.
+
+Aller sur `/admin/upload` → "Données ZAN (Cerema ENAF)" → cliquer "Récupérer" → valider l'aperçu.
 
 ### Données manuelles
 
@@ -150,7 +160,9 @@ Aller sur `/admin/subventions` → saisie ligne par ligne ou import CSV. Les sub
 | E | Rouge foncé | Critique |
 
 Le score thématique est calculé dès que **3 indicateurs minimum** sont renseignés.
-Le score global est une moyenne pondérée des 6 thématiques : Finances 25%, Vivant 20%, Personnes 20%, Lien social 15%, Démocratie 10%, Cadre de vie 10%.
+Le score global est une moyenne pondérée des 6 thématiques : Finances 25%, Cadre de vie 20%, Personnes 20%, Lien social 15%, Démocratie 12%, Vivant 8%.
+
+**Affichage du badge A–E :** le badge n'est affiché sur la page publique que pour les indicateurs ayant une référence externe robuste (`valeur_reference` renseignée) ou une source légale reconnue (`api_rpls`, `api_cerema`). Les autres indicateurs affichent uniquement la valeur et la tendance d'évolution.
 
 La méthodologie complète est disponible sur `/methodologie`.
 
@@ -194,14 +206,18 @@ boussolecommune/
 │   │   ├── indicateur.py
 │   │   ├── donnee.py
 │   │   ├── interpretation.py
+│   │   ├── synthese_thematique.py  # Synthèses "Ce qu'il faut retenir"
 │   │   ├── subvention.py
+│   │   ├── conseil.py
 │   │   └── pyramide.py
 │   ├── services/
 │   │   ├── scoring.py           # Calcul scores A–E
 │   │   ├── parser_csv.py        # Parser format générique
 │   │   ├── parser_ofgl.py       # Parser format OFGL (finances)
+│   │   ├── ollama_service.py    # Génération IA via Mistral (PV + synthèses)
 │   │   └── fetchers/
-│   │       └── macantine.py     # Récupération données EGAlim
+│   │       ├── macantine.py     # Récupération données EGAlim
+│   │       └── zan.py           # Récupération données ENAF (Cerema, ZAN)
 │   ├── routes/
 │   │   ├── public.py            # Routes publiques
 │   │   └── admin.py             # Routes admin (protégées)
@@ -221,7 +237,6 @@ boussolecommune/
 
 ## Roadmap
 
-- [ ] **Visualisation de tendances** — graphiques d'évolution pluriannuelle pour chaque indicateur
 - [ ] **Export des données** — téléchargement public des données brutes en CSV
 - [ ] **Journal d'audit** — traçabilité des saisies admin (qui, quand, quelle valeur)
 - [ ] **Intégrations supplémentaires** — connecteurs automatiques vers INSEE et data.gouv.fr
