@@ -32,16 +32,28 @@
       </form>
     </div>
 
-    <!-- Placeholder OFGL -->
-    <div class="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col gap-2 opacity-50">
+    <!-- OFGL -->
+    <div class="border border-gray-100 rounded-lg p-4 flex flex-col gap-3">
       <div class="flex items-start gap-3">
         <span class="text-2xl">💰</span>
         <div>
-          <p class="text-sm font-medium text-gray-500">OFGL</p>
-          <p class="text-xs text-gray-400 mt-0.5">Finances communales (épargne, dette…)</p>
-          <p class="text-xs text-gray-300 mt-1">Bientôt disponible</p>
+          <p class="text-sm font-medium text-gray-800">OFGL — data.ofgl.fr</p>
+          <p class="text-xs text-gray-400 mt-0.5">Finances communales (épargne, dette, investissement…)</p>
+          {% if ville and ville.code_insee %}
+          <p class="text-xs text-emerald-600 mt-1">Code INSEE : {{ ville.code_insee }}</p>
+          {% else %}
+          <p class="text-xs text-amber-600 mt-1">⚠ Code INSEE non renseigné</p>
+          {% endif %}
         </div>
       </div>
+      <form method="POST" action="{{ url_for('admin.fetch_ofgl') }}" class="mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
+                class="w-full px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
     </div>
 
     <!-- Placeholder INSEE -->
@@ -58,6 +70,51 @@
 
   </div>
 </div>
+
+{# ── Prévisualisation OFGL ────────────────────────────────────────────── #}
+{% if session.get('ofgl_preview') %}
+{% set ofgl_data = session['ofgl_preview'] | from_json %}
+<div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-1">Prévisualisation OFGL</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ ofgl_data.lignes | length }} valeur(s) prêtes à importer
+    (années : {{ ofgl_data.annees | join(', ') }})
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2 text-left">Indicateur</th>
+          <th class="px-3 py-2 text-center">Année</th>
+          <th class="px-3 py-2 text-right">Valeur</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in ofgl_data.lignes | sort(attribute='annee', reverse=True) %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-1.5 text-gray-700">{{ l.indicateur_id }}</td>
+          <td class="px-3 py-1.5 text-center text-gray-500">{{ l.annee }}</td>
+          <td class="px-3 py-1.5 text-right font-mono text-gray-800">{{ l.valeur }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('admin.confirm_ofgl') }}" class="flex flex-wrap items-center gap-4">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <input type="checkbox" name="force" class="rounded">
+      Forcer la mise à jour (écraser les données existantes)
+    </label>
+    <button type="submit"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✅ Confirmer l'import
+    </button>
+    <a href="{{ url_for('admin.upload') }}"
+       class="text-gray-500 hover:text-gray-700 text-sm">Annuler</a>
+  </form>
+</div>
+{% endif %}
 
 <h2 class="text-lg font-semibold text-gray-800 mb-4">Import CSV manuel</h2>
 

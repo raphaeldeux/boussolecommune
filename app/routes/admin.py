@@ -21,6 +21,7 @@ from app.services.scoring import calculer_score, ajuster_score, calculer_score_t
 from app.services.parser_csv import parser_generique
 from app.services.parser_ofgl import parser_ofgl
 from app.services.fetchers.macantine import fetch_cantine_data
+from app.services.fetchers.ofgl import fetch_ofgl_data
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -549,6 +550,100 @@ def fetch_macantine():
     return redirect(url_for("admin.upload"))
 
 
+# ── Fetch automatique : OFGL ──────────────────────────────────────────────
+
+@bp.route("/upload/fetch-ofgl", methods=["POST"])
+@login_required
+def fetch_ofgl():
+    """Fetch les données OFGL depuis l'API et stocke le preview en session."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune commune sélectionnée.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    com_code = ville.get("code_insee")
+    if not com_code:
+        flash("Code INSEE non renseigné. Modifiez la fiche de la commune.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    result = fetch_ofgl_data(com_code)
+
+    if not result["ok"]:
+        flash(f"OFGL : {result['error']}", "danger")
+        return redirect(url_for("admin.upload"))
+
+    session["ofgl_preview"] = _json.dumps({
+        "lignes": result["lignes"],
+        "annees": result["annees"],
+        "com_code": com_code,
+    })
+
+    if result["erreurs"]:
+        flash(f"{len(result['erreurs'])} avertissement(s) OFGL.", "warning")
+
+    flash(
+        f"{len(result['lignes'])} valeur(s) récupérée(s) depuis OFGL "
+        f"({len(result['annees'])} année(s) : {', '.join(str(a) for a in result['annees'][:5])}). "
+        "Vérifiez et confirmez ci-dessous.",
+        "info"
+    )
+    return redirect(url_for("admin.upload"))
+
+
+@bp.route("/upload/confirm-ofgl", methods=["POST"])
+@login_required
+def confirm_ofgl():
+    """Confirme et importe les données OFGL prévisualisées."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        abort(403)
+
+    preview_json = session.pop("ofgl_preview", None)
+    if not preview_json:
+        flash("Session expirée. Relancez le fetch OFGL.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    preview = _json.loads(preview_json)
+    lignes = preview["lignes"]
+    force = bool(request.form.get("force"))
+
+    nb_importes = 0
+    nb_ignores = 0
+    with get_db() as conn:
+        for ligne in lignes:
+            if force:
+                conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'csv')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO UPDATE
+                         SET valeur=EXCLUDED.valeur, source=EXCLUDED.source""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                nb_importes += 1
+            else:
+                cur = conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'csv')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO NOTHING""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                if cur.rowcount:
+                    nb_importes += 1
+                else:
+                    nb_ignores += 1
+        conn.commit()
+
+    msg = f"{nb_importes} valeur(s) importée(s) depuis OFGL."
+    if nb_ignores:
+        msg += f" {nb_ignores} ignorée(s) (déjà présentes — cochez 'Forcer la mise à jour' pour écraser)."
+    flash(msg, "success" if nb_importes > 0 else "warning")
+    return redirect(url_for("admin.upload"))
+
+
 # ── Modèles CSV téléchargeables (US10) ────────────────────────────────────
 
 @bp.route("/upload/modele/<format_csv>")
@@ -902,10 +997,14 @@ def modifier_ville(ville_id):
         population = int(population_str) if population_str.isdigit() else None
         actif = 1 if request.form.get("actif") else 0
 
+        code_insee = request.form.get("code_insee", "").strip() or None
+        nb_conseillers_str = request.form.get("nb_conseillers", "").strip()
+        nb_conseillers = int(nb_conseillers_str) if nb_conseillers_str.isdigit() else None
+
         if not nom or not slug:
             flash("Le nom et le slug sont requis.", "danger")
         else:
-            ville_model.update(ville_id, nom, slug, population, actif)
+            ville_model.update(ville_id, nom, slug, population, actif, code_insee, nb_conseillers)
             flash(f"Ville « {nom} » mise à jour.", "success")
             return redirect(url_for("admin.villes"))
 

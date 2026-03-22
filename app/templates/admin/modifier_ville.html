@@ -25,6 +25,19 @@
         <input type="number" name="population" min="0" value="{{ ville.population or '' }}"
                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
       </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Code INSEE</label>
+        <input type="text" name="code_insee" value="{{ ville.code_insee or '' }}"
+               placeholder="Ex : 44202"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <p class="text-xs text-gray-400 mt-1">Requis pour l'import OFGL automatique et ma-cantine.</p>
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre d'élus au conseil</label>
+        <input type="number" name="nb_conseillers" value="{{ ville.nb_conseillers or '' }}"
+               placeholder="Ex : 29"
+               class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+      </div>
       <div class="mb-6">
         <label class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="actif" value="1" {% if ville.actif %}checked{% endif %}
