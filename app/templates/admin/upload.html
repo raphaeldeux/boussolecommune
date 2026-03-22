@@ -1,6 +1,6 @@
 {% extends "admin_base.html" %}
-{% block title %}Import CSV — Admin BoussoleCommune{% endblock %}
-{% block breadcrumb %} › <span class="text-gray-800 font-medium">Import CSV</span>{% endblock %}
+{% block title %}Import — Admin BoussoleCommune{% endblock %}
+{% block breadcrumb %} › <span class="text-gray-800 font-medium">Import</span>{% endblock %}
 
 {% block content %}
 <h1 class="text-2xl font-bold text-gray-900 mb-6">Import de données</h1>
@@ -58,17 +58,32 @@
       </form>
     </div>
 
-    <!-- Placeholder INSEE -->
-    <div class="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col gap-2 opacity-50">
+    {% set sources_futures = [
+      ('📊', 'INSEE', 'Population, revenus, âge médian, chômage…', 'Portrait'),
+      ('🏠', 'RPLS / Loi SRU', '% logements sociaux — objectif légal 20 ou 25 %', 'Personnes'),
+      ('🌱', 'Cerema / ZAN', 'Artificialisation des sols — objectif Zéro net 2050', 'Vivant'),
+      ('♿', 'AccesLibre', '% ERP communaux accessibles PMR (loi 2005)', 'Cadre de vie'),
+      ('💧', 'Hub\'Eau', 'Conformité eau potable (microbiologique + chimique)', 'Vivant'),
+      ('💼', 'France Travail', 'Taux de chômage localisé (trimestriel)', 'Personnes'),
+      ('🏢', 'ADEME DPE', 'Note énergétique des logements — passoires thermiques', 'Vivant'),
+      ('🌬️', 'ATMO', 'Indice qualité de l\'air annuel', 'Vivant'),
+      ('🗳️', 'Intérieur', 'Taux de participation aux élections par commune', 'Démocratie'),
+      ('🤝', 'SIRENE / INSEE', 'Nb d\'associations actives dans la commune', 'Lien social'),
+      ('🏥', 'BPE INSEE', 'Médecins, pharmacies, écoles pour 1 000 hab.', 'Personnes'),
+      ('🚌', 'Transport.data.gouv.fr', 'Couverture en transports en commun (GTFS)', 'Cadre de vie'),
+    ] %}
+    {% for icon, nom, desc, theme in sources_futures %}
+    <div class="border border-dashed border-gray-200 rounded-lg p-4 flex flex-col gap-2 opacity-40">
       <div class="flex items-start gap-3">
-        <span class="text-2xl">📊</span>
+        <span class="text-2xl">{{ icon }}</span>
         <div>
-          <p class="text-sm font-medium text-gray-500">INSEE</p>
-          <p class="text-xs text-gray-400 mt-0.5">Population, revenus, chômage…</p>
-          <p class="text-xs text-gray-300 mt-1">Bientôt disponible</p>
+          <p class="text-sm font-medium text-gray-500">{{ nom }}</p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ desc }}</p>
+          <p class="text-xs text-gray-300 mt-1">{{ theme }} · À venir</p>
         </div>
       </div>
     </div>
+    {% endfor %}
 
   </div>
 </div>
@@ -163,7 +178,7 @@
 </div>
 {% endif %}
 
-<h2 class="text-lg font-semibold text-gray-800 mb-4">Import CSV manuel</h2>
+<h2 class="text-lg font-semibold text-gray-800 mb-4">Import manuel (CSV)</h2>
 
 <!-- Boutons Télécharger modèle (US10) -->
 <div class="flex gap-3 mb-6 flex-wrap">
