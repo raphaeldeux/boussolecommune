@@ -517,6 +517,45 @@ INDICATEURS = [
         "source_type": "api_macantine",
     },
     {
+        "id": "log_nb_logements_sociaux",
+        "thematique": "personnes",
+        "libelle_citoyen": "Combien de logements sociaux HLM dans la commune ?",
+        "libelle_technique": "Nombre de logements locatifs sociaux (RPLS)",
+        "unite": "logements",
+        "sens_positif": "neutre",
+        "seuil_vert": None,
+        "seuil_orange": None,
+        "seuil_rouge": None,
+        "valeur_reference": None,
+        "libelle_reference": "Objectif loi SRU : 20 à 25 % des résidences principales",
+        "description": "Nombre de logements locatifs sociaux au sens de l'inventaire SRU officiel "
+                       "(art. 55 de la loi SRU), arrêté au 1er janvier de chaque année. Ce compte "
+                       "est légèrement différent du RPLS car il inclut certains logements "
+                       "spécifiques propres au périmètre légal SRU. "
+                       "Source : inventaire SRU — DGALN / data.gouv.fr.",
+        "source_type": "api_rpls",
+    },
+    {
+        "id": "log_taux_logements_sociaux",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quel est le taux de logements sociaux dans la commune ?",
+        "libelle_technique": "Taux de logements locatifs sociaux / résidences principales (RPLS/INSEE)",
+        "unite": "%",
+        "sens_positif": "neutre",
+        "seuil_vert": 20.0,
+        "seuil_orange": 10.0,
+        "seuil_rouge": 5.0,
+        "valeur_reference": 20.0,
+        "libelle_reference": "Objectif loi SRU art. 55 : 20 % (ou 25 % en zone tendue)",
+        "description": "Taux officiel de logements sociaux au sens de la loi SRU (art. 55) : "
+                       "nombre de logements locatifs sociaux divisé par le nombre de résidences "
+                       "principales. Les communes de plus de 3 500 habitants (1 500 en Île-de-France) "
+                       "situées dans une agglomération de plus de 50 000 hab. doivent atteindre 20 % "
+                       "(25 % en zone tendue). Ce taux est issu du bilan triennal officiel publié par "
+                       "la DGALN (Ministère du Logement). Source : inventaire SRU — DGALN / data.gouv.fr.",
+        "source_type": "api_rpls",
+    },
+    {
         "id": "eco2_nb_commerces",
         "thematique": "lien_social",
         "libelle_citoyen": "Combien de commerces et services de proximité dans la commune ?",
@@ -796,6 +835,42 @@ INDICATEURS = [
                        "bâtiments communaux. Indicateur de la transition énergétique locale, "
                        "dans le cadre du Plan Climat Air Énergie Territorial de Nantes Métropole.",
         "source_type": "saisie_manuelle",
+    },
+    {
+        "id": "zan_conso_enaf_annuelle",
+        "thematique": "vivant",
+        "libelle_citoyen": "Combien d'hectares de terres naturelles ou agricoles ont été artificialisés ?",
+        "libelle_technique": "Consommation d'espaces NAF (Fichiers Fonciers Cerema)",
+        "unite": "ha/an",
+        "sens_positif": "bas",
+        "seuil_vert": 1.0,
+        "seuil_orange": 3.0,
+        "seuil_rouge": 6.0,
+        "valeur_reference": None,
+        "libelle_reference": "Objectif ZAN : diviser par 2 la consommation 2021-2031 vs 2011-2020",
+        "description": "Superficie de terres naturelles, agricoles et forestières (ENAF) "
+                       "consommées chaque année par l'artificialisation (habitat, activité, "
+                       "voiries, etc.). Source : Cerema — Fichiers Fonciers (MAJIC/DGFIP), "
+                       "via data.gouv.fr.",
+        "source_type": "api_cerema",
+    },
+    {
+        "id": "zan_quota_restant_2031",
+        "thematique": "vivant",
+        "libelle_citoyen": "Combien d'hectares d'artificialisation reste-t-il d'ici 2031 ?",
+        "libelle_technique": "Enveloppe ZAN restante 2021-2031 (ha)",
+        "unite": "ha",
+        "sens_positif": "haut",
+        "seuil_vert": 5.0,
+        "seuil_orange": 2.0,
+        "seuil_rouge": 0.0,
+        "valeur_reference": None,
+        "libelle_reference": "Objectif loi Climat & Résilience 2021 : ZAN d'ici 2050, -50 % d'ici 2031",
+        "description": "Quota d'artificialisation restant pour respecter l'objectif ZAN 2031 : "
+                       "égal à 50 % de la consommation ENAF 2011-2020, diminué de ce qui a déjà "
+                       "été consommé depuis 2021. Une valeur négative signifie que le quota "
+                       "est dépassé. Source : calcul Boussole Commune sur données Cerema.",
+        "source_type": "api_cerema",
     },
 ]
 
