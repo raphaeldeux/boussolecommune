@@ -4,6 +4,14 @@
 {% block content %}
 {% set THEMES_ORDRE = ["Soin des personnes", "Soin des finances / RH", "Soin du cadre de vie", "Soin du lien social", "Soin de la démocratie", "Soin du vivant"] %}
 {% set THEMES_EMOJI = {"Soin des personnes": "❤️", "Soin des finances / RH": "💰", "Soin du cadre de vie": "🏗️", "Soin du lien social": "🤝", "Soin de la démocratie": "🏛️", "Soin du vivant": "🌿"} %}
+{% set THEMES_DESC = {
+  "Soin des personnes":      "Santé, éducation, enfance, seniors, aide sociale et services au public.",
+  "Soin des finances / RH":  "Budget communal, fiscalité, emprunts, personnel et indemnités des élus.",
+  "Soin du cadre de vie":    "Urbanisme, voirie, logement, travaux et équipements publics.",
+  "Soin du lien social":     "Associations sportives et culturelles, événements et vie associative.",
+  "Soin de la démocratie":   "Gouvernance, délégations, conventions et intercommunalité.",
+  "Soin du vivant":          "Environnement, biodiversité, eau, énergie et alimentation."
+} %}
 
 {# ── Stats globales ──────────────────────────────────────────────── #}
 {% set ns = namespace(total=0, adoptes=0, rejetes=0, infos=0) %}
@@ -132,9 +140,7 @@
   {% set i = loop.index0 %}
   <div id="theme-content-{{ i }}" class="theme-section {% if i == ns_fi.first_i %}active{% endif %} space-y-3">
 
-    {% if theme.resume %}
-    <p class="text-xs text-gray-500 italic px-1">{{ theme.resume }}</p>
-    {% endif %}
+    <p class="text-xs text-gray-500 italic px-1">{{ THEMES_DESC[titre] }}</p>
 
     {# Table subventions si ≥ 2 #}
     {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
