@@ -43,36 +43,56 @@ def create_app():
     def format_delib_desc(text):
         """Transforme une description IA en HTML lisible.
         Si un paragraphe contient plusieurs montants séparés par des virgules,
-        le convertit en tableau label/montant."""
+        le convertit en tableau label/montant avec total."""
         import re
         if not text:
             return ""
-        # Pattern : "MONTANT € [HT] (libellé)" ou "libellé : MONTANT €"
+
+        # Extrait les items "MONTANT € [HT/TTC] (libellé)"
         item_re = re.compile(
-            r'^([\d\s\u202f]+[,\.]?\d*\s*€\s*(?:HT|TTC)?)\s*\((.+)\)$|'
-            r'^(.+?)\s*[:\-]\s*([\d\s\u202f]+[,\.]?\d*\s*€\s*(?:HT|TTC)?)$'
+            r'([\d\s\u202f]+(?:[,\.]\d+)?\s*€\s*(?:HT|TTC)?)\s*\(([^)]+)\)'
         )
+
+        def parse_amount(s):
+            """Convertit une chaîne montant en float."""
+            clean = re.sub(r'[^\d,\.]', '', s)
+            # Gère virgule décimale (651,17) vs séparateur milliers (1.000)
+            if ',' in clean and '.' in clean:
+                clean = clean.replace('.', '').replace(',', '.')
+            elif ',' in clean:
+                # Virgule = décimale si < 3 chiffres après, sinon milliers
+                parts_c = clean.split(',')
+                if len(parts_c[-1]) <= 2:
+                    clean = clean.replace(',', '.')
+                else:
+                    clean = clean.replace(',', '')
+            try:
+                return float(clean)
+            except ValueError:
+                return 0.0
+
         parts = []
         for para in text.split("\n"):
             para = para.strip()
             if not para:
                 continue
-            if para.count("€") >= 2 and "," in para:
+            matches = item_re.findall(para)
+            if len(matches) >= 2:
                 rows = ""
-                for raw in para.split(","):
-                    raw = raw.strip()
-                    if not raw:
-                        continue
-                    m = item_re.match(raw)
-                    if m:
-                        if m.group(1):  # montant (libellé)
-                            montant, label = m.group(1).strip(), m.group(2).strip()
-                        else:           # libellé : montant
-                            label, montant = m.group(3).strip(), m.group(4).strip()
-                        rows += (f"<tr><td class='py-0.5 pr-3 text-gray-700'>{label}</td>"
-                                 f"<td class='py-0.5 font-semibold text-emerald-700 text-right whitespace-nowrap'>{montant}</td></tr>")
-                    else:
-                        rows += f"<tr><td colspan='2' class='py-0.5 text-gray-700'>{raw}</td></tr>"
+                total = 0.0
+                for montant_str, label in matches:
+                    montant_str = montant_str.strip()
+                    total += parse_amount(montant_str)
+                    rows += (f"<tr>"
+                             f"<td class='py-0.5 pr-3 text-gray-700'>{label}</td>"
+                             f"<td class='py-0.5 font-semibold text-emerald-700 text-right whitespace-nowrap'>{montant_str}</td>"
+                             f"</tr>")
+                if total:
+                    total_fmt = f"{total:,.2f}".replace(",", "\u202f").replace(".", ",") + " €"
+                    rows += (f"<tr class='border-t border-emerald-200'>"
+                             f"<td class='pt-1 pr-3 font-bold text-emerald-800'>Total</td>"
+                             f"<td class='pt-1 font-bold text-emerald-800 text-right whitespace-nowrap'>{total_fmt}</td>"
+                             f"</tr>")
                 parts.append(f"<table class='w-full text-xs mt-1'>{rows}</table>")
             else:
                 parts.append(f"<p>{para}</p>")
