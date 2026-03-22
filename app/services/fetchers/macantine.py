@@ -27,6 +27,52 @@ CHAMPS = {
 }
 
 
+def fetch_all_cantine_data(code_insee: str) -> dict:
+    """
+    Récupère les données ma-cantine pour toutes les années disponibles (2020 → année en cours).
+
+    Retourne :
+    {
+        "ok": True,
+        "lignes": [{"indicateur_id": str, "annee": int, "valeur": float, "source": str}],
+        "annees": [int],
+        "erreurs": [str],
+    }
+    """
+    import datetime
+    annee_max = datetime.date.today().year
+    lignes = []
+    erreurs = []
+    annees_ok = []
+
+    for annee in range(2020, annee_max + 1):
+        result = fetch_cantine_data(code_insee, annee)
+        if not result["ok"]:
+            erreurs.append(f"{annee} : {result['error']}")
+            continue
+        if not result["indicateurs"]:
+            erreurs.append(f"{annee} : aucun indicateur retourné")
+            continue
+        annees_ok.append(annee)
+        for ind_id, valeur in result["indicateurs"].items():
+            lignes.append({
+                "indicateur_id": ind_id,
+                "annee": annee,
+                "valeur": valeur,
+                "source": SOURCE,
+            })
+
+    if not lignes:
+        return {"ok": False, "error": "Aucune donnée disponible pour cette commune"}
+
+    return {
+        "ok": True,
+        "lignes": lignes,
+        "annees": sorted(annees_ok, reverse=True),
+        "erreurs": erreurs,
+    }
+
+
 def fetch_cantine_data(code_insee: str, annee: int) -> dict:
     """
     Interroge l'API ma-cantine pour une commune et une année données.

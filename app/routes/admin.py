@@ -20,7 +20,7 @@ from app.database import get_db
 from app.services.scoring import calculer_score, ajuster_score, calculer_score_thematique, SCORE_COULEURS
 from app.services.parser_csv import parser_generique
 from app.services.parser_ofgl import parser_ofgl
-from app.services.fetchers.macantine import fetch_cantine_data
+from app.services.fetchers.macantine import fetch_cantine_data, fetch_all_cantine_data
 from app.services.fetchers.ofgl import fetch_ofgl_data
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -513,6 +513,8 @@ def upload():
 @bp.route("/fetch/macantine", methods=["POST"])
 @login_required
 def fetch_macantine():
+    """Fetch toutes les années ma-cantine et stocke le preview en session."""
+    import json as _json
     ville = _get_current_ville()
     if not ville:
         flash("Aucune commune sélectionnée.", "danger")
@@ -523,30 +525,79 @@ def fetch_macantine():
         flash("Cette commune n'a pas de code INSEE renseigné.", "danger")
         return redirect(url_for("admin.upload"))
 
-    annee = request.form.get("annee", type=int)
-    if not annee:
-        flash("Année invalide.", "danger")
-        return redirect(url_for("admin.upload"))
-
-    result = fetch_cantine_data(code_insee, annee)
+    result = fetch_all_cantine_data(code_insee)
     if not result["ok"]:
         flash(f"ma-cantine : {result['error']}", "danger")
         return redirect(url_for("admin.upload"))
 
-    commentaire = (
-        f"{result['canteen_count']} cantine(s), "
-        f"{result['teledeclarations_count']} télédéclaration(s)"
-    )
-    nb = 0
-    for ind_id, valeur in result["indicateurs"].items():
-        donnee_model.upsert(ind_id, annee, valeur, result["source"], commentaire, "api", ville["id"])
-        nb += 1
+    session["macantine_preview"] = _json.dumps({
+        "lignes": result["lignes"],
+        "annees": result["annees"],
+        "code_insee": code_insee,
+    })
+
+    if result["erreurs"]:
+        flash(f"{len(result['erreurs'])} année(s) sans données ma-cantine.", "warning")
 
     flash(
-        f"ma-cantine {annee} : {nb} indicateur(s) importé(s) pour {ville['nom']} "
-        f"({result['teledeclarations_count']} télédéclaration(s) sur {result['canteen_count']} cantine(s)).",
-        "success"
+        f"{len(result['lignes'])} valeur(s) récupérée(s) depuis ma-cantine "
+        f"({len(result['annees'])} année(s) : {', '.join(str(a) for a in result['annees'])}). "
+        "Vérifiez et confirmez ci-dessous.",
+        "info"
     )
+    return redirect(url_for("admin.upload"))
+
+
+@bp.route("/upload/confirm-macantine", methods=["POST"])
+@login_required
+def confirm_macantine():
+    """Confirme et importe les données ma-cantine prévisualisées."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        abort(403)
+
+    preview_json = session.pop("macantine_preview", None)
+    if not preview_json:
+        flash("Session expirée. Relancez le fetch ma-cantine.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    preview = _json.loads(preview_json)
+    lignes = preview["lignes"]
+    force = bool(request.form.get("force"))
+
+    nb_importes = 0
+    nb_ignores = 0
+    with get_db() as conn:
+        for ligne in lignes:
+            if force:
+                conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO UPDATE
+                         SET valeur=EXCLUDED.valeur, source=EXCLUDED.source""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                nb_importes += 1
+            else:
+                cur = conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO NOTHING""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                if cur.rowcount:
+                    nb_importes += 1
+                else:
+                    nb_ignores += 1
+        conn.commit()
+
+    msg = f"{nb_importes} valeur(s) importée(s) depuis ma-cantine."
+    if nb_ignores:
+        msg += f" {nb_ignores} ignorée(s) (déjà présentes — cochez 'Forcer la mise à jour' pour écraser)."
+    flash(msg, "success" if nb_importes > 0 else "warning")
     return redirect(url_for("admin.upload"))
 
 
