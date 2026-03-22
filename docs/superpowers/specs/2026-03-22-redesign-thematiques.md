@@ -23,7 +23,7 @@ Flask 3.0 · PostgreSQL 16 · Jinja2/Tailwind · Mistral API (existant)
 
 ## Nouvelles étiquettes thématiques
 
-Les slugs d'URL ne changent pas. Seuls les labels et questions sont mis à jour.
+Les slugs d'URL ne changent pas. Seuls les labels et questions sont mis à jour. Le label `"portrait"` reste `"Portrait de la commune"` (inchangé — `portrait` n'est pas affiché dans les thématiques scorées). Seule l'icône de `finances` change (`💰` → `🏠`) ; les icônes des 5 autres thématiques ont déjà les bonnes valeurs en base.
 
 | Slug | Ancien label | Nouveau label | Icône |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Indicateurs dont `tendance == '↘'`. Header rouge. Espace `space-y-3` (1 colonn
 Indicateurs dont `tendance == '→'`. Header gris atténué. Grille `sm:grid-cols-2` (2 colonnes — pas d'accordéon = pas de décalage).
 
 #### 📊 Manque d'historique
-Indicateurs renseignés avec 1 seule année (pas de tendance calculable). Accordéon fermé par défaut, style grisé. Grille `sm:grid-cols-2` à l'intérieur.
+Indicateurs renseignés avec 1 seule année (pas de tendance calculable). Accordéon fermé par défaut, style grisé. Grille `sm:grid-cols-2` à l'intérieur. La carte `_ind_card.html` (modifiée par cette spec) est utilisée normalement — `phrase_courte` visible dans l'en-tête si disponible, badge score si référence robuste.
 
 **Indicateurs non renseignés** : conservés en accordéon fermé "Données non disponibles" (existant).
 
@@ -97,9 +97,9 @@ Indicateurs renseignés avec 1 seule année (pas de tendance calculable). Accord
 
 Le badge score s'affiche **uniquement** si l'indicateur a une référence externe robuste ou un objectif légal :
 
-```python
-# Dans le template Jinja
-{% if ind.valeur_reference is not none or ind.source_type in ('api_rpls', 'api_cerema') %}
+```jinja
+{# source_type peut être None — guard explicite #}
+{% if ind.valeur_reference is not none or (ind.source_type and ind.source_type in ('api_rpls', 'api_cerema')) %}
   <div class="score-badge score-{{ ind.score }}">{{ ind.score }}</div>
 {% endif %}
 ```
@@ -114,7 +114,7 @@ Les indicateurs sans référence affichent uniquement valeur + tendance. Le scor
 
 - Libellé citoyen (font-semibold)
 - Valeur + unité + tendance colorée (↗ vert / ↘ rouge / → gris)
-- **Phrase courte d'interprétation** si disponible (text-xs text-gray-500) — **nouveau, visible sans accordéon**
+- **Phrase courte d'interprétation** si disponible (text-xs text-gray-500) — **nouveau, visible sans accordéon** — chemin Jinja : `ind.interpretation.phrase_courte if ind.interpretation else None`
 - Badge score (si référence robuste)
 - Chevron
 
@@ -158,18 +158,25 @@ def delete(ville_id, thematique, annee) -> None
 
 ### Génération Mistral (`app/services/ollama_service.py`)
 
-Nouvelle fonction `generer_synthese_thematique(thematique_label, indicateurs_enrichis)` :
+Nouvelle fonction `generer_synthese_thematique(thematique_label, indicateurs_enrichis)` dans `app/services/ollama_service.py` (module nommé ainsi pour raisons historiques — il appelle l'API Mistral via `_appel_mistral()`, pas Ollama) :
+- `thematique_label` est la chaîne d'affichage (ex. `"Soin de la maison"`), **pas le slug** — l'appelant fait `THEMATIQUE_LABELS[slug]` avant d'appeler la fonction
 - Construit un prompt avec les 3-5 évolutions les plus notables (↗ les plus fortes, ↘ les plus préoccupantes)
 - Appelle `_appel_mistral()` existant
-- Retourne 2–3 bullet points (liste de strings), 1 phrase max chacun
-- Gère les erreurs (retourne None si échec)
+- **Retourne `list[str]`** — 2–3 éléments, 1 phrase max chacun (ex. `["↗ Le budget d'investissement a progressé de 15%.", "↘ La dette par habitant reste élevée."]`)
+- La route appelante joint la liste : `texte = '\n'.join(bullets)` avant d'appeler `upsert()`
+- Gère les erreurs (retourne `None` si échec — la route flash une erreur et ne fait pas d'upsert)
 
 ### Route admin `POST /admin/synthese-thematique/generer`
 
 ```
 @login_required
-Params: ville_id (session), thematique, annee
-→ appelle generer_synthese_thematique()
+Params (form): thematique (slug), annee (int)
+Session: ville_id
+→ charge les indicateurs enrichis pour cette thématique
+→ calcule derniere_annee = max(donnee.annee) pour les indicateurs renseignés
+→ annee est passée en param de formulaire (valeur = derniere_annee, préremplie dans le template)
+→ appelle generer_synthese_thematique(THEMATIQUE_LABELS[thematique], indicateurs_enrichis)
+→ joint les bullet points : texte = '\n'.join(bullets)
 → upsert en base
 → flash + redirect dashboard
 ```
@@ -177,12 +184,13 @@ Params: ville_id (session), thematique, annee
 ### Route admin `POST /admin/synthese-thematique/modifier`
 
 ```
-Params: ville_id (session), thematique, annee, texte (textarea)
+Params (form): thematique (slug), annee (int), texte (textarea)
+Session: ville_id
 → upsert en base
-→ flash + redirect
+→ flash + redirect dashboard
 ```
 
-L'interface admin (dashboard ou page dédiée) doit permettre de voir, générer et modifier la synthèse pour chaque thématique.
+**Placement admin :** Les contrôles de synthèse sont intégrés **dans la page dashboard admin existante** (`app/templates/admin/dashboard.html`), sous forme d'une section "Synthèses thématiques" listant les 6 thématiques. Pour chaque thématique : affichage du texte actuel (ou "-" si absent), bouton "Générer" (POST vers `/admin/synthese-thematique/generer`) et formulaire textarea inline "Modifier" (POST vers `/admin/synthese-thematique/modifier`). L'`annee` est préremplie côté serveur (dernière année renseignée pour la thématique) dans les champs cachés du formulaire. Pas de page dédiée supplémentaire.
 
 ---
 
@@ -195,10 +203,12 @@ grouped = {
     "amelioration": [e for e in renseignes if e["tendance"] == "↗"],
     "surveiller":   [e for e in renseignes if e["tendance"] == "↘"],
     "stable":       [e for e in renseignes if e["tendance"] == "→"],
-    "no_history":   [e for e in renseignes if not e["tendance"]],
+    "no_history":   [e for e in renseignes if not e["tendance"]],  # tendance=None ↔ 1 seule année de données
     "unset":        [e for e in enrichis   if not e["donnee"]],
 }
 ```
+
+Note : `tendance is None` pour un indicateur renseigné signifie exclusivement qu'il n'a qu'une seule année de données (pas de `valeur_ancienne`). C'est la seule façon pour un indicateur de `renseignes` d'avoir `tendance=None`.
 
 ### Chargement de la synthèse
 
