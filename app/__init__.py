@@ -82,6 +82,7 @@ def create_app():
                 total = 0.0
                 for montant_str, label in matches:
                     montant_str = montant_str.strip()
+                    label = label.strip().capitalize()
                     total += parse_amount(montant_str)
                     rows += (f"<tr>"
                              f"<td class='py-0.5 pr-3 text-gray-700'>{label}</td>"
