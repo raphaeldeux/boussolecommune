@@ -62,7 +62,7 @@
       {% if ns.infos %}
       <div class="flex-1 text-center py-1.5 rounded-lg bg-gray-50">
         <div class="font-bold text-gray-400">{{ ns.infos }}</div>
-        <div class="text-gray-400">○ abstention{{ 's' if ns.infos > 1 }}</div>
+        <div class="text-gray-400">ℹ information{{ 's' if ns.infos > 1 }}</div>
       </div>
       {% endif %}
     </div>
@@ -161,7 +161,7 @@
     <div class="flex items-center gap-3 text-xs text-gray-400 px-1">
       <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#86efac"></span> Adoptée</span>
       <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm" style="background:#fca5a5"></span> Rejetée</span>
-      <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-gray-200"></span> Abstention</span>
+      <span class="flex items-center gap-1"><span class="inline-block w-2.5 h-2.5 rounded-sm bg-gray-200"></span> Information</span>
     </div>
 
     {# Délibérations #}
@@ -195,7 +195,7 @@
           </span>
           <p class="text-xs text-gray-400 mt-0.5">✅ {{ delib.vote.pour }} · ❌ {{ delib.vote.contre }}{% if delib.vote.abstentions %} · ○ {{ delib.vote.abstentions }} abstention{{ 's' if delib.vote.abstentions > 1 }}{% endif %}</p>
           {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">○ Abstention</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">ℹ Information</span>
           {% endif %}
         </div>
       </div>

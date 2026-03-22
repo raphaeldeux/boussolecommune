@@ -564,24 +564,25 @@ def conseil_detail(ville_slug, conseil_id):
         try:
             parsed = _json.loads(raw)
             if isinstance(parsed, dict) and "themes" in parsed:
-                # Calcul du total_subventions si l'IA ne l'a pas fourni
+                # Calcul du total_subventions depuis les montants réels
                 import re as _re
                 for theme in parsed["themes"]:
-                    if not theme.get("total_subventions"):
-                        subvs = [d for d in theme.get("deliberations", [])
-                                 if d.get("montant") and d.get("beneficiaire")]
-                        if len(subvs) >= 2:
-                            total = 0
-                            for d in subvs:
-                                nums = _re.findall(r'[\d\s]+', d["montant"].replace('\xa0', ' '))
-                                for n in nums:
-                                    try:
-                                        total += int(n.replace(' ', ''))
-                                        break
-                                    except ValueError:
-                                        pass
-                            if total:
-                                theme["total_subventions"] = f"{total:,} €".replace(",", "\u202f")
+                    subvs = [d for d in theme.get("deliberations", [])
+                             if d.get("montant") and d.get("beneficiaire")]
+                    if len(subvs) >= 2:
+                        total = 0
+                        for d in subvs:
+                            nums = _re.findall(r'\d[\d\s]*', d["montant"].replace('\xa0', ' ').replace('\u202f', ' '))
+                            for n in nums:
+                                try:
+                                    total += int(n.replace(' ', ''))
+                                    break
+                                except ValueError:
+                                    pass
+                        if total:
+                            theme["total_subventions"] = f"{total:,} €".replace(",", "\u202f")
+                        else:
+                            theme["total_subventions"] = None
                 structure = parsed
         except Exception:
             structure = None
