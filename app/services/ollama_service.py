@@ -1,153 +1,201 @@
 """
-Service de génération de résumés citoyens.
-Utilise Groq (si GROQ_API_KEY défini) ou Ollama en fallback.
+Service de génération de résumés citoyens via Mistral AI.
 """
 import os
+import json as _json
 import requests
 import pdfplumber
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ollama:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2:3b")
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "")
+MISTRAL_MODEL = os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
+MISTRAL_API_URL = "https://api.mistral.ai/v1/chat/completions"
 
-PROMPT_TEMPLATE = """Tu es un assistant chargé de résumer des procès-verbaux de conseils municipaux pour les citoyens.
+# Les 6 thématiques fixes du cadre "Prendre soin" (ordre d'affichage)
+THEMES_ORDRE = ["Soin des personnes", "Soin des finances / RH", "Soin du cadre de vie", "Soin du lien social", "Soin de la démocratie", "Soin du vivant"]
 
-Voici le contenu du procès-verbal :
+_REGLES_CLASSIFICATION = """RÈGLE CRITIQUE : Le thème est déterminé par le SUJET et le BÉNÉFICIAIRE, jamais par la présence d'argent.
+- Subvention à une association sportive/culturelle → Soin du lien social
+- Subvention au CCAS ou service d'aide → Soin des personnes
+- Subvention projet environnemental → Soin du vivant
+- Budget primitif de la commune → Soin des finances / RH
+- Emprunt pour travaux → Soin du cadre de vie
+- Indemnités des élus → Soin des finances / RH"""
 
-{contenu}
+_REGLES_VOTES = """Votes : utiliser UNIQUEMENT les chiffres explicitement écrits dans le document.
+- "À l'unanimité" → pour = membres présents, contre = 0, abstentions = 0
+- Pas de vote mentionné → "vote": null
+- Toujours inclure "abstentions" (même à 0). Total ≤ 29 membres."""
 
----
-
-Rédige un résumé clair et accessible pour les citoyens, structuré par thématique (par exemple : Finances, Urbanisme, Vie associative, Environnement, Social, Divers...). Ne retiens que les thématiques présentes dans le document.
-
-Pour chaque thématique :
-- Indique les principales délibérations et décisions prises
-- Précise les résultats des votes quand ils sont mentionnés (pour / contre / abstentions)
-- Utilise un langage simple, sans jargon administratif
-
-Commence directement par le résumé, sans introduction."""
-
-PROMPT_STRUCTURE = """Tu es un assistant qui extrait les délibérations d'un procès-verbal de conseil municipal.
-
-Voici le contenu du procès-verbal :
-
-{contenu}
-
----
-
-Génère un JSON structuré représentant les thématiques et délibérations. Réponds UNIQUEMENT avec du JSON valide, sans texte avant ni après.
-
-Format attendu :
-{{
-  "themes": [
-    {{
-      "titre": "Nom de la thématique",
-      "resume": "Résumé de synthèse en 2-4 phrases accessibles aux citoyens.",
-      "deliberations": [
-        {{
-          "titre": "Intitulé de la délibération",
-          "description": "Description claire de la décision prise.",
-          "vote": {{"pour": 15, "contre": 2, "abstentions": 1}}
-        }}
-      ]
-    }}
-  ]
-}}
-
-Règles :
-- "vote" est null si aucun vote n'est mentionné
-- "deliberations" peut être [] si le thème n'a pas de délibération formelle
-- N'inclure que les thèmes réellement présents dans le document
-- Répondre UNIQUEMENT avec le JSON, sans explication"""
+_REGLES_DESCRIPTIONS = """Descriptions : 2-4 phrases avec contexte, décision, montant, impact citoyen.
+Bannir : "le conseil a approuvé", "il a été décidé".
+Bénéficiaire : nom exact de l'association/organisme (null sinon).
+Montant : OBLIGATOIRE si la délibération contient les mots subvention, marché, emprunt, dotation, tarif, ou un signe €.
+  - Recopier exactement le chiffre en € trouvé dans le texte (ex: "5 000 €", "1 250 000 €")
+  - Si aucun montant explicite mais délibération financière : "montant non précisé dans le PV"
+  - Sinon : null"""
 
 
 def extract_text_from_pdf(pdf_path: str) -> str:
-    """Extrait le texte brut d'un PDF."""
+    """Extrait le texte brut d'un PDF. Fallback OCR si le PDF est un scan."""
     text_parts = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             text = page.extract_text()
             if text:
                 text_parts.append(text)
-    return "\n\n".join(text_parts)
+    texte = "\n\n".join(text_parts)
+    if texte.strip():
+        return texte
+
+    # Fallback OCR pour les PDFs scannés
+    print("[INFO] PDF sans texte extractible, tentative OCR…", flush=True)
+    try:
+        import pytesseract
+        from pdf2image import convert_from_path
+        images = convert_from_path(pdf_path, dpi=200)
+        ocr_parts = []
+        for img in images:
+            ocr_parts.append(pytesseract.image_to_string(img, lang="fra"))
+        return "\n\n".join(ocr_parts)
+    except Exception as e:
+        print(f"[WARN] OCR échoué : {e}", flush=True)
+        return ""
 
 
-def _generer_via_groq(prompt: str) -> str:
-    """Génère un résumé via l'API Groq."""
+def _parse_json(raw: str) -> dict:
+    """Parse JSON depuis une réponse LLM (gère les backticks)."""
+    clean = raw.strip()
+    if clean.startswith("```"):
+        clean = clean.split("```")[1]
+        if clean.startswith("json"):
+            clean = clean[4:]
+        clean = clean.strip()
+    return _json.loads(clean)
+
+
+def _appel_mistral(prompt: str) -> str:
+    """Appel Mistral AI. Contexte 128k tokens."""
     response = requests.post(
-        GROQ_API_URL,
+        MISTRAL_API_URL,
         headers={
-            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Authorization": f"Bearer {MISTRAL_API_KEY}",
             "Content-Type": "application/json",
         },
         json={
-            "model": GROQ_MODEL,
+            "model": MISTRAL_MODEL,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.3,
         },
-        timeout=60,
+        timeout=180,
     )
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"].strip()
 
 
-def _generer_via_ollama(prompt: str) -> str:
-    """Génère un résumé via Ollama local."""
-    response = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
-        timeout=300,
-    )
-    response.raise_for_status()
-    return response.json().get("response", "").strip()
-
-
-def generer_resume(pdf_path: str):
+def generer_resume(pdf_path: str, progress_callback=None):
     """
-    Extrait le texte du PDF et génère résumé + structure JSON.
+    Extrait le texte du PDF et génère résumé + structure JSON via Mistral.
     Retourne un tuple (resume_texte: str, resume_structure: str | None).
+    progress_callback(pct: int, message: str = None) est appelé à chaque étape.
     """
-    import json as _json
+    def _progress(pct, message=None):
+        if progress_callback:
+            try:
+                progress_callback(pct, message)
+            except Exception:
+                pass
 
+    _progress(5, "Lecture du document…")
     texte = extract_text_from_pdf(pdf_path)
     if not texte.strip():
         raise ValueError("Le PDF ne contient pas de texte extractible.")
 
-    texte_tronque = texte[:12000]
+    _progress(10, "Lecture du document…")
+    prompt = f"""Tu es un assistant chargé d'analyser des procès-verbaux de conseils municipaux.
 
-    # Premier appel : résumé en prose
-    prompt_prose = PROMPT_TEMPLATE.format(contenu=texte_tronque)
-    if GROQ_API_KEY:
-        resume_texte = _generer_via_groq(prompt_prose)
-    else:
-        resume_texte = _generer_via_ollama(prompt_prose)
+Voici le contenu intégral du procès-verbal :
 
-    # Deuxième appel : JSON structuré (enrichissement optionnel, Groq uniquement)
-    resume_structure = None
-    if GROQ_API_KEY:
-        try:
-            prompt_json = PROMPT_STRUCTURE.format(contenu=texte_tronque)
-            raw_json = _generer_via_groq(prompt_json)
-            parsed = _json.loads(raw_json)
-            if "themes" in parsed:
-                resume_structure = raw_json
-        except Exception as e:
-            print(f"[WARN] Génération JSON structuré échouée : {e}", flush=True)
+{texte}
 
-    return resume_texte, resume_structure
+---
+
+IMPÉRATIF : Tu dois être EXHAUSTIF. Chaque point inscrit à l'ordre du jour doit figurer dans le JSON.
+
+Génère une réponse JSON avec ces champs :
+1. "resume_texte" : synthèse en 2-3 phrases max en langage citoyen pour l'aperçu de la liste des conseils
+2. "nb_points_odj" : nombre de points à l'ordre du jour identifiés dans le document
+3. "nb_presents" : nombre de conseillers présents à la séance (entier, null si non mentionné)
+4. "themes" : liste exhaustive et structurée de toutes les délibérations
+
+Thématiques (classer par sujet, pas par présence d'argent) :
+- Soin des personnes : santé, école, éducation, enfance, seniors, CCAS, aide sociale
+- Soin des finances / RH : budget communal, fiscalité, emprunt de la commune, personnel, RH, indemnités élus
+- Soin du cadre de vie : urbanisme, voirie, logement, travaux, équipements publics
+- Soin du lien social : associations sportives/culturelles/solidarité, événements, vie associative
+- Soin de la démocratie : gouvernance, délégations, conventions, intercommunalité, élus
+- Soin du vivant : environnement, biodiversité, eau, énergie, agriculture, alimentation
+
+{_REGLES_CLASSIFICATION}
+{_REGLES_VOTES}
+{_REGLES_DESCRIPTIONS}
+
+Réponds UNIQUEMENT avec du JSON valide :
+{{
+  "resume_texte": "2-3 phrases max, grandes tendances du conseil.",
+  "nb_points_odj": 18,
+  "nb_presents": 23,
+  "themes": [
+    {{
+      "titre": "<thème exact parmi : Soin des personnes, Soin des finances / RH, Soin du cadre de vie, Soin du lien social, Soin de la démocratie, Soin du vivant>",
+      "resume": "Chapeau introductif 1-2 phrases sans répéter les délibérations.",
+      "total_subventions": "Somme si plusieurs subventions dans ce thème, sinon null",
+      "deliberations": [
+        {{
+          "titre": "Intitulé exact",
+          "description": "2-4 phrases: contexte, décision, impact citoyen.",
+          "beneficiaire": "Nom exact ou null",
+          "montant": "X € (obligatoire si subvention/marché/€ mentionné) ou null",
+          "vote": {{"pour": N, "contre": N, "abstentions": N}}
+        }}
+      ]
+    }}
+  ]
+}}"""
+
+    _progress(20, "Envoi au modèle IA…")
+    raw = _appel_mistral(prompt)
+    _progress(85, "Extraction des délibérations…")
+
+    try:
+        parsed = _parse_json(raw)
+        resume_texte = parsed.get("resume_texte", "").strip()
+        themes = parsed.get("themes", [])
+        nb_points_odj = parsed.get("nb_points_odj", 0)
+        nb_presents = parsed.get("nb_presents", None)
+
+        themes_ordonnes = []
+        for titre in THEMES_ORDRE:
+            for t in themes:
+                if t.get("titre") == titre:
+                    themes_ordonnes.append(t)
+                    break
+
+        if not resume_texte:
+            raise ValueError("resume_texte vide")
+
+        resume_structure = _json.dumps({
+            "themes": themes_ordonnes,
+            "nb_points_odj": nb_points_odj,
+            "nb_presents": nb_presents,
+        }, ensure_ascii=False)
+        _progress(95, "Finalisation…")
+        return resume_texte, resume_structure
+
+    except Exception as e:
+        print(f"[WARN] Parse JSON échoué : {e} — fallback prose", flush=True)
+        return raw[:500], None
 
 
 def is_ollama_ready() -> bool:
-    """Vérifie si un backend de génération est disponible (Groq ou Ollama)."""
-    if GROQ_API_KEY:
-        return True
-    try:
-        r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-        if r.status_code != 200:
-            return False
-        models = [m["name"] for m in r.json().get("models", [])]
-        return any(OLLAMA_MODEL.split(":")[0] in m for m in models)
-    except Exception:
-        return False
+    """Vérifie si Mistral AI est configuré."""
+    return bool(MISTRAL_API_KEY)

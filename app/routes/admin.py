@@ -1328,13 +1328,14 @@ def conseil_nouveau():
         if not titre or not date_conseil:
             flash("Titre et date sont obligatoires.", "danger")
             return render_template("admin/conseil_form.html", ville=ville, conseil=None)
+        type_conseil = request.form.get("type_conseil", "municipal")
         fichier_pdf = None
         if fichier and fichier.filename:
             if not fichier.filename.lower().endswith(".pdf"):
                 flash("Seuls les fichiers PDF sont acceptés.", "danger")
                 return render_template("admin/conseil_form.html", ville=ville, conseil=None)
             fichier_pdf = _save_pdf(fichier)
-        conseil_model.create(ville["id"], titre, date_conseil, fichier_pdf)
+        conseil_model.create(ville["id"], titre, date_conseil, fichier_pdf, type_conseil)
         flash("Conseil ajouté avec succès.", "success")
         return redirect(url_for("admin.conseils"))
     return render_template("admin/conseil_form.html", ville=ville, conseil=None)
@@ -1354,13 +1355,14 @@ def conseil_modifier(conseil_id):
         if not titre or not date_conseil:
             flash("Titre et date sont obligatoires.", "danger")
             return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
+        type_conseil = request.form.get("type_conseil", "municipal")
         fichier_pdf = None
         if fichier and fichier.filename:
             if not fichier.filename.lower().endswith(".pdf"):
                 flash("Seuls les fichiers PDF sont acceptés.", "danger")
                 return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
             fichier_pdf = _save_pdf(fichier)
-        conseil_model.update(conseil_id, titre, date_conseil, fichier_pdf)
+        conseil_model.update(conseil_id, titre, date_conseil, fichier_pdf, type_conseil)
         flash("Conseil mis à jour.", "success")
         return redirect(url_for("admin.conseils"))
     return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
@@ -1414,19 +1416,27 @@ def conseil_generer_resume(conseil_id):
         flash("Fichier PDF introuvable.", "danger")
         return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
 
-    conseil_model.set_statut_resume(conseil_id, "en_cours")
+    conseil_model.set_statut_resume(conseil_id, "en_cours", progres=0)
 
     def _run():
         from app.services.ollama_service import generer_resume
+
+        def on_progress(pct, message=None):
+            conseil_model.set_statut_resume(conseil_id, "en_cours", progres=pct, message=message)
+
         try:
-            resume_texte, resume_structure = generer_resume(pdf_path)
+            resume_texte, resume_structure = generer_resume(pdf_path, progress_callback=on_progress)
             conseil_model.set_statut_resume(
                 conseil_id, "termine",
                 resume_citoyen=resume_texte,
                 resume_structure=resume_structure,
+                progres=100,
             )
-        except Exception:
-            conseil_model.set_statut_resume(conseil_id, "erreur")
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Génération résumé échouée : {e}", flush=True)
+            traceback.print_exc()
+            conseil_model.set_statut_resume(conseil_id, "erreur", progres=None)
 
     threading.Thread(target=_run, daemon=True).start()
     return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
@@ -1453,6 +1463,8 @@ def conseil_statut_resume(conseil_id):
         "statut": conseil.get("statut_resume", "idle"),
         "resume": conseil.get("resume_citoyen"),
         "structure": structure,
+        "progres": conseil.get("progres_resume"),
+        "message": conseil.get("message_resume"),
     })
 
 
@@ -1474,12 +1486,29 @@ def conseil_resume(conseil_id):
         flash("Résumé enregistré.", "success")
         return redirect(url_for("admin.conseils"))
     from app.services.ollama_service import is_ollama_ready
+    import json as _json
     ollama_ok = is_ollama_ready()
+    structure = None
+    nb_points_odj = 0
+    nb_deliberations = 0
+    raw = conseil.get("resume_structure")
+    if raw:
+        try:
+            parsed = _json.loads(raw)
+            if isinstance(parsed, dict) and "themes" in parsed:
+                structure = parsed
+                nb_points_odj = parsed.get("nb_points_odj", 0)
+                nb_deliberations = sum(len(t.get("deliberations", [])) for t in parsed["themes"])
+        except Exception:
+            structure = None
     return render_template(
         "admin/conseil_resume.html",
         ville=ville,
         conseil=conseil,
         ollama_ok=ollama_ok,
+        structure=structure,
+        nb_points_odj=nb_points_odj,
+        nb_deliberations=nb_deliberations,
     )
 
 

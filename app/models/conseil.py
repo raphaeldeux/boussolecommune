@@ -28,28 +28,28 @@ def get_by_id(conseil_id):
     return dict(row) if row else None
 
 
-def create(ville_id, titre, date_conseil, fichier_pdf=None):
+def create(ville_id, titre, date_conseil, fichier_pdf=None, type_conseil="municipal"):
     with get_db() as conn:
         row = conn.execute(
-            "INSERT INTO conseils (ville_id, titre, date_conseil, fichier_pdf) "
-            "VALUES (%s, %s, %s, %s) RETURNING id",
-            (ville_id, titre, date_conseil, fichier_pdf)
+            "INSERT INTO conseils (ville_id, titre, date_conseil, fichier_pdf, type_conseil) "
+            "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+            (ville_id, titre, date_conseil, fichier_pdf, type_conseil)
         ).fetchone()
         conn.commit()
     return row["id"]
 
 
-def update(conseil_id, titre, date_conseil, fichier_pdf=None):
+def update(conseil_id, titre, date_conseil, fichier_pdf=None, type_conseil="municipal"):
     with get_db() as conn:
         if fichier_pdf is not None:
             conn.execute(
-                "UPDATE conseils SET titre=%s, date_conseil=%s, fichier_pdf=%s WHERE id=%s",
-                (titre, date_conseil, fichier_pdf, conseil_id)
+                "UPDATE conseils SET titre=%s, date_conseil=%s, fichier_pdf=%s, type_conseil=%s WHERE id=%s",
+                (titre, date_conseil, fichier_pdf, type_conseil, conseil_id)
             )
         else:
             conn.execute(
-                "UPDATE conseils SET titre=%s, date_conseil=%s WHERE id=%s",
-                (titre, date_conseil, conseil_id)
+                "UPDATE conseils SET titre=%s, date_conseil=%s, type_conseil=%s WHERE id=%s",
+                (titre, date_conseil, type_conseil, conseil_id)
             )
         conn.commit()
 
@@ -73,13 +73,17 @@ def delete(conseil_id):
     return dict(row)["fichier_pdf"] if row else None
 
 
-def set_statut_resume(conseil_id, statut, resume_citoyen=None, resume_structure=None):
-    """Met à jour statut_resume et optionnellement resume_citoyen et/ou resume_structure."""
+def set_statut_resume(conseil_id, statut, resume_citoyen=None, resume_structure=None, progres=None, message=None):
+    """Met à jour statut_resume et optionnellement resume_citoyen, resume_structure, progres_resume, message_resume."""
     champs = [("statut_resume", statut)]
     if resume_citoyen is not None:
         champs.append(("resume_citoyen", resume_citoyen))
     if resume_structure is not None:
         champs.append(("resume_structure", resume_structure))
+    if progres is not None:
+        champs.append(("progres_resume", progres))
+    if message is not None:
+        champs.append(("message_resume", message))
     set_clause = ", ".join(f"{col}=%s" for col, _ in champs)
     valeurs = [val for _, val in champs] + [conseil_id]
     with get_db() as conn:

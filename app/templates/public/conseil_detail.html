@@ -2,87 +2,194 @@
 {% block title %}{{ conseil.titre }} · {{ ville.nom }}{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
+{% set THEMES_ORDRE = ["Soin des personnes", "Soin des finances / RH", "Soin du cadre de vie", "Soin du lien social", "Soin de la démocratie", "Soin du vivant"] %}
+{% set THEMES_EMOJI = {"Soin des personnes": "❤️", "Soin des finances / RH": "💰", "Soin du cadre de vie": "🏗️", "Soin du lien social": "🤝", "Soin de la démocratie": "🏛️", "Soin du vivant": "🌿"} %}
 
-  <!-- Fil d'Ariane -->
-  <div class="flex items-center gap-2 text-sm text-gray-400 mb-5">
-    <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}" class="hover:text-emerald-600 transition">Conseils municipaux</a>
-    <span>›</span>
-    <span class="text-gray-600 truncate">{{ conseil.titre }}</span>
-  </div>
+{# ── Stats globales ──────────────────────────────────────────────── #}
+{% set ns = namespace(total=0, adoptes=0, rejetes=0, infos=0) %}
+{% if structure and structure.themes %}
+  {% for theme in structure.themes %}
+    {% for d in theme.deliberations %}
+      {% set ns.total = ns.total + 1 %}
+      {% if d.vote and d.vote.pour is not none and d.vote.contre is not none %}
+        {% if d.vote.pour > d.vote.contre %}{% set ns.adoptes = ns.adoptes + 1 %}
+        {% else %}{% set ns.rejetes = ns.rejetes + 1 %}{% endif %}
+      {% else %}{% set ns.infos = ns.infos + 1 %}{% endif %}
+    {% endfor %}
+  {% endfor %}
+{% endif %}
 
-  <!-- Header -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6 mb-5">
-    <div class="flex items-start gap-4">
-      <div class="flex-shrink-0 w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-2xl">🏛️</div>
+<div class="max-w-3xl mx-auto space-y-3">
+
+  {# ── HEADER ──────────────────────────────────────────────────────── #}
+  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+
+    <div class="flex items-start gap-3">
+      <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0">🏛️</div>
       <div class="flex-1 min-w-0">
-        <h1 class="text-xl font-bold text-gray-900">{{ conseil.titre }}</h1>
-        <div class="text-sm text-gray-400 mt-1">{{ conseil.date_conseil }}</div>
+        <h1 class="text-base font-bold text-gray-900">Conseil municipal</h1>
+        <div class="flex flex-wrap gap-x-3 mt-0.5 text-xs text-gray-400">
+          <span>📅 {{ conseil.date_conseil }}</span>
+          {% if structure and structure.nb_presents %}
+          <span>👥 {{ structure.nb_presents }} présents</span>
+          {% endif %}
+          {% if structure and structure.nb_points_odj %}
+          <span>📋 {{ structure.nb_points_odj }} points à l'ODJ</span>
+          {% endif %}
+        </div>
       </div>
-    </div>
-    {% if conseil.fichier_pdf %}
-    <div class="mt-4 pt-4 border-t border-gray-100">
+      {% if conseil.fichier_pdf %}
       <a href="{{ url_for('static', filename='conseils/' + conseil.fichier_pdf) }}"
          target="_blank"
-         class="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-800 font-medium transition">
-        📄 Télécharger le procès-verbal (PDF)
-      </a>
+         class="text-xs text-emerald-600 hover:text-emerald-800 font-medium flex-shrink-0 transition">📄 PDF</a>
+      {% endif %}
     </div>
-    {% endif %}
-  </div>
 
-  {% if structure and structure.themes %}
-  <!-- Affichage structuré par thème -->
-  <div class="space-y-4">
-    {% for theme in structure.themes %}
-    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <!-- En-tête du thème -->
-      <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-        <h2 class="text-base font-semibold text-gray-900">{{ theme.titre }}</h2>
-        {% if theme.resume %}
-        <p class="text-sm text-gray-600 mt-1 leading-relaxed">{{ theme.resume }}</p>
-        {% endif %}
+    {# Stats #}
+    {% if ns.total %}
+    <div class="flex gap-2 mt-3 text-xs">
+      <div class="flex-1 text-center py-1.5 rounded-lg bg-gray-50">
+        <div class="font-bold text-gray-800">{{ ns.total }}</div>
+        <div class="text-gray-400">délibs</div>
       </div>
-
-      {% if theme.deliberations %}
-      <!-- Liste des délibérations -->
-      <div class="divide-y divide-gray-50">
-        {% for delib in theme.deliberations %}
-        <div class="px-6 py-4">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-gray-900">{{ delib.titre }}</p>
-              {% if delib.description %}
-              <p class="text-sm text-gray-500 mt-1 leading-relaxed">{{ delib.description }}</p>
-              {% endif %}
-            </div>
-            {% if delib.vote %}
-            {% set vote = delib.vote %}
-            {% set majority = vote.pour > vote.contre %}
-            <div class="flex-shrink-0">
-              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
-                {% if majority %}bg-emerald-50 text-emerald-700 border border-emerald-200
-                {% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
-                ✓ {{ vote.pour }} · ✗ {{ vote.contre }}{% if vote.abstentions %} · ~ {{ vote.abstentions }}{% endif %}
-              </span>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-        {% endfor %}
+      {% if ns.adoptes %}
+      <div class="flex-1 text-center py-1.5 rounded-lg" style="background:#f0fdf4">
+        <div class="font-bold text-emerald-700">{{ ns.adoptes }}</div>
+        <div class="text-emerald-500">✅ adoptée{{ 's' if ns.adoptes > 1 }}</div>
+      </div>
+      {% endif %}
+      {% if ns.rejetes %}
+      <div class="flex-1 text-center py-1.5 rounded-lg" style="background:#fff5f5">
+        <div class="font-bold text-red-600">{{ ns.rejetes }}</div>
+        <div class="text-red-400">❌ rejetée{{ 's' if ns.rejetes > 1 }}</div>
+      </div>
+      {% endif %}
+      {% if ns.infos %}
+      <div class="flex-1 text-center py-1.5 rounded-lg bg-gray-50">
+        <div class="font-bold text-gray-400">{{ ns.infos }}</div>
+        <div class="text-gray-400">ℹ info{{ 's' if ns.infos > 1 }}</div>
       </div>
       {% endif %}
     </div>
+    {% endif %}
+
+    {# Résumé IA #}
+    {% if conseil.resume_citoyen %}
+    <div class="mt-3 pt-3 border-t border-gray-100">
+      <span class="text-xs font-semibold text-purple-600">✨ Résumé IA</span>
+      <p id="resume-text" class="text-xs text-gray-600 leading-relaxed mt-0.5 resume-clamped">{{ conseil.resume_citoyen }}</p>
+      <button id="resume-btn" onclick="toggleResume()" class="hidden text-xs text-emerald-600 font-medium mt-0.5 hover:underline">Lire plus</button>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {% if structure and structure.themes %}
+
+  {# ── GRILLE THÈMES 3×2 ──────────────────────────────────────────── #}
+  <div class="grid grid-cols-3 gap-1.5">
+    {% for titre in THEMES_ORDRE %}
+    {% set theme_list = structure.themes | selectattr('titre', 'equalto', titre) | list %}
+    {% set theme = theme_list[0] if theme_list else none %}
+    {% set nb = theme.deliberations | length if theme else 0 %}
+    {% set i = loop.index0 %}
+    {% if theme %}
+    <button onclick="showTheme({{ i }}, this)"
+            id="theme-btn-{{ i }}"
+            class="theme-btn {% if loop.first %}active{% endif %} rounded-xl border-2 {% if loop.first %}border-emerald-500 bg-emerald-600 text-white{% else %}border-gray-200 bg-white text-gray-600 hover:border-gray-300{% endif %} px-2 py-1.5 text-center transition">
+      <div class="text-sm leading-none">{{ THEMES_EMOJI[titre] }}</div>
+      <div class="text-xs font-semibold leading-tight mt-0.5">{{ titre }}</div>
+      <div class="theme-count text-xs font-bold mt-0.5 {% if loop.first %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-500{% endif %} rounded-full px-1.5 inline-block">{{ nb }}</div>
+    </button>
+    {% else %}
+    <div class="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-2 py-1.5 text-center opacity-40">
+      <div class="text-sm leading-none">{{ THEMES_EMOJI[titre] }}</div>
+      <div class="text-xs font-semibold leading-tight mt-0.5 text-gray-400">{{ titre }}</div>
+      <div class="text-xs mt-0.5 text-gray-300">—</div>
+    </div>
+    {% endif %}
     {% endfor %}
   </div>
 
-  {% elif conseil.resume_citoyen %}
-  <!-- Fallback : résumé texte brut -->
-  <div class="bg-white rounded-xl border border-gray-200 p-6">
-    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Résumé en langage citoyen</h2>
-    <div class="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-line">{{ conseil.resume_citoyen }}</div>
-  </div>
+  {# ── CONTENU PAR THÈME ───────────────────────────────────────────── #}
+  {% for titre in THEMES_ORDRE %}
+  {% set theme_list = structure.themes | selectattr('titre', 'equalto', titre) | list %}
+  {% set theme = theme_list[0] if theme_list else none %}
+  {% if theme %}
+  {% set i = loop.index0 %}
+  <div id="theme-content-{{ i }}" class="theme-section {% if loop.first %}active{% endif %} space-y-3">
 
+    {% if theme.resume %}
+    <p class="text-xs text-gray-500 italic px-1">{{ theme.resume }}</p>
+    {% endif %}
+
+    {# Table subventions si ≥ 2 #}
+    {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
+    {% if subventions | length > 1 %}
+    <div class="rounded-xl p-3 border border-emerald-200 text-xs" style="background:#f0fdf4">
+      <p class="font-bold text-emerald-700 mb-1.5">💰 Subventions du thème</p>
+      <div class="space-y-0.5">
+        {% for s in subventions %}
+        <div class="flex justify-between">
+          <span class="text-gray-700">{{ s.beneficiaire }}</span>
+          <span class="font-bold text-emerald-700">{{ s.montant }}</span>
+        </div>
+        {% endfor %}
+        {% if theme.total_subventions %}
+        <div class="flex justify-between pt-1 mt-1 border-t border-emerald-200 font-bold text-emerald-800">
+          <span>Total</span><span>{{ theme.total_subventions }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Délibérations #}
+    {% for delib in theme.deliberations %}
+    {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
+      {% set adopte = delib.vote.pour > delib.vote.contre %}
+      {% set delib_class = "delib-adopte" if adopte else "delib-rejete" %}
+    {% else %}
+      {% set adopte = none %}
+      {% set delib_class = "delib-info" %}
+    {% endif %}
+    <div class="{{ delib_class }} rounded-xl p-5">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm {% if adopte is none %}font-medium text-gray-600{% else %}font-semibold text-gray-900{% endif %}">{{ delib.titre }}</p>
+          {% if delib.beneficiaire %}
+          <p class="text-xs font-medium mt-0.5 {{ 'text-red-700' if adopte == false else 'text-emerald-700' }}">
+            → {{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}
+          </p>
+          {% elif delib.montant %}
+          <p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>
+          {% endif %}
+          {% if delib.description %}
+          <p class="text-xs text-gray-600 mt-1.5 leading-relaxed">{{ delib.description }}</p>
+          {% endif %}
+        </div>
+        <div class="flex-shrink-0 text-right">
+          {% if adopte is not none %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
+            {{ '✅ Adopté' if adopte else '❌ Rejeté' }}
+          </span>
+          <p class="text-xs text-gray-400 mt-0.5">✓{{ delib.vote.pour }} ✗{{ delib.vote.contre }}{% if delib.vote.abstentions %} ○{{ delib.vote.abstentions }}{% endif %}</p>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">ℹ Info</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {% elif conseil.resume_citoyen %}
+  <div class="bg-white rounded-xl border border-gray-200 p-6 text-sm text-gray-600 leading-relaxed">
+    {{ conseil.resume_citoyen }}
+  </div>
   {% else %}
   <div class="bg-gray-50 rounded-xl border border-gray-200 p-8 text-center text-gray-400">
     <p class="text-sm">Le résumé citoyen est en cours de rédaction.</p>
@@ -90,4 +197,44 @@
   {% endif %}
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .theme-section { display: none; }
+  .theme-section.active { display: block; }
+  .delib-adopte { border-left: 3px solid #86efac; background: #ffffff; }
+  .delib-rejete { border-left: 3px solid #dc2626; background: #fff5f5; }
+  .delib-info   { border-left: 3px solid #e5e7eb; background: #f9fafb; }
+  .resume-clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .resume-clamped.expanded { display: block; }
+</style>
+<script>
+(function() {
+  var resumeEl = document.getElementById('resume-text');
+  var resumeBtn = document.getElementById('resume-btn');
+  if (resumeEl && resumeBtn && resumeEl.scrollHeight > resumeEl.clientHeight + 2) {
+    resumeBtn.classList.remove('hidden');
+  }
+  window.toggleResume = function() {
+    resumeEl.classList.toggle('expanded');
+    resumeBtn.textContent = resumeEl.classList.contains('expanded') ? 'Réduire' : 'Lire plus';
+  };
+  window.showTheme = function(idx, btn) {
+    document.querySelectorAll('.theme-section').forEach(function(s) { s.classList.remove('active'); });
+    document.querySelectorAll('.theme-btn').forEach(function(b) {
+      b.classList.remove('active', 'border-emerald-500', 'bg-emerald-600', 'text-white');
+      b.classList.add('border-gray-200', 'bg-white', 'text-gray-600');
+      var c = b.querySelector('.theme-count');
+      if (c) c.className = 'theme-count text-xs font-bold mt-0.5 bg-gray-100 text-gray-500 rounded-full px-1.5 inline-block';
+    });
+    var content = document.getElementById('theme-content-' + idx);
+    if (content) content.classList.add('active');
+    btn.classList.add('active', 'border-emerald-500', 'bg-emerald-600', 'text-white');
+    btn.classList.remove('border-gray-200', 'bg-white', 'text-gray-600');
+    var c = btn.querySelector('.theme-count');
+    if (c) c.className = 'theme-count text-xs font-bold mt-0.5 bg-white/20 text-white rounded-full px-1.5 inline-block';
+  };
+})();
+</script>
 {% endblock %}

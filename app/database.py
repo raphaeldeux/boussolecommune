@@ -399,6 +399,24 @@ def init_db():  # noqa: C901
         )
         conn.commit()
 
+    if not _column_exists(conn, "conseils", "progres_resume"):
+        conn.execute(
+            "ALTER TABLE conseils ADD COLUMN progres_resume INTEGER DEFAULT NULL"
+        )
+        conn.commit()
+
+    if not _column_exists(conn, "conseils", "message_resume"):
+        conn.execute(
+            "ALTER TABLE conseils ADD COLUMN message_resume TEXT DEFAULT NULL"
+        )
+        conn.commit()
+
+    if not _column_exists(conn, "conseils", "type_conseil"):
+        conn.execute(
+            "ALTER TABLE conseils ADD COLUMN type_conseil TEXT NOT NULL DEFAULT 'municipal'"
+        )
+        conn.commit()
+
     # Table documents publics (US-T7)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS documents (

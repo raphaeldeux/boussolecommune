@@ -110,12 +110,12 @@
 
         <!-- Thématiques : bouton seulement (panel hors du overflow-x-auto, voir bas de nav) -->
         {% set nav_items = [
-          ('finances',   '💰', 'Finances'),
-          ('cadre_vie',  '🌳', 'Cadre de vie'),
-          ('personnes',  '❤️', 'Personnes'),
-          ('lien_social','🤝', 'Lien social'),
-          ('democratie', '🏛️', 'Démocratie'),
-          ('vivant',     '🌿', 'Vivant')
+          ('finances',   '💰', 'Soin des finances'),
+          ('cadre_vie',  '🌳', 'Soin du cadre de vie'),
+          ('personnes',  '❤️', 'Soin des personnes'),
+          ('lien_social','🤝', 'Soin du lien social'),
+          ('democratie', '🏛️', 'Soin de la démocratie'),
+          ('vivant',     '🌿', 'Soin du vivant')
         ] %}
         <button id="them-dd-btn"
                 onclick="toggleThemDropdown()"
@@ -179,9 +179,9 @@
         🏘️ Portrait
       </a>
       {% set nav_items_m = [
-        ('finances','💰','Finances'),('cadre_vie','🌳','Cadre de vie'),
-        ('personnes','❤️','Personnes'),('lien_social','🤝','Lien social'),
-        ('democratie','🏛️','Démocratie'),('vivant','🌿','Vivant')
+        ('finances','💰','Soin des finances'),('cadre_vie','🌳','Soin du cadre de vie'),
+        ('personnes','❤️','Soin des personnes'),('lien_social','🤝','Soin du lien social'),
+        ('democratie','🏛️','Soin de la démocratie'),('vivant','🌿','Soin du vivant')
       ] %}
       {% for nav_slug, nav_icon, nav_label in nav_items_m %}
       <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}"
