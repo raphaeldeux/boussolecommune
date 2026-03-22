@@ -31,12 +31,58 @@
     {% endif %}
   </div>
 
-  <!-- Résumé citoyen -->
-  {% if conseil.resume_citoyen %}
+  {% if structure and structure.themes %}
+  <!-- Affichage structuré par thème -->
+  <div class="space-y-4">
+    {% for theme in structure.themes %}
+    <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <!-- En-tête du thème -->
+      <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-base font-semibold text-gray-900">{{ theme.titre }}</h2>
+        {% if theme.resume %}
+        <p class="text-sm text-gray-600 mt-1 leading-relaxed">{{ theme.resume }}</p>
+        {% endif %}
+      </div>
+
+      {% if theme.deliberations %}
+      <!-- Liste des délibérations -->
+      <div class="divide-y divide-gray-50">
+        {% for delib in theme.deliberations %}
+        <div class="px-6 py-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900">{{ delib.titre }}</p>
+              {% if delib.description %}
+              <p class="text-sm text-gray-500 mt-1 leading-relaxed">{{ delib.description }}</p>
+              {% endif %}
+            </div>
+            {% if delib.vote %}
+            {% set vote = delib.vote %}
+            {% set majority = vote.pour > vote.contre %}
+            <div class="flex-shrink-0">
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
+                {% if majority %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                {% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+                ✓ {{ vote.pour }} · ✗ {{ vote.contre }}{% if vote.abstentions %} · ~ {{ vote.abstentions }}{% endif %}
+              </span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% elif conseil.resume_citoyen %}
+  <!-- Fallback : résumé texte brut -->
   <div class="bg-white rounded-xl border border-gray-200 p-6">
     <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Résumé en langage citoyen</h2>
     <div class="prose prose-sm max-w-none text-gray-700 leading-relaxed whitespace-pre-line">{{ conseil.resume_citoyen }}</div>
   </div>
+
   {% else %}
   <div class="bg-gray-50 rounded-xl border border-gray-200 p-8 text-center text-gray-400">
     <p class="text-sm">Le résumé citoyen est en cours de rédaction.</p>
