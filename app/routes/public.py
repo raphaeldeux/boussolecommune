@@ -300,9 +300,19 @@ def thematique(ville_slug, slug):
     enrichis = [_enrichir_indicateur(i, ville["id"]) for i in indicateurs]
     renseignes = [e for e in enrichis if e["donnee"]]
 
+    def _amelioration(e):
+        t, s = e.get("tendance"), e.get("sens_positif", "neutre")
+        if not t or t == "→": return False
+        return t == "↘" if s == "bas" else t == "↗"
+
+    def _surveiller(e):
+        t, s = e.get("tendance"), e.get("sens_positif", "neutre")
+        if not t or t == "→": return False
+        return t == "↗" if s == "bas" else t == "↘"
+
     grouped = {
-        "amelioration": [e for e in renseignes if e["tendance"] == "↗"],
-        "surveiller":   [e for e in renseignes if e["tendance"] == "↘"],
+        "amelioration": [e for e in renseignes if _amelioration(e)],
+        "surveiller":   [e for e in renseignes if _surveiller(e)],
         "stable":       [e for e in renseignes if e["tendance"] == "→"],
         "no_history":   [e for e in renseignes if not e["tendance"]],  # 1 seule année de données
         "unset":        [e for e in enrichis   if not e["donnee"]],

@@ -122,7 +122,7 @@
 {% if grouped.stable %}
 <section>
   {{ section_header('→', 'Stable', 'Stables', grouped.stable, 'text-gray-500', 'text-gray-400') }}
-  <div class="sm:grid sm:grid-cols-2 sm:gap-4 space-y-3 sm:space-y-0">
+  <div class="space-y-3">
     {% for ind in grouped.stable %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300 overflow-hidden">
       {% include "public/_ind_card.html" %}
