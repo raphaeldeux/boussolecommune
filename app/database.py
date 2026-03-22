@@ -135,7 +135,7 @@ def init_db():  # noqa: C901
             libelle_reference TEXT,
             annee_reference INTEGER,
             description TEXT,
-            source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine')),
+            source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine','api_rpls','api_cerema')),
             actif INTEGER DEFAULT 1
         )
     """)
@@ -206,6 +206,26 @@ def init_db():  # noqa: C901
     """)
 
     conn.commit()
+
+    # Migration : ajouter api_cerema au CHECK source_type si absent
+    row = conn.execute(
+        "SELECT constraint_name FROM information_schema.table_constraints "
+        "WHERE table_name = 'indicateurs' AND constraint_type = 'CHECK' "
+        "AND constraint_name = 'indicateurs_source_type_check'"
+    ).fetchone()
+    if row:
+        defn = conn.execute(
+            "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+            "WHERE conname = 'indicateurs_source_type_check'"
+        ).fetchone()
+        if defn and "api_cerema" not in defn["pg_get_constraintdef"]:
+            conn.execute("ALTER TABLE indicateurs DROP CONSTRAINT indicateurs_source_type_check")
+            conn.execute(
+                "ALTER TABLE indicateurs ADD CONSTRAINT indicateurs_source_type_check "
+                "CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle',"
+                "'api_macantine','api_rpls','api_cerema'))"
+            )
+            conn.commit()
 
     # Seed ville Sautron par défaut
     conn.execute(
