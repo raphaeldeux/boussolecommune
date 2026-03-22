@@ -393,6 +393,12 @@ def init_db():  # noqa: C901
     )
     conn.commit()
 
+    if not _column_exists(conn, "conseils", "resume_structure"):
+        conn.execute(
+            "ALTER TABLE conseils ADD COLUMN resume_structure TEXT DEFAULT NULL"
+        )
+        conn.commit()
+
     # Table documents publics (US-T7)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS documents (
