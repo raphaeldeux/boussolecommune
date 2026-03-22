@@ -18,13 +18,21 @@ BASE_URL = "https://ma-cantine.agriculture.gouv.fr/api/v1"
 SOURCE = "ma-cantine.agriculture.gouv.fr"
 TIMEOUT = 15
 
-# Correspondance champ API → indicateur_id
-CHAMPS = {
-    "bioPercent":                    "eco_part_bio_cantine",
-    "egalimPercent":                 "eco_egalim_cantine",
-    "viandesVolaillesEgalimPercent": "eco_viandes_egalim_cantine",
-    "produitsDeLaMerEgalimPercent":  "eco_mer_egalim_cantine",
+# Correspondance champ API → indicateur_id, par type de gestion
+CHAMPS_DIRECTE = {
+    "bioPercent":                    "eco_part_bio_cantine_directe",
+    "egalimPercent":                 "eco_egalim_cantine_directe",
+    "viandesVolaillesEgalimPercent": "eco_viandes_egalim_cantine_directe",
+    "produitsDeLaMerEgalimPercent":  "eco_mer_egalim_cantine_directe",
 }
+CHAMPS_CONCEDEE = {
+    "bioPercent":                    "eco_part_bio_cantine_concedee",
+    "egalimPercent":                 "eco_egalim_cantine_concedee",
+    "viandesVolaillesEgalimPercent": "eco_viandes_egalim_cantine_concedee",
+    "produitsDeLaMerEgalimPercent":  "eco_mer_egalim_cantine_concedee",
+}
+# Alias pour compatibilité avec l'appel direct (gestion directe par défaut)
+CHAMPS = CHAMPS_DIRECTE
 
 
 def fetch_all_cantine_data(code_insee: str) -> dict:
@@ -46,18 +54,20 @@ def fetch_all_cantine_data(code_insee: str) -> dict:
     annees_ok = []
 
     for annee in range(2020, annee_max + 1):
-        result = fetch_cantine_data(code_insee, annee)
-        if not result["ok"]:
-            erreurs.append(f"{annee} : {result['error']}")
-            continue
-        annees_ok.append(annee)
-        for ind_id, valeur in result["indicateurs"].items():
-            lignes.append({
-                "indicateur_id": ind_id,
-                "annee": annee,
-                "valeur": valeur,
-                "source": SOURCE,
-            })
+        for mgmt, champs in [("direct", CHAMPS_DIRECTE), ("conceded", CHAMPS_CONCEDEE)]:
+            result = fetch_cantine_data(code_insee, annee, management_type=mgmt, champs=champs)
+            if not result["ok"]:
+                erreurs.append(f"{annee} ({mgmt}) : {result['error']}")
+                continue
+            if annee not in annees_ok:
+                annees_ok.append(annee)
+            for ind_id, valeur in result["indicateurs"].items():
+                lignes.append({
+                    "indicateur_id": ind_id,
+                    "annee": annee,
+                    "valeur": valeur,
+                    "source": SOURCE,
+                })
 
     if not lignes:
         return {"ok": False, "error": "Aucune donnée disponible pour cette commune"}
@@ -70,7 +80,7 @@ def fetch_all_cantine_data(code_insee: str) -> dict:
     }
 
 
-def fetch_cantine_data(code_insee: str, annee: int) -> dict:
+def fetch_cantine_data(code_insee: str, annee: int, management_type: str = None, champs: dict = None) -> dict:
     """
     Interroge l'API ma-cantine pour une commune et une année données.
 
@@ -89,10 +99,17 @@ def fetch_cantine_data(code_insee: str, annee: int) -> dict:
     ou en cas d'erreur :
       {"ok": False, "error": str}
     """
+    if champs is None:
+        champs = CHAMPS_DIRECTE
+
+    params = {"city": code_insee, "year": annee}
+    if management_type:
+        params["management_type"] = management_type
+
     try:
         resp = requests.get(
             f"{BASE_URL}/canteenStatistics/",
-            params={"city": code_insee, "year": annee},
+            params=params,
             timeout=TIMEOUT,
         )
         resp.raise_for_status()
@@ -114,7 +131,7 @@ def fetch_cantine_data(code_insee: str, annee: int) -> dict:
         return {"ok": False, "error": f"{canteen_count} cantine(s) référencée(s) mais aucune télédéclaration pour {annee}"}
 
     indicateurs = {}
-    for champ, ind_id in CHAMPS.items():
+    for champ, ind_id in champs.items():
         val = data.get(champ)
         # On n'insère pas si la valeur est None ou si c'est 0 sans déclaration
         if val is not None:

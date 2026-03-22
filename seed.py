@@ -387,10 +387,10 @@ INDICATEURS = [
         "source_type": "csv_generique",
     },
     {
-        "id": "eco_part_bio_cantine",
+        "id": "eco_part_bio_cantine_directe",
         "thematique": "personnes",
-        "libelle_citoyen": "La cantine sert-elle suffisamment de produits bio ?",
-        "libelle_technique": "Part des produits bio en restauration collective",
+        "libelle_citoyen": "La cantine (gestion directe) sert-elle suffisamment de produits bio ?",
+        "libelle_technique": "Part des produits bio — cantines en gestion directe",
         "unite": "%",
         "sens_positif": "haut",
         "seuil_vert": 20.0,
@@ -398,17 +398,33 @@ INDICATEURS = [
         "seuil_rouge": 5.0,
         "valeur_reference": 20.0,
         "libelle_reference": "Objectif loi EGAlim : 20 % de bio minimum",
-        "description": "Part des achats alimentaires de la restauration collective "
-                       "provenant de l'agriculture biologique. La loi EGAlim de 2018 impose "
-                       "un minimum de 20 % de produits bio depuis le 1er janvier 2022. "
-                       "Données issues de la plateforme ma-cantine.agriculture.gouv.fr.",
+        "description": "Part des achats alimentaires bio dans les cantines gérées directement "
+                       "par la commune (gestion directe). La loi EGAlim impose 20 % de bio "
+                       "depuis janvier 2022. Données : ma-cantine.agriculture.gouv.fr.",
         "source_type": "api_macantine",
     },
     {
-        "id": "eco_egalim_cantine",
+        "id": "eco_part_bio_cantine_concedee",
         "thematique": "personnes",
-        "libelle_citoyen": "Quelle part de produits durables et de qualité à la cantine ?",
-        "libelle_technique": "Part des produits EGAlim en restauration collective",
+        "libelle_citoyen": "La cantine (gestion concédée) sert-elle suffisamment de produits bio ?",
+        "libelle_technique": "Part des produits bio — cantines en gestion concédée",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 20.0,
+        "seuil_orange": 12.0,
+        "seuil_rouge": 5.0,
+        "valeur_reference": 20.0,
+        "libelle_reference": "Objectif loi EGAlim : 20 % de bio minimum",
+        "description": "Part des achats alimentaires bio dans les cantines déléguées à un "
+                       "prestataire privé (gestion concédée). La loi EGAlim impose 20 % de bio "
+                       "depuis janvier 2022. Données : ma-cantine.agriculture.gouv.fr.",
+        "source_type": "api_macantine",
+    },
+    {
+        "id": "eco_egalim_cantine_directe",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quelle part de produits durables à la cantine (gestion directe) ?",
+        "libelle_technique": "Part des produits EGAlim — cantines en gestion directe",
         "unite": "%",
         "sens_positif": "haut",
         "seuil_vert": 50.0,
@@ -416,18 +432,31 @@ INDICATEURS = [
         "seuil_rouge": 20.0,
         "valeur_reference": 50.0,
         "libelle_reference": "Objectif loi EGAlim : 50 % de produits durables et de qualité",
-        "description": "Part globale des achats alimentaires répondant aux critères EGAlim "
-                       "(bio, labels de qualité SIQO, produits locaux sous signe de qualité…). "
-                       "La loi EGAlim de 2018 impose 50 % de produits durables et de qualité "
-                       "dont 20 % bio depuis le 1er janvier 2022. "
-                       "Données issues de la plateforme ma-cantine.agriculture.gouv.fr.",
+        "description": "Part des achats EGAlim dans les cantines en gestion directe. "
+                       "Données : ma-cantine.agriculture.gouv.fr.",
         "source_type": "api_macantine",
     },
     {
-        "id": "eco_viandes_egalim_cantine",
+        "id": "eco_egalim_cantine_concedee",
         "thematique": "personnes",
-        "libelle_citoyen": "Quelle part de viandes et volailles de qualité à la cantine ?",
-        "libelle_technique": "Part des viandes et volailles EGAlim en restauration collective",
+        "libelle_citoyen": "Quelle part de produits durables à la cantine (gestion concédée) ?",
+        "libelle_technique": "Part des produits EGAlim — cantines en gestion concédée",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 50.0,
+        "seuil_orange": 35.0,
+        "seuil_rouge": 20.0,
+        "valeur_reference": 50.0,
+        "libelle_reference": "Objectif loi EGAlim : 50 % de produits durables et de qualité",
+        "description": "Part des achats EGAlim dans les cantines en gestion concédée. "
+                       "Données : ma-cantine.agriculture.gouv.fr.",
+        "source_type": "api_macantine",
+    },
+    {
+        "id": "eco_viandes_egalim_cantine_directe",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quelle part de viandes de qualité à la cantine (gestion directe) ?",
+        "libelle_technique": "Part des viandes EGAlim — cantines en gestion directe",
         "unite": "%",
         "sens_positif": "haut",
         "seuil_vert": 60.0,
@@ -435,17 +464,31 @@ INDICATEURS = [
         "seuil_rouge": 20.0,
         "valeur_reference": 60.0,
         "libelle_reference": "Objectif EGAlim : 60 % de viandes et volailles durables",
-        "description": "Part des achats de viandes et volailles répondant aux critères EGAlim "
-                       "(bio, label rouge, AOC/AOP, élevage sous signes de qualité…). "
-                       "La loi EGAlim fixe un objectif de 60 % pour cette catégorie spécifique. "
-                       "Données issues de la plateforme ma-cantine.agriculture.gouv.fr.",
+        "description": "Part des viandes et volailles EGAlim dans les cantines en gestion directe. "
+                       "Données : ma-cantine.agriculture.gouv.fr.",
         "source_type": "api_macantine",
     },
     {
-        "id": "eco_mer_egalim_cantine",
+        "id": "eco_viandes_egalim_cantine_concedee",
         "thematique": "personnes",
-        "libelle_citoyen": "Quelle part de poissons et produits de la mer durables à la cantine ?",
-        "libelle_technique": "Part des produits de la mer EGAlim en restauration collective",
+        "libelle_citoyen": "Quelle part de viandes de qualité à la cantine (gestion concédée) ?",
+        "libelle_technique": "Part des viandes EGAlim — cantines en gestion concédée",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 60.0,
+        "seuil_orange": 40.0,
+        "seuil_rouge": 20.0,
+        "valeur_reference": 60.0,
+        "libelle_reference": "Objectif EGAlim : 60 % de viandes et volailles durables",
+        "description": "Part des viandes et volailles EGAlim dans les cantines en gestion concédée. "
+                       "Données : ma-cantine.agriculture.gouv.fr.",
+        "source_type": "api_macantine",
+    },
+    {
+        "id": "eco_mer_egalim_cantine_directe",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quelle part de produits de la mer durables à la cantine (gestion directe) ?",
+        "libelle_technique": "Part des produits de la mer EGAlim — cantines en gestion directe",
         "unite": "%",
         "sens_positif": "haut",
         "seuil_vert": 60.0,
@@ -453,10 +496,24 @@ INDICATEURS = [
         "seuil_rouge": 20.0,
         "valeur_reference": 60.0,
         "libelle_reference": "Objectif EGAlim : 60 % de produits de la mer durables",
-        "description": "Part des achats de poissons et produits aquacoles répondant aux critères "
-                       "EGAlim (pêche durable MSC, aquaculture certifiée, produits bio…). "
-                       "La loi EGAlim fixe un objectif de 60 % pour cette catégorie. "
-                       "Données issues de la plateforme ma-cantine.agriculture.gouv.fr.",
+        "description": "Part des produits de la mer EGAlim dans les cantines en gestion directe. "
+                       "Données : ma-cantine.agriculture.gouv.fr.",
+        "source_type": "api_macantine",
+    },
+    {
+        "id": "eco_mer_egalim_cantine_concedee",
+        "thematique": "personnes",
+        "libelle_citoyen": "Quelle part de produits de la mer durables à la cantine (gestion concédée) ?",
+        "libelle_technique": "Part des produits de la mer EGAlim — cantines en gestion concédée",
+        "unite": "%",
+        "sens_positif": "haut",
+        "seuil_vert": 60.0,
+        "seuil_orange": 40.0,
+        "seuil_rouge": 20.0,
+        "valeur_reference": 60.0,
+        "libelle_reference": "Objectif EGAlim : 60 % de produits de la mer durables",
+        "description": "Part des produits de la mer EGAlim dans les cantines en gestion concédée. "
+                       "Données : ma-cantine.agriculture.gouv.fr.",
         "source_type": "api_macantine",
     },
     {
@@ -749,6 +806,15 @@ def seed():
     inserted = 0
     updated = 0
     skipped = 0
+
+    # Migration : suppression des anciens IDs ma-cantine remplacés par _directe / _concedee
+    OLD_MACANTINE_IDS = [
+        "eco_part_bio_cantine", "eco_egalim_cantine",
+        "eco_viandes_egalim_cantine", "eco_mer_egalim_cantine",
+    ]
+    for old_id in OLD_MACANTINE_IDS:
+        conn.execute("DELETE FROM donnees WHERE indicateur_id = %s", (old_id,))
+        conn.execute("DELETE FROM indicateurs WHERE id = %s", (old_id,))
 
     for ind in INDICATEURS:
         existing = conn.execute(
