@@ -73,17 +73,18 @@ def delete(conseil_id):
     return dict(row)["fichier_pdf"] if row else None
 
 
-def set_statut_resume(conseil_id, statut, resume_citoyen=None):
-    """Met à jour statut_resume et optionnellement resume_citoyen."""
+def set_statut_resume(conseil_id, statut, resume_citoyen=None, resume_structure=None):
+    """Met à jour statut_resume et optionnellement resume_citoyen et/ou resume_structure."""
+    champs = [("statut_resume", statut)]
+    if resume_citoyen is not None:
+        champs.append(("resume_citoyen", resume_citoyen))
+    if resume_structure is not None:
+        champs.append(("resume_structure", resume_structure))
+    set_clause = ", ".join(f"{col}=%s" for col, _ in champs)
+    valeurs = [val for _, val in champs] + [conseil_id]
     with get_db() as conn:
-        if resume_citoyen is not None:
-            conn.execute(
-                "UPDATE conseils SET statut_resume=%s, resume_citoyen=%s WHERE id=%s",
-                (statut, resume_citoyen, conseil_id)
-            )
-        else:
-            conn.execute(
-                "UPDATE conseils SET statut_resume=%s WHERE id=%s",
-                (statut, conseil_id)
-            )
+        conn.execute(
+            f"UPDATE conseils SET {set_clause} WHERE id=%s",
+            valeurs
+        )
         conn.commit()
