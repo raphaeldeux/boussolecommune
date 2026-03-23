@@ -4,9 +4,57 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}BoussoleCommune{% endblock %}</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet">
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: {
+              950: '#071a10',
+              900: '#0d2b1e',
+              800: '#1a4231',
+              700: '#215639',
+              600: '#285a44',
+              500: '#3d8b6b',
+              200: '#a8d5be',
+              100: '#d4e9df',
+               50: '#edf5f0',
+            },
+            sand: {
+              50:  '#f7f5f0',
+              100: '#ede8df',
+              200: '#dbd4c8',
+              300: '#c5bbae',
+              400: '#a8998a',
+            },
+            ocre: {
+              700: '#7c5420',
+              600: '#9d6e33',
+              500: '#b5803f',
+              100: '#f5e8d4',
+               50: '#fdf6ec',
+            }
+          },
+          fontFamily: {
+            display: ['"Playfair Display"', 'Georgia', 'serif'],
+            body:    ['"DM Sans"', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    body { font-family: "DM Sans", system-ui, sans-serif; }
+
     .score-A { background-color: #16a34a; }
     .score-B { background-color: #65a30d; }
     .score-C { background-color: #d97706; }
@@ -25,33 +73,39 @@
       width: 1.2rem; height: 1.2rem; border-radius: 0.2rem;
       font-weight: 700; font-size: 0.6rem; color: white;
     }
-    /* Masque la scrollbar des tabs sur mobile sans perdre le scroll */
     .tabs-scroll { scrollbar-width: none; -ms-overflow-style: none; }
     .tabs-scroll::-webkit-scrollbar { display: none; }
+
+    /* Grain texture overlay */
+    .grain::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; border-radius: inherit;
+    }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+<body class="bg-sand-50 text-gray-800 min-h-screen flex flex-col">
 
   <!-- ── Barre 1 : contexte ville ──────────────────────────────────── -->
-  <header class="bg-emerald-700 text-white sticky top-0 z-40 shadow">
+  <header class="bg-forest-800 text-white sticky top-0 z-40 shadow-sm">
     <div class="max-w-6xl mx-auto px-4 h-12 flex items-center gap-3">
 
       <!-- Logo -->
       <a href="{{ url_for('public.index') }}"
-         class="flex items-center gap-1.5 text-white hover:text-emerald-200 transition flex-shrink-0">
-        <span class="font-bold text-sm leading-none">BoussoleCommune</span>
+         class="flex items-center gap-1.5 text-white hover:text-forest-100 transition flex-shrink-0">
+        <span class="font-semibold text-sm tracking-wide">BoussoleCommune</span>
       </a>
 
-      <!-- Séparateur -->
-      <span class="text-emerald-600 hidden sm:inline select-none flex-shrink-0">·</span>
+      <span class="text-forest-600 hidden sm:inline select-none flex-shrink-0">·</span>
 
       <!-- Centre : nom de ville + score -->
       <div class="flex-1 min-w-0 flex items-center">
         {% if ville is defined and ville %}
         <div class="flex items-center gap-2 min-w-0">
-          <span class="font-semibold text-white truncate">{{ ville.nom }}</span>
+          <span class="font-medium text-white truncate text-sm">{{ ville.nom }}</span>
           {% if ville.departement_code is defined and ville.departement_code %}
-          <span class="text-xs text-emerald-300 flex-shrink-0">({{ ville.departement_code }})</span>
+          <span class="text-xs text-forest-200 flex-shrink-0">({{ ville.departement_code }})</span>
           {% endif %}
           {% if score_global is defined and score_global %}
           <span class="score-badge score-{{ score_global }} flex-shrink-0"
@@ -64,17 +118,14 @@
 
       <!-- Droite : Admin + hamburger -->
       <div class="flex items-center gap-1 flex-shrink-0">
-
         {% if session.get('user_id') %}
         <a href="{{ url_for('admin.dashboard') }}"
-           class="ml-1 px-2.5 py-1.5 rounded-md bg-emerald-900 hover:bg-emerald-800 text-emerald-200 text-xs font-medium transition">
+           class="ml-1 px-2.5 py-1.5 rounded-md bg-forest-900 hover:bg-forest-950 text-forest-200 text-xs font-medium transition">
           ⚙
         </a>
         {% endif %}
-
-        <!-- Hamburger mobile -->
         <button id="hamburger-btn" aria-label="Menu" aria-expanded="false"
-                class="md:hidden p-1.5 rounded-md hover:bg-emerald-600 transition ml-1"
+                class="md:hidden p-1.5 rounded-md hover:bg-forest-700 transition ml-1"
                 onclick="toggleMobileMenu()">
           <svg id="icon-menu" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
@@ -85,17 +136,16 @@
         </button>
       </div>
     </div>
-
   </header>
 
   <!-- ── Barre 2 : navigation ville (tabs) ─────────────────────────── -->
   {% if ville is defined and ville %}
-  <nav class="bg-white border-b border-gray-200 sticky top-12 z-30 shadow-sm">
+  <nav class="bg-white border-b border-sand-200 sticky top-12 z-30 shadow-sm">
     <div class="max-w-6xl mx-auto px-2 sm:px-4">
       <div class="flex items-end gap-0 h-10 text-sm tabs-scroll overflow-x-auto">
 
-        {% set tab_active = "border-b-2 border-emerald-500 text-emerald-700 font-semibold" %}
-        {% set tab_idle   = "border-b-2 border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300" %}
+        {% set tab_active = "border-b-2 border-forest-700 text-forest-700 font-semibold" %}
+        {% set tab_idle   = "border-b-2 border-transparent text-sand-400 hover:text-gray-700 hover:border-sand-300" %}
 
         <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
@@ -108,7 +158,6 @@
           Portrait
         </a>
 
-        <!-- Thématiques : bouton seulement (panel hors du overflow-x-auto, voir bas de nav) -->
         {% set nav_items = [
           ('finances',   '💰', 'Soin des finances'),
           ('cadre_vie',  '🌳', 'Soin du cadre de vie'),
@@ -132,29 +181,25 @@
              {{ tab_active if request.endpoint == 'public.conseils' else tab_idle }}">
           Conseils
         </a>
-
         <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
              {{ tab_active if request.endpoint == 'public.documents' else tab_idle }}">
           Documents
         </a>
-
         <a href="{{ url_for('public.methodologie') }}"
            class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
              {{ tab_active if request.endpoint == 'public.methodologie' else tab_idle }}">
           Méthodologie
         </a>
-
       </div>
     </div>
-    <!-- Dropdown thématiques : hors du overflow-x-auto pour ne pas être clippé -->
     <div id="them-dropdown"
-         class="hidden absolute w-48 bg-white rounded-b-lg shadow-lg border border-gray-200 py-1 z-50 text-gray-700">
+         class="hidden absolute w-52 bg-white rounded-b-xl shadow-lg border border-sand-200 py-1 z-50">
       {% if ville is defined and ville %}
       {% for nav_slug, nav_icon, nav_label in nav_items %}
       <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}"
-         class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50 transition
-           {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}font-semibold text-emerald-700{% endif %}">
+         class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-sand-50 transition
+           {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}font-semibold text-forest-700{% else %}text-gray-600{% endif %}">
         {{ nav_icon }} {{ nav_label }}
       </a>
       {% endfor %}
@@ -163,21 +208,17 @@
   </nav>
   {% endif %}
 
-  <!-- Mobile menu (hors barre, overlay) -->
+  <!-- Mobile menu -->
   <div id="mobile-menu"
-       class="hidden md:hidden fixed inset-x-0 top-12 z-50 bg-emerald-700 text-white shadow-lg border-t border-emerald-600">
+       class="hidden md:hidden fixed inset-x-0 top-12 z-50 bg-forest-800 text-white shadow-lg border-t border-forest-700">
     <div class="px-3 py-2 flex flex-col gap-0.5 max-h-96 overflow-y-auto">
       {% if ville is defined and ville %}
       <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.dashboard' %}bg-emerald-800{% endif %}"
-         onclick="toggleMobileMenu()">
-        🏠 Tableau de bord
-      </a>
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.dashboard' %}bg-forest-900{% endif %}"
+         onclick="toggleMobileMenu()">🏠 Tableau de bord</a>
       <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.portrait' %}bg-emerald-800{% endif %}"
-         onclick="toggleMobileMenu()">
-        🏘️ Portrait
-      </a>
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.portrait' %}bg-forest-900{% endif %}"
+         onclick="toggleMobileMenu()">🏘️ Portrait</a>
       {% set nav_items_m = [
         ('finances','💰','Soin des finances'),('cadre_vie','🌳','Soin du cadre de vie'),
         ('personnes','❤️','Soin des personnes'),('lien_social','🤝','Soin du lien social'),
@@ -185,40 +226,28 @@
       ] %}
       {% for nav_slug, nav_icon, nav_label in nav_items_m %}
       <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}"
-         class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}bg-emerald-900{% endif %}"
-         onclick="toggleMobileMenu()">
-        {{ nav_icon }} {{ nav_label }}
-      </a>
+         class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}bg-forest-900{% endif %}"
+         onclick="toggleMobileMenu()">{{ nav_icon }} {{ nav_label }}</a>
       {% endfor %}
       <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.conseils' %}bg-emerald-800{% endif %}"
-         onclick="toggleMobileMenu()">
-        🏛️ Conseils
-      </a>
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.conseils' %}bg-forest-900{% endif %}"
+         onclick="toggleMobileMenu()">🏛️ Conseils</a>
       <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.documents' %}bg-emerald-800{% endif %}"
-         onclick="toggleMobileMenu()">
-        📁 Documents
-      </a>
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.documents' %}bg-forest-900{% endif %}"
+         onclick="toggleMobileMenu()">📁 Documents</a>
       <a href="{{ url_for('public.methodologie') }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition {% if request.endpoint == 'public.methodologie' %}bg-emerald-800{% endif %}"
-         onclick="toggleMobileMenu()">
-        📖 Méthodologie
-      </a>
+         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.methodologie' %}bg-forest-900{% endif %}"
+         onclick="toggleMobileMenu()">📖 Méthodologie</a>
       {% endif %}
-      <div class="border-t border-emerald-600 mt-1 pt-2">
+      <div class="border-t border-forest-700 mt-1 pt-2">
         {% if session.get('user_id') %}
         <a href="{{ url_for('admin.dashboard') }}"
-           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition"
-           onclick="toggleMobileMenu()">
-          ⚙️ Administration
-        </a>
+           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition"
+           onclick="toggleMobileMenu()">⚙️ Administration</a>
         {% else %}
         <a href="{{ url_for('admin.login') }}"
-           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-emerald-600 text-sm transition"
-           onclick="toggleMobileMenu()">
-          🔐 Connexion
-        </a>
+           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition"
+           onclick="toggleMobileMenu()">🔐 Connexion</a>
         {% endif %}
       </div>
     </div>
@@ -230,9 +259,9 @@
     <div class="max-w-6xl mx-auto px-4 mt-4 w-full space-y-2">
       {% for cat, msg in messages %}
       <div class="px-4 py-3 rounded-lg text-sm
-        {% if cat == 'success' %}bg-green-50 text-green-800 border border-green-200
+        {% if cat == 'success' %}bg-forest-50 text-forest-800 border border-forest-100
         {% elif cat == 'danger' %}bg-red-50 text-red-800 border border-red-200
-        {% elif cat == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+        {% elif cat == 'warning' %}bg-ocre-50 text-ocre-700 border border-ocre-100
         {% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %}">
         {{ msg }}
       </div>
@@ -247,12 +276,12 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-white border-t border-gray-100 mt-8">
-    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-gray-400">
-      <span>BoussoleCommune · Observatoire citoyen indépendant</span>
+  <footer class="bg-white border-t border-sand-200 mt-8">
+    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-sand-400">
+      <span class="font-body">BoussoleCommune · Observatoire citoyen indépendant</span>
       <div class="flex gap-4">
-        <a href="{{ url_for('public.methodologie') }}" class="hover:text-emerald-600 transition">Note méthodologique</a>
-        <a href="mailto:contact@sautronautrement.fr" class="hover:text-emerald-600 transition">Contact</a>
+        <a href="{{ url_for('public.methodologie') }}" class="hover:text-forest-700 transition">Note méthodologique</a>
+        <a href="mailto:contact@sautronautrement.fr" class="hover:text-forest-700 transition">Contact</a>
       </div>
     </div>
   </footer>
@@ -260,7 +289,6 @@
   {% block scripts %}{% endblock %}
 
   <script>
-  // ── Mobile menu ────────────────────────────────────────────────────
   function toggleMobileMenu() {
     var menu = document.getElementById('mobile-menu');
     var btn  = document.getElementById('hamburger-btn');
@@ -272,12 +300,10 @@
     iconClose.classList.toggle('hidden', open);
   }
 
-  // ── Thématiques dropdown ────────────────────────────────────────────
   function toggleThemDropdown() {
     var panel = document.getElementById('them-dropdown');
     var btn   = document.getElementById('them-dd-btn');
     if (panel.classList.contains('hidden')) {
-      // Positionner le panel sous le bouton (hors du overflow-x-auto)
       var bRect = btn.getBoundingClientRect();
       var nav   = btn.closest('nav');
       var nRect = nav.getBoundingClientRect();
@@ -292,14 +318,12 @@
     var btn = document.getElementById('them-dd-btn');
     var d   = document.getElementById('them-dropdown');
     if (btn && d && !btn.contains(e.target) && !d.contains(e.target)) d.classList.add('hidden');
-
     var menu = document.getElementById('mobile-menu');
-    var btn  = document.getElementById('hamburger-btn');
-    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && btn && !btn.contains(e.target)) {
+    var hbtn = document.getElementById('hamburger-btn');
+    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && hbtn && !hbtn.contains(e.target)) {
       toggleMobileMenu();
     }
   });
-
   </script>
 
 </body>
