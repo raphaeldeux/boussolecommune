@@ -34,8 +34,8 @@
           BoussoleCommune · {{ ville.nom }}
         </p>
 
-        <h1 class="font-display text-3xl sm:text-4xl font-bold leading-tight mb-4"
-            style="color: #1a1a16; font-family: 'Playfair Display', Georgia, serif;">
+        <h1 class="text-3xl sm:text-4xl font-bold leading-tight mb-4"
+            style="color: #1a1a16">
           Tout ce qui se décide<br>
           à <em class="not-italic" style="color: {{ sc_text }}">{{ ville.nom }}</em>.<br>
           <span class="italic font-normal text-2xl sm:text-3xl" style="color: #5c5448;">
@@ -92,7 +92,7 @@
       <div class="flex-shrink-0 flex flex-col items-center self-start">
         <div class="score-badge score-{{ score_global }} shadow-sm"
              style="width:5.5rem;height:5.5rem;font-size:3rem;border-radius:1.25rem;
-                    font-family:'Playfair Display',Georgia,serif;line-height:5.5rem;
+                    line-height:5.5rem;
                     box-shadow: 0 4px 20px {{ sc_border }}80;">
           {{ score_global }}
         </div>
@@ -180,10 +180,10 @@
     <div class="px-5 py-5">
       <div class="text-2xl mb-3">{{ ind.icon }}</div>
       <div class="text-xs mb-1.5 leading-snug" style="color: #9d8c7a;">{{ ind.libelle_citoyen }}</div>
-      <div class="font-display text-2xl font-bold leading-none mb-1"
-           style="color: #1a1a16; font-family: 'Playfair Display', Georgia, serif;">
+      <div class="text-2xl font-bold leading-none mb-1"
+           style="color: #1a1a16">
         {{ ind.donnee.valeur | format_valeur }}
-        <span class="text-sm font-body font-normal" style="color: #9d8c7a; font-family: 'DM Sans', sans-serif;">{{ ind.unite }}</span>
+        <span class="text-sm font-body font-normal" style="color: #9d8c7a">{{ ind.unite }}</span>
       </div>
       {% if ind.tendance and ind.valeur_ancienne is not none %}
       <div class="text-xs font-semibold mt-1.5">
@@ -212,8 +212,8 @@
 {% if derniers_conseils %}
 <div class="mb-8">
   <div class="flex items-baseline justify-between mb-4">
-    <h2 class="font-display text-xl font-semibold"
-        style="color: #1a1a16; font-family: 'Playfair Display', Georgia, serif;">
+    <h2 class="text-xl font-semibold"
+        style="color: #1a1a16">
       Derniers conseils municipaux
     </h2>
     <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
@@ -279,9 +279,9 @@
             <div class="text-xs" style="color: #9d8c7a;">{{ ind._them_label }}</div>
           </div>
           {% if ind.donnee %}
-          <div class="text-sm font-semibold flex-shrink-0 text-right" style="color: #1a1a16; font-family: 'Playfair Display', serif;">
+          <div class="text-sm font-semibold flex-shrink-0 text-right" style="color: #1a1a16">
             {{ ind.donnee.valeur | format_valeur }}
-            <span class="text-xs font-normal" style="color: #9d8c7a; font-family: 'DM Sans', sans-serif;">{{ ind.unite }}</span>
+            <span class="text-xs font-normal" style="color: #9d8c7a">{{ ind.unite }}</span>
           </div>
           {% endif %}
         </div>
@@ -302,9 +302,9 @@
             <div class="text-xs" style="color: #9d8c7a;">{{ ind._them_label }}</div>
           </div>
           {% if ind.donnee %}
-          <div class="text-sm font-semibold flex-shrink-0 text-right" style="color: #1a1a16; font-family: 'Playfair Display', serif;">
+          <div class="text-sm font-semibold flex-shrink-0 text-right" style="color: #1a1a16">
             {{ ind.donnee.valeur | format_valeur }}
-            <span class="text-xs font-normal" style="color: #9d8c7a; font-family: 'DM Sans', sans-serif;">{{ ind.unite }}</span>
+            <span class="text-xs font-normal" style="color: #9d8c7a">{{ ind.unite }}</span>
           </div>
           {% endif %}
         </div>
@@ -317,8 +317,8 @@
 
   {# Cartes thématiques #}
   <div class="flex items-baseline justify-between mb-4">
-    <h2 class="font-display text-xl font-semibold"
-        style="color: #1a1a16; font-family: 'Playfair Display', Georgia, serif;">
+    <h2 class="text-xl font-semibold"
+        style="color: #1a1a16">
       Les 6 thématiques
     </h2>
   </div>
