@@ -470,4 +470,13 @@ def init_db():  # noqa: C901
     """)
     conn.commit()
 
+    # Migrations homepage 5-blocs : whatsapp_url + indicateurs_vedettes
+    if not _column_exists(conn, 'villes', 'whatsapp_url'):
+        conn.execute("ALTER TABLE villes ADD COLUMN whatsapp_url TEXT DEFAULT NULL")
+        conn.commit()
+
+    if not _column_exists(conn, 'villes', 'indicateurs_vedettes'):
+        conn.execute("ALTER TABLE villes ADD COLUMN indicateurs_vedettes TEXT DEFAULT NULL")
+        conn.commit()
+
     conn.close()

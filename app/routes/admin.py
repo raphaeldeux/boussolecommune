@@ -1360,14 +1360,28 @@ def modifier_ville(ville_id):
         nb_conseillers_str = request.form.get("nb_conseillers", "").strip()
         nb_conseillers = int(nb_conseillers_str) if nb_conseillers_str.isdigit() else None
 
+        whatsapp_url = request.form.get("whatsapp_url", "").strip() or None
+        vedettes = [
+            request.form.get("vedette_1", "").strip(),
+            request.form.get("vedette_2", "").strip(),
+            request.form.get("vedette_3", "").strip(),
+        ]
+        indicateurs_vedettes = ",".join(v for v in vedettes if v) or None
+
         if not nom or not slug:
             flash("Le nom et le slug sont requis.", "danger")
         else:
-            ville_model.update(ville_id, nom, slug, population, actif, code_insee, nb_conseillers)
+            ville_model.update(ville_id, nom, slug, population, actif, code_insee, nb_conseillers,
+                               whatsapp_url, indicateurs_vedettes)
             flash(f"Ville « {nom} » mise à jour.", "success")
             return redirect(url_for("admin.villes"))
 
-    return render_template("admin/modifier_ville.html", ville=ville)
+    tous_indicateurs = ind_model.get_all(actif_only=True)
+    vedettes_actuelles = (ville.get("indicateurs_vedettes") or "").split(",")
+    vedettes_actuelles += ["", "", ""]  # ensure at least 3 slots
+    return render_template("admin/modifier_ville.html", ville=ville,
+                           tous_indicateurs=tous_indicateurs,
+                           vedettes_actuelles=vedettes_actuelles)
 
 
 # ── Gestion des utilisateurs (super_admin) ────────────────────────────────

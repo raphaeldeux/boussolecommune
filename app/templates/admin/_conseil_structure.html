@@ -1,0 +1,80 @@
+<!-- Légende -->
+<div class="flex flex-wrap items-center gap-4 mb-3 px-1 text-xs text-gray-400">
+  <span class="flex items-center gap-1.5">
+    <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Adopté
+  </span>
+  <span class="flex items-center gap-1.5">
+    <span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span> Rejeté
+  </span>
+  <span class="flex items-center gap-1.5">
+    <span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span> Information
+  </span>
+</div>
+
+<div class="space-y-3">
+  {% for theme in structure.themes %}
+  <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-sm font-semibold text-gray-900">{{ theme.titre }}</p>
+        {% if theme.total_subventions %}
+        <span class="text-xs font-bold text-emerald-600 flex-shrink-0">{{ theme.total_subventions }}</span>
+        {% endif %}
+      </div>
+      {% if theme.resume %}
+      <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ theme.resume }}</p>
+      {% endif %}
+    </div>
+    <!-- US-C : Tableau subventions -->
+    {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
+    {% if subventions | length > 1 %}
+    <div class="px-5 py-3 bg-emerald-50 border-b border-emerald-100">
+      <p class="text-xs font-semibold text-emerald-700 mb-1.5">Récapitulatif</p>
+      <table class="w-full text-xs">
+        {% for s in subventions %}
+        <tr class="border-b border-emerald-100 last:border-0">
+          <td class="py-0.5 text-gray-700">{{ s.beneficiaire }}</td>
+          <td class="py-0.5 text-right font-semibold text-emerald-700">{{ s.montant }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+    {% endif %}
+
+    {% for delib in theme.deliberations %}
+    <div class="px-5 py-3 border-b border-gray-100 last:border-0">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-gray-800">{{ delib.titre }}</p>
+          {% if delib.beneficiaire %}
+          <p class="text-xs font-medium text-emerald-700 mt-0.5">→ {{ delib.beneficiaire }}</p>
+          {% endif %}
+          {% if delib.description %}
+          <p class="text-xs text-gray-500 mt-1 leading-relaxed">{{ delib.description }}</p>
+          {% endif %}
+          {% if delib.montant %}
+          <p class="text-xs font-bold text-emerald-600 mt-1">{{ delib.montant }}</p>
+          {% endif %}
+        </div>
+        <div class="flex-shrink-0 text-right">
+          {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
+          {% set majority = delib.vote.pour > delib.vote.contre %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold
+            {{ 'bg-emerald-100 text-emerald-700' if majority else 'bg-red-100 text-red-700' }}">
+            {{ '✅ Adopté' if majority else '❌ Rejeté' }}
+          </span>
+          <p class="text-xs text-gray-400 mt-0.5">
+            ✓ {{ delib.vote.pour }} · ✗ {{ delib.vote.contre }}{% if delib.vote.abstentions %} · ○ {{ delib.vote.abstentions }}{% endif %}
+          </p>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+            Info
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>

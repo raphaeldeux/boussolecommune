@@ -269,9 +269,57 @@ def commune(slug):
 
 @bp.route("/v/<ville_slug>/")
 def dashboard(ville_slug):
+    import json as _json
+    from app.models.indicateur import THEMATIQUE_ICONS, THEMATIQUE_LABELS
+
     ville = _get_ville_or_404(ville_slug)
     cartes, score_global, top_inds, flop_inds = _build_cartes(ville["id"])
     derniere_maj = donnee_model.get_derniere_maj(ville["id"])
+
+    # Enrich conseils with structure data
+    from app.models.conseil import get_publies as conseils_get_publies
+    conseils_raw = conseils_get_publies(ville["id"], limit=3)
+
+    def _enrich_conseil_card(c):
+        nb_delib = 0
+        theme_dominant = None
+        structure = c.get("resume_structure")
+        if structure:
+            try:
+                data = _json.loads(structure)
+                nb_delib = data.get("nb_points_odj") or 0
+                themes = data.get("themes") or []
+                if themes:
+                    best = max(themes, key=lambda t: len(t.get("deliberations") or []))
+                    theme_dominant = best.get("titre")
+            except Exception:
+                pass
+        return {**c, "nb_delib": nb_delib, "theme_dominant": theme_dominant}
+
+    derniers_conseils = [_enrich_conseil_card(c) for c in conseils_raw]
+
+    # Load featured indicators
+    vedettes_ids = [v.strip() for v in (ville.get("indicateurs_vedettes") or "").split(",") if v.strip()]
+    indicateurs_vedettes = []
+    for ind_id in vedettes_ids[:3]:
+        ind = ind_model.get_by_id(ind_id)
+        if not ind:
+            continue
+        enrichi = _enrichir_indicateur(ind, ville["id"])
+        if not enrichi.get("donnee"):
+            continue
+        enrichi["icon"] = THEMATIQUE_ICONS.get(enrichi.get("thematique"), "📊")
+        t = enrichi.get("tendance")
+        s = enrichi.get("sens_positif", "neutre")
+        enrichi["tendance_bonne"] = bool(t and t != "→" and (
+            (t == "↘" and s == "bas") or (t == "↗" and s != "bas")
+        ))
+        enrichi["tendance_mauvaise"] = bool(t and t != "→" and (
+            (t == "↗" and s == "bas") or (t == "↘" and s != "bas")
+        ))
+        indicateurs_vedettes.append(enrichi)
+
+    from app.models.document import get_publies as docs_get_publies
     return render_template(
         "public/dashboard.html",
         ville=ville,
@@ -284,8 +332,9 @@ def dashboard(ville_slug):
         radar_labels=[c["label"] for c in cartes],
         radar_values=[SCORE_VALEURS.get(c["score"], 0) for c in cartes],
         radar_colors=[c["score_couleur"] for c in cartes],
-        derniers_conseils=__import__('app.models.conseil', fromlist=['get_publies']).get_publies(ville["id"], limit=3),
-        documents_recents=__import__('app.models.document', fromlist=['get_publies']).get_publies(ville["id"], limit=3),
+        derniers_conseils=derniers_conseils,
+        indicateurs_vedettes=indicateurs_vedettes,
+        documents_recents=docs_get_publies(ville["id"], limit=3),
     )
 
 

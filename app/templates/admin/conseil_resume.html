@@ -15,9 +15,7 @@
   </div>
   {% elif not ollama_ok %}
   <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 text-sm text-blue-800">
-    ℹ️ Ollama est en cours de démarrage ou le modèle n'est pas encore téléchargé.
-    La génération automatique sera disponible dès qu'il sera prêt.
-    En attendant, vous pouvez saisir le résumé manuellement ci-dessous.
+    ℹ️ La clé API Mistral n'est pas configurée. Vous pouvez saisir le résumé manuellement ci-dessous.
   </div>
   {% endif %}
 
@@ -42,10 +40,62 @@
     </button>
   </form>
 
+  <!-- Barre de progression -->
+  <div id="progress-container" class="{% if conseil.statut_resume != 'en_cours' %}hidden{% endif %} mb-5">
+    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+      <span id="progress-msg">{{ conseil.message_resume or 'Génération en cours…' }}</span>
+      <span id="progress-pct">{{ conseil.progres_resume or 0 }}%</span>
+    </div>
+    <div class="w-full bg-gray-100 rounded-full h-2">
+      <div id="progress-bar"
+           class="bg-purple-500 h-2 rounded-full transition-all duration-500"
+           style="width: {{ conseil.progres_resume or 0 }}%"></div>
+    </div>
+  </div>
+
   <div id="status-erreur" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 mb-5 text-sm text-red-800">
     ❌ Une erreur est survenue lors de la génération. Veuillez réessayer.
   </div>
   {% endif %}
+
+  <!-- US-A : Compteur exhaustivité -->
+  {% if structure %}
+  <div class="flex flex-wrap items-center gap-3 mb-4">
+    <span class="text-sm text-gray-600">
+      <strong>{{ nb_deliberations }}</strong> délibérations extraites
+      {% if nb_points_odj %}
+        sur <strong>{{ nb_points_odj }}</strong> points à l'ordre du jour
+        {% if nb_deliberations >= nb_points_odj %}
+          <span class="ml-1 text-emerald-600 font-medium">✓ Complet</span>
+        {% else %}
+          <span class="ml-1 text-amber-600 font-medium">⚠️ Il manque {{ nb_points_odj - nb_deliberations }} point(s)</span>
+        {% endif %}
+      {% endif %}
+    </span>
+  </div>
+
+  <!-- US-D : Avertissement montants manquants -->
+  {% set ns_warn = namespace(count=0) %}
+  {% for theme in structure.themes %}
+    {% for d in theme.deliberations %}
+      {% if ('subvention' in d.titre|lower or 'subvention' in (d.description or '')|lower) and not d.montant %}
+        {% set ns_warn.count = ns_warn.count + 1 %}
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% if ns_warn.count > 0 %}
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 text-sm text-amber-800">
+    ⚠️ {{ ns_warn.count }} délibération(s) avec "subvention" semblent ne pas avoir de montant. Vérifiez le PDF.
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- Structure des délibérations -->
+  <div id="structure-container" class="{% if not structure %}hidden{% endif %} mb-5">
+    {% if structure and structure.themes %}
+    {% include 'admin/_conseil_structure.html' %}
+    {% endif %}
+  </div>
 
   <!-- Formulaire d'édition -->
   <form method="POST" class="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
@@ -80,6 +130,20 @@
     var label = document.getElementById('btn-label');
     if (btn) btn.disabled = false;
     if (label) label.textContent = '✨ Générer le résumé via IA';
+    var pc = document.getElementById('progress-container');
+    if (pc) pc.classList.add('hidden');
+  }
+
+  function updateProgress(pct, message) {
+    if (pct === null || pct === undefined) return;
+    var bar = document.getElementById('progress-bar');
+    var pctEl = document.getElementById('progress-pct');
+    var msgEl = document.getElementById('progress-msg');
+    var pc = document.getElementById('progress-container');
+    if (pc) pc.classList.remove('hidden');
+    if (bar) bar.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+    if (msgEl && message) msgEl.textContent = message;
   }
 
   function stopPolling() {
@@ -92,17 +156,70 @@
       .then(function(data) {
         if (data.statut === 'termine') {
           stopPolling();
+          updateProgress(100, 'Terminé !');
           var textarea = document.getElementById('textarea-resume');
           if (textarea && data.resume) textarea.value = data.resume;
-          setIdle();
+          if (data.structure) renderStructure(data.structure);
+          setTimeout(setIdle, 800);
         } else if (data.statut === 'erreur') {
           stopPolling();
           var err = document.getElementById('status-erreur');
           if (err) err.classList.remove('hidden');
           setIdle();
+        } else if (data.statut === 'en_cours') {
+          updateProgress(data.progres, data.message);
         }
       })
       .catch(function() { /* réseau instable, on réessaie */ });
+  }
+
+  function renderStructure(structure) {
+    var container = document.getElementById('structure-container');
+    if (!container || !structure || !structure.themes) return;
+    var html = '<div class="flex flex-wrap items-center gap-4 mb-3 px-1 text-xs text-gray-400">';
+    html += '<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span> Adopté</span>';
+    html += '<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span> Rejeté</span>';
+    html += '<span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span> Information</span>';
+    html += '</div><div class="space-y-3">';
+    structure.themes.forEach(function(theme) {
+      html += '<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">';
+      html += '<div class="px-5 py-3 border-b border-gray-100 bg-gray-50">';
+      html += '<div class="flex items-center justify-between gap-3">';
+      html += '<p class="text-sm font-semibold text-gray-900">' + escHtml(theme.titre) + '</p>';
+      if (theme.total_subventions) html += '<span class="text-xs font-bold text-emerald-600 flex-shrink-0">' + escHtml(theme.total_subventions) + '</span>';
+      html += '</div>';
+      if (theme.resume) html += '<p class="text-xs text-gray-500 mt-0.5 leading-relaxed">' + escHtml(theme.resume) + '</p>';
+      html += '</div>';
+      if (theme.deliberations && theme.deliberations.length) {
+        theme.deliberations.forEach(function(d) {
+          html += '<div class="px-5 py-3 border-b border-gray-100 last:border-0"><div class="flex items-start justify-between gap-3">';
+          html += '<div class="flex-1 min-w-0">';
+          html += '<p class="text-sm font-medium text-gray-800">' + escHtml(d.titre) + '</p>';
+          if (d.beneficiaire) html += '<p class="text-xs font-medium text-emerald-700 mt-0.5">→ ' + escHtml(d.beneficiaire) + '</p>';
+          if (d.description) html += '<p class="text-xs text-gray-500 mt-1 leading-relaxed">' + escHtml(d.description) + '</p>';
+          if (d.montant) html += '<p class="text-xs font-bold text-emerald-600 mt-1">' + escHtml(d.montant) + '</p>';
+          html += '</div><div class="flex-shrink-0 text-right">';
+          if (d.vote) {
+            var majority = d.vote.pour > d.vote.contre;
+            var cls = majority ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700';
+            var label = majority ? '✅ Adopté' : '❌ Rejeté';
+            html += '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ' + cls + '">' + label + '</span>';
+            html += '<p class="text-xs text-gray-400 mt-0.5">✓ ' + d.vote.pour + ' · ✗ ' + d.vote.contre + (d.vote.abstentions ? ' · ○ ' + d.vote.abstentions : '') + '</p>';
+          } else {
+            html += '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Info</span>';
+          }
+          html += '</div></div></div>';
+        });
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+    container.classList.remove('hidden');
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   if (statut === 'en_cours') {

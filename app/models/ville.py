@@ -31,12 +31,14 @@ def create(nom, slug, population=None):
     return ville_id
 
 
-def update(ville_id, nom, slug, population=None, actif=1, code_insee=None, nb_conseillers=None):
+def update(ville_id, nom, slug, population=None, actif=1, code_insee=None, nb_conseillers=None,
+           whatsapp_url=None, indicateurs_vedettes=None):
     with get_db() as conn:
         conn.execute(
             "UPDATE villes SET nom=%s, slug=%s, population=%s, actif=%s, "
-            "code_insee=%s, nb_conseillers=%s WHERE id=%s",
-            (nom, slug, population, actif, code_insee or None, nb_conseillers, ville_id)
+            "code_insee=%s, nb_conseillers=%s, whatsapp_url=%s, indicateurs_vedettes=%s WHERE id=%s",
+            (nom, slug, population, actif, code_insee or None, nb_conseillers,
+             whatsapp_url or None, indicateurs_vedettes or None, ville_id)
         )
         conn.commit()
 

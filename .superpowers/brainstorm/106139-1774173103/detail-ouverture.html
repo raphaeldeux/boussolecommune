@@ -1,0 +1,72 @@
+<h2>Quand le citoyen clique sur un thème, comment s'ouvre le détail ?</h2>
+<p class="subtitle">Le choix qui définit le feeling de la page</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:0;overflow:hidden;position:relative;height:160px;">
+      <div style="position:absolute;inset:0;display:flex;">
+        <div style="width:55%;padding:12px;background:#f0fdf4;">
+          <div style="font-size:10px;font-weight:700;color:#16a34a;margin-bottom:6px;">VUE D'ENSEMBLE</div>
+          <div style="background:white;border-radius:6px;padding:8px;margin-bottom:6px;border:2px solid #16a34a;">
+            <div style="font-size:11px;font-weight:700;">🤝 Lien social</div>
+            <div style="font-size:10px;color:#6b7280;">6 délibérations</div>
+          </div>
+          <div style="background:white;border-radius:6px;padding:8px;margin-bottom:6px;">
+            <div style="font-size:11px;font-weight:700;">💰 Finances</div>
+            <div style="font-size:10px;color:#6b7280;">4 délibérations</div>
+          </div>
+        </div>
+        <div style="width:45%;padding:12px;background:white;border-left:2px solid #e5e7eb;">
+          <div style="font-size:10px;font-weight:700;color:#374151;margin-bottom:6px;">🤝 LIEN SOCIAL</div>
+          <div style="background:#f9fafb;border-radius:4px;padding:6px;margin-bottom:4px;font-size:10px;">Subvention FC · 1 500 €<br><span style="color:#16a34a;font-weight:600;">✅ Adopté</span></div>
+          <div style="background:#f9fafb;border-radius:4px;padding:6px;font-size:10px;">Fête locale · —<br><span style="color:#6b7280;">ℹ Info</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Panel latéral (slide-in)</h3>
+      <p>La liste des thèmes reste visible à gauche. Le détail s'ouvre à droite. Idéal desktop, navigation fluide sans rechargement.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:12px;font-family:sans-serif;height:160px;overflow:hidden;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="background:#16a34a;color:white;border-radius:6px;padding:6px;text-align:center;font-size:10px;font-weight:700;">🤝<br>Lien social<br>6</div>
+        <div style="background:#e5e7eb;border-radius:6px;padding:6px;text-align:center;font-size:10px;color:#6b7280;">💰<br>Finances<br>4</div>
+        <div style="background:#e5e7eb;border-radius:6px;padding:6px;text-align:center;font-size:10px;color:#6b7280;">🏗️<br>Cadre vie<br>3</div>
+      </div>
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:8px;">
+        <div style="font-size:11px;font-weight:700;margin-bottom:4px;">Subvention FC Saint-Leu</div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:3px;">L'association reçoit 1 500 € pour l'achat d'équipements sportifs...</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <span style="background:#dcfce7;color:#16a34a;border-radius:10px;padding:1px 6px;font-size:9px;font-weight:700;">✅ Adopté</span>
+          <span style="color:#9ca3af;font-size:9px;">23 pour · 0 contre</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Accordéon inline (expand sur place)</h3>
+      <p>Cliquer sur un thème le déplie directement dans la page. Simple, mobile-friendly, pas de navigation. Tout reste dans la même vue.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8fafc;padding:12px;font-family:sans-serif;height:160px;overflow:hidden;">
+      <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px;padding:10px;display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:12px;font-weight:700;">🤝 Lien social</div><div style="font-size:10px;color:#6b7280;">6 délibérations · 4 500 € de subventions</div></div>
+        <div style="background:#16a34a;color:white;border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;">Voir →</div>
+      </div>
+      <div style="background:#f0fdf4;border:1px dashed #86efac;border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:#16a34a;font-weight:600;">→ Page dédiée par thème</div>
+        <div style="font-size:9px;color:#6b7280;margin-top:2px;">URL propre · Partageable · Plein écran</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Page dédiée par thème</h3>
+      <p>Chaque thème a sa propre URL. Idéal pour partager "le volet Lien social du conseil de mars". Mais nécessite plus de navigation.</p>
+    </div>
+  </div>
+
+</div>
