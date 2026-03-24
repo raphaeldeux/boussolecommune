@@ -86,7 +86,8 @@ def login():
         ip = request.remote_addr
         if is_rate_limited(ip):
             flash("Trop de tentatives. Réessayez dans 15 minutes.", "danger")
-            return render_template("admin/login.html")
+            ville = ville_model.get_first_active()
+            return render_template("admin/login.html", ville=ville)
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         user = user_model.verify_password(username, password)
@@ -101,7 +102,12 @@ def login():
         else:
             record_attempt(ip)
             flash("Identifiants incorrects.", "danger")
-    return render_template("admin/login.html")
+    ville = None
+    if session.get("public_ville_id"):
+        ville = ville_model.get_by_id(session["public_ville_id"])
+    if not ville:
+        ville = ville_model.get_first_active()
+    return render_template("admin/login.html", ville=ville)
 
 
 @bp.route("/logout", methods=["POST"])
