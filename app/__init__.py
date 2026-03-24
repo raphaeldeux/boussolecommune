@@ -45,8 +45,9 @@ def create_app():
         Si un paragraphe contient plusieurs montants séparés par des virgules,
         le convertit en tableau label/montant avec total."""
         import re
+        from markupsafe import Markup, escape
         if not text:
-            return ""
+            return Markup("")
 
         # Extrait les items "MONTANT € [HT/TTC] (libellé)"
         item_re = re.compile(
@@ -85,8 +86,8 @@ def create_app():
                     label = label.strip().capitalize()
                     total += parse_amount(montant_str)
                     rows += (f"<tr>"
-                             f"<td class='py-0.5 pr-3 text-gray-700'>{label}</td>"
-                             f"<td class='py-0.5 font-semibold text-emerald-700 text-right whitespace-nowrap'>{montant_str}</td>"
+                             f"<td class='py-0.5 pr-3 text-gray-700'>{escape(label)}</td>"
+                             f"<td class='py-0.5 font-semibold text-emerald-700 text-right whitespace-nowrap'>{escape(montant_str)}</td>"
                              f"</tr>")
                 if total:
                     total_fmt = f"{total:,.2f}".replace(",", "\u202f").replace(".", ",") + " €"
@@ -96,8 +97,8 @@ def create_app():
                              f"</tr>")
                 parts.append(f"<table class='w-full text-xs mt-1'>{rows}</table>")
             else:
-                parts.append(f"<p>{para}</p>")
-        return "\n".join(parts)
+                parts.append(f"<p>{escape(para)}</p>")
+        return Markup("\n".join(parts))
 
     @app.template_filter("date_fr")
     def date_fr(value):
@@ -176,6 +177,22 @@ def create_app():
         response.headers.setdefault("X-Content-Type-Options", "nosniff")
         response.headers.setdefault("X-Frame-Options", "DENY")
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        # HSTS : force HTTPS pour 1 an (activé uniquement derrière nginx/HTTPS)
+        if flask_env == "production":
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+        # CSP : autorise les CDN utilisés (Tailwind, Chart.js, Google Fonts, Remixicon)
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; "
+            "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; "
+            "img-src 'self' data:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none';"
+        )
         return response
 
     logging.basicConfig(level=logging.INFO)

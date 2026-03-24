@@ -1,6 +1,9 @@
 from app.database import get_db
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# Dummy hash used to equalize response time for unknown usernames (prevent enumeration)
+_DUMMY_HASH = generate_password_hash("timing-safety-placeholder-boussolecommune")
+
 
 def get_all():
     with get_db() as conn:
@@ -29,6 +32,8 @@ def get_by_username(username):
 def verify_password(username, password):
     user = get_by_username(username)
     if not user:
+        # Always run bcrypt to prevent username enumeration via timing
+        check_password_hash(_DUMMY_HASH, password)
         return None
     if check_password_hash(user["password_hash"], password):
         return user

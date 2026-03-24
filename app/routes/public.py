@@ -783,10 +783,18 @@ def conseil_pdf(ville_slug, conseil_id):
         abort(404)
     if not conseil.get("fichier_pdf"):
         abort(404)
-    import re
+    import re, os
+    filename = conseil["fichier_pdf"]
+    # Reject any filename with path-traversal sequences or unexpected characters
+    if not re.match(r'^[\w\-\.]+$', filename) or ".." in filename:
+        abort(404)
+    upload_dir = "/app/uploads/conseils"
+    full_path = os.path.realpath(os.path.join(upload_dir, filename))
+    if not full_path.startswith(os.path.realpath(upload_dir) + os.sep):
+        abort(404)
     download_name = re.sub(r'[^\w\s\-]', '', conseil["titre"]).strip()
     download_name = re.sub(r'\s+', '_', download_name) + ".pdf"
-    return send_from_directory("/app/uploads/conseils", conseil["fichier_pdf"], download_name=download_name)
+    return send_from_directory(upload_dir, filename, download_name=download_name)
 
 
 @bp.route("/v/<ville_slug>/conseils/<int:conseil_id>")

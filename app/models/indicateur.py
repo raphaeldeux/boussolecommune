@@ -3,8 +3,14 @@ from app.database import get_db
 
 def get_all(actif_only=True):
     with get_db() as conn:
-        where = "WHERE actif = 1" if actif_only else ""
-        rows = conn.execute(f"SELECT * FROM indicateurs {where} ORDER BY thematique, id").fetchall()
+        if actif_only:
+            rows = conn.execute(
+                "SELECT * FROM indicateurs WHERE actif = 1 ORDER BY thematique, id"
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM indicateurs ORDER BY thematique, id"
+            ).fetchall()
     return [dict(r) for r in rows]
 
 

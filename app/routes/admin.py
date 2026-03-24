@@ -1769,6 +1769,13 @@ import werkzeug.utils
 CONSEILS_UPLOAD_DIR = "/app/uploads/conseils"
 
 
+def _is_valid_pdf(fichier) -> bool:
+    """Vérifie que le fichier commence par la signature PDF (%PDF)."""
+    header = fichier.stream.read(4)
+    fichier.stream.seek(0)
+    return header == b"%PDF"
+
+
 def _save_pdf(fichier):
     """Sauvegarde le PDF uploadé et retourne son nom de fichier."""
     os.makedirs(CONSEILS_UPLOAD_DIR, exist_ok=True)
@@ -1806,8 +1813,8 @@ def conseil_nouveau():
         type_conseil = request.form.get("type_conseil", "municipal")
         fichier_pdf = None
         if fichier and fichier.filename:
-            if not fichier.filename.lower().endswith(".pdf"):
-                flash("Seuls les fichiers PDF sont acceptés.", "danger")
+            if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
+                flash("Seuls les fichiers PDF valides sont acceptés.", "danger")
                 return render_template("admin/conseil_form.html", ville=ville, conseil=None)
             fichier_pdf = _save_pdf(fichier)
         conseil_model.create(ville["id"], titre, date_conseil, fichier_pdf, type_conseil)
@@ -1833,8 +1840,8 @@ def conseil_modifier(conseil_id):
         type_conseil = request.form.get("type_conseil", "municipal")
         fichier_pdf = None
         if fichier and fichier.filename:
-            if not fichier.filename.lower().endswith(".pdf"):
-                flash("Seuls les fichiers PDF sont acceptés.", "danger")
+            if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
+                flash("Seuls les fichiers PDF valides sont acceptés.", "danger")
                 return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
             fichier_pdf = _save_pdf(fichier)
         conseil_model.update(conseil_id, titre, date_conseil, fichier_pdf, type_conseil)

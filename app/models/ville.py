@@ -3,8 +3,10 @@ from app.database import get_db
 
 def get_all(actif_only=True):
     with get_db() as conn:
-        where = "WHERE actif = 1" if actif_only else ""
-        rows = conn.execute(f"SELECT * FROM villes {where} ORDER BY nom").fetchall()
+        if actif_only:
+            rows = conn.execute("SELECT * FROM villes WHERE actif = 1 ORDER BY nom").fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM villes ORDER BY nom").fetchall()
     return [dict(r) for r in rows]
 
 
