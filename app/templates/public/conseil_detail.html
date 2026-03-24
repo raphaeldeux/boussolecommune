@@ -41,61 +41,66 @@
 <div class="max-w-3xl mx-auto space-y-3">
 
   {# ── HEADER ──────────────────────────────────────────────────────── #}
-  <div class="px-1 pt-4 pb-5">
+  <div class="px-1 pt-5 pb-6">
+    <div class="lg:grid lg:grid-cols-3 lg:gap-6">
 
-    <div class="flex items-start gap-3">
-      <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0 text-emerald-700"><i class="ri-government-line"></i></div>
-      <div class="flex-1 min-w-0">
-        <h1 class="text-base font-bold text-gray-900">Conseil municipal</h1>
-        <div class="flex flex-wrap gap-x-3 mt-0.5 text-xs text-gray-400">
-          <span>📅 {{ conseil.date_conseil | date_fr }}</span>
-          {% if structure and structure.nb_presents %}
-          <span>👥 {{ structure.nb_presents }}{% if ville.nb_conseillers %}/{{ ville.nb_conseillers }}{% endif %} présents</span>
+      {# 2/3 : icône + titre + méta + stats #}
+      <div class="lg:col-span-2 flex items-start gap-4 mb-4 lg:mb-0">
+        <span class="text-4xl sm:text-5xl flex-shrink-0 mt-0.5 text-emerald-600"><i class="ri-government-line"></i></span>
+        <div class="flex-1 min-w-0">
+
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+            Conseil {{ 'métropolitain' if conseil.type_conseil == 'metropolitain' else 'municipal' }}
+          </h1>
+
+          {# Métadonnées avec Remixicons #}
+          <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-400">
+            <span class="flex items-center gap-1"><i class="ri-calendar-line"></i> {{ conseil.date_conseil | date_fr }}</span>
+            {% if structure and structure.nb_presents %}
+            <span class="flex items-center gap-1"><i class="ri-group-line"></i> {{ structure.nb_presents }}{% if ville.nb_conseillers %}/{{ ville.nb_conseillers }}{% endif %} présents</span>
+            {% endif %}
+            {% if structure and structure.nb_points_odj %}
+            <span class="flex items-center gap-1"><i class="ri-list-check-3"></i> {{ structure.nb_points_odj }} points ODJ</span>
+            {% endif %}
+          </div>
+
+          {# Stats délibérations #}
+          {% if ns.total %}
+          <div class="flex flex-wrap gap-2 mt-3 text-xs">
+            <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-500">
+              <i class="ri-bar-chart-2-line"></i> <strong class="text-gray-800">{{ ns.total }}</strong> délib{{ 's' if ns.total > 1 }}
+            </span>
+            {% if ns.adoptes %}
+            <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-emerald-700" style="background:#f0fdf4">
+              <i class="ri-checkbox-circle-line"></i> <strong>{{ ns.adoptes }}</strong> adoptée{{ 's' if ns.adoptes > 1 }}
+            </span>
+            {% endif %}
+            {% if ns.rejetes %}
+            <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-red-600" style="background:#fff5f5">
+              <i class="ri-close-circle-line"></i> <strong>{{ ns.rejetes }}</strong> rejetée{{ 's' if ns.rejetes > 1 }}
+            </span>
+            {% endif %}
+            {% if ns.infos %}
+            <span class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gray-50 text-gray-400">
+              <i class="ri-information-line"></i> <strong>{{ ns.infos }}</strong> info{{ 's' if ns.infos > 1 }}
+            </span>
+            {% endif %}
+          </div>
           {% endif %}
-          {% if structure and structure.nb_points_odj %}
-          <span>📋 {{ structure.nb_points_odj }} points à l'ODJ</span>
-          {% endif %}
+
         </div>
       </div>
-    </div>
 
-    {# Stats #}
-    {% if ns.total %}
-    <div class="flex gap-2 mt-3 text-xs">
-      <div class="flex-1 text-center py-1.5 rounded-lg bg-gray-50">
-        <div class="font-bold text-gray-800">{{ ns.total }}</div>
-        <div class="text-gray-400">délibs</div>
-      </div>
-      {% if ns.adoptes %}
-      <div class="flex-1 text-center py-1.5 rounded-lg" style="background:#f0fdf4">
-        <div class="font-bold text-emerald-700">{{ ns.adoptes }}</div>
-        <div class="text-emerald-500">✅ adoptée{{ 's' if ns.adoptes > 1 }}</div>
+      {# 1/3 : Ce qu'il faut retenir (résumé IA) #}
+      {% if conseil.resume_citoyen %}
+      <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col">
+        <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2"><i class="ri-pushpin-2-line mr-1"></i>Ce qu'il faut retenir</p>
+        <p id="resume-text" class="text-sm text-gray-700 leading-relaxed resume-clamped">{{ conseil.resume_citoyen }}</p>
+        <button id="resume-btn" onclick="toggleResume()" class="hidden text-xs text-emerald-600 font-medium mt-2 hover:underline text-left">Lire plus</button>
       </div>
       {% endif %}
-      {% if ns.rejetes %}
-      <div class="flex-1 text-center py-1.5 rounded-lg" style="background:#fff5f5">
-        <div class="font-bold text-red-600">{{ ns.rejetes }}</div>
-        <div class="text-red-400">❌ rejetée{{ 's' if ns.rejetes > 1 }}</div>
-      </div>
-      {% endif %}
-      {% if ns.infos %}
-      <div class="flex-1 text-center py-1.5 rounded-lg bg-gray-50">
-        <div class="font-bold text-gray-400">{{ ns.infos }}</div>
-        <div class="text-gray-400">ℹ information{{ 's' if ns.infos > 1 }}</div>
-      </div>
-      {% endif %}
-    </div>
-    {% endif %}
 
-    {# Résumé IA #}
-    {% if conseil.resume_citoyen %}
-    <div class="mt-3 pt-3 border-t border-gray-100">
-      <span class="text-xs font-semibold text-purple-600">✨ Résumé IA</span>
-      <p id="resume-text" class="text-xs text-gray-600 leading-relaxed mt-0.5 resume-clamped">{{ conseil.resume_citoyen }}</p>
-      <button id="resume-btn" onclick="toggleResume()" class="hidden text-xs text-emerald-600 font-medium mt-0.5 hover:underline">Lire plus</button>
     </div>
-    {% endif %}
-
   </div>
 
   {% if structure and structure.themes %}
@@ -204,12 +209,15 @@
         </div>
         <div class="flex-shrink-0 text-right">
           {% if adopte is not none %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
-            {{ '✅ Adopté' if adopte else '❌ Rejeté' }}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
+            <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
+            {{ 'Adopté' if adopte else 'Rejeté' }}
           </span>
-          <p class="text-xs text-gray-400 mt-0.5">✅ {{ delib.vote.pour }} · ❌ {{ delib.vote.contre }}{% if delib.vote.abstentions %} · ○ {{ delib.vote.abstentions }} abstention{{ 's' if delib.vote.abstentions > 1 }}{% endif %}</p>
+          <p class="text-xs text-gray-400 mt-0.5">
+            <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }} · <i class="ri-close-circle-line text-red-400"></i> {{ delib.vote.contre }}{% if delib.vote.abstentions %} · <i class="ri-subtract-line"></i> {{ delib.vote.abstentions }}{% endif %}
+          </p>
           {% else %}
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">ℹ Information</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500"><i class="ri-information-line"></i> Info</span>
           {% endif %}
         </div>
       </div>
