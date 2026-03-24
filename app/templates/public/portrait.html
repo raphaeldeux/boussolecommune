@@ -1,5 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Portrait de la commune — BoussoleCommune {{ ville.nom }}{% endblock %}
+{% block breadcrumb %}
+<nav class="bg-white border-b border-sand-100" aria-label="Fil d'Ariane">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-1.5 text-xs text-sand-400 flex-wrap">
+    <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" class="hover:text-forest-600 transition">{{ ville.nom }}</a>
+    <span>›</span>
+    <span class="text-gray-400">À propos</span>
+    <span>›</span>
+    <span class="text-gray-700 font-medium">Portrait</span>
+  </div>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="mb-6 sm:mb-8">

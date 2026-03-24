@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Indicateurs — {{ ville.nom }} — BoussoleCommune{% endblock %}
+{% block breadcrumb %}
+<nav class="bg-white border-b border-sand-100" aria-label="Fil d'Ariane">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-1.5 text-xs text-sand-400 flex-wrap">
+    <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" class="hover:text-forest-600 transition">{{ ville.nom }}</a>
+    <span>›</span>
+    <span class="text-gray-700 font-medium">Indicateurs</span>
+  </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- En-tête -->
+<div class="mb-8">
+  <div class="flex items-start justify-between gap-4 flex-wrap">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Indicateurs de {{ ville.nom }}</h1>
+      <p class="text-sm text-sand-400 mt-1">Vue d'ensemble des 6 thématiques évaluées</p>
+    </div>
+    {% if score_global %}
+    <div class="flex items-center gap-2 bg-white rounded-xl border border-sand-200 px-4 py-2.5 shadow-sm">
+      <span class="text-xs text-sand-400 font-medium">Score global</span>
+      <span class="score-badge score-{{ score_global }} score-badge-lg">{{ score_global }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Grille des 6 thématiques -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+  {% for carte in cartes %}
+  <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
+     class="group bg-white rounded-2xl border border-sand-200 p-5 shadow-sm hover:shadow-md hover:border-forest-200 transition-all">
+
+    <!-- Icône + Titre -->
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="text-xl leading-none text-gray-500"><i class="{{ carte.icon }}"></i></span>
+        <div>
+          <p class="font-semibold text-gray-800 text-sm leading-tight">{{ carte.label }}</p>
+          <p class="text-xs text-sand-400 mt-0.5 leading-tight">{{ carte.question }}</p>
+        </div>
+      </div>
+      {% if carte.score %}
+      <span class="score-badge score-{{ carte.score }} flex-shrink-0 ml-2"
+            style="width:2rem;height:2rem;font-size:.9rem;border-radius:.375rem">{{ carte.score }}</span>
+      {% else %}
+      <span class="text-xs text-sand-300 flex-shrink-0 ml-2 mt-1">N/A</span>
+      {% endif %}
+    </div>
+
+    <!-- Statistiques -->
+    <div class="flex items-center gap-3 text-xs text-sand-400 mb-3">
+      <span>{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs</span>
+      {% if carte.nb_forts %}
+      <span class="text-green-600 font-medium">{{ carte.nb_forts }} bon{{ 's' if carte.nb_forts > 1 }}</span>
+      {% endif %}
+      {% if carte.nb_defis %}
+      <span class="text-red-500 font-medium">{{ carte.nb_defis }} défi{{ 's' if carte.nb_defis > 1 }}</span>
+      {% endif %}
+    </div>
+
+    <!-- Indicateurs clés -->
+    {% if carte.indicateurs_cles %}
+    <div class="space-y-1.5 border-t border-sand-100 pt-3">
+      {% for ind in carte.indicateurs_cles %}
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-xs text-gray-600 truncate flex-1">{{ ind.libelle_citoyen }}</span>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          {% if ind.donnee %}
+          <span class="text-xs font-medium text-gray-700">{{ ind.donnee.valeur | round(1) }}</span>
+          {% endif %}
+          {% if ind.score %}
+          <span class="score-badge-xs score-{{ ind.score }}">{{ ind.score }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Lien -->
+    <div class="mt-3 flex items-center justify-end text-xs text-forest-600 font-medium group-hover:text-forest-700 transition">
+      Voir le détail
+      <svg class="w-3.5 h-3.5 ml-1 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </div>
+
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Points forts / Points de vigilance -->
+{% if top_inds or flop_inds %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+  {% if top_inds %}
+  <div class="bg-forest-50 rounded-2xl border border-forest-100 p-5">
+    <h2 class="text-sm font-semibold text-forest-800 mb-3 flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-forest-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+      </svg>
+      Points forts
+    </h2>
+    <div class="space-y-2">
+      {% for ind in top_inds %}
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-sm text-gray-700 flex-1 truncate">{{ ind.libelle_citoyen }}</span>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          {% if ind.donnee %}<span class="text-xs text-sand-400">{{ ind.donnee.valeur | round(1) }}</span>{% endif %}
+          {% if ind.score %}<span class="score-badge-xs score-{{ ind.score }}">{{ ind.score }}</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if flop_inds %}
+  <div class="bg-red-50 rounded-2xl border border-red-100 p-5">
+    <h2 class="text-sm font-semibold text-red-800 mb-3 flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/>
+      </svg>
+      Points de vigilance
+    </h2>
+    <div class="space-y-2">
+      {% for ind in flop_inds %}
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-sm text-gray-700 flex-1 truncate">{{ ind.libelle_citoyen }}</span>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          {% if ind.donnee %}<span class="text-xs text-sand-400">{{ ind.donnee.valeur | round(1) }}</span>{% endif %}
+          {% if ind.score %}<span class="score-badge-xs score-{{ ind.score }}">{{ ind.score }}</span>{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endif %}
+
+{% endblock %}

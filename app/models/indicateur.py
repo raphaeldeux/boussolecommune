@@ -68,13 +68,13 @@ THEMATIQUE_QUESTIONS = {
 }
 
 THEMATIQUE_ICONS = {
-    "finances":   "🏠",
-    "cadre_vie":  "🌳",
-    "personnes":  "❤️",
-    "lien_social": "🤝",
-    "democratie": "🏛️",
-    "vivant":     "🌿",
-    "portrait":   "🏘️",
+    "finances":   "ri-home-4-line",
+    "cadre_vie":  "ri-landscape-line",
+    "personnes":  "ri-heart-line",
+    "lien_social": "ri-group-line",
+    "democratie": "ri-government-line",
+    "vivant":     "ri-leaf-line",
+    "portrait":   "ri-community-line",
 }
 
 THEMATIQUE_POIDS = {

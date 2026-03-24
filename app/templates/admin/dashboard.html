@@ -86,7 +86,7 @@
             onclick="toggleCard('card-{{ them.slug }}')"
             class="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition text-left">
       <div class="flex items-center gap-3 min-w-0">
-        <span class="text-2xl shrink-0">{{ them.icon }}</span>
+        <span class="text-xl shrink-0 text-gray-500"><i class="{{ them.icon }}"></i></span>
         <div class="min-w-0">
           <div class="font-semibold text-gray-900 text-sm leading-tight">{{ them.label }}</div>
           <div class="text-xs text-gray-400 mt-0.5">
@@ -203,7 +203,7 @@
     {% for s in syntheses_info %}
     <div class="border border-gray-100 rounded-lg p-4">
       <div class="flex items-center gap-2 mb-2">
-        <span>{{ s.icon }}</span>
+        <span class="text-gray-500"><i class="{{ s.icon }}"></i></span>
         <span class="font-medium text-sm text-gray-800">{{ s.label }}</span>
         {% if s.synthese %}
         <span class="ml-auto text-xs text-gray-400">Mis à jour {{ s.synthese.date_generation.strftime('%d/%m/%Y') if s.synthese.date_generation else '' }}</span>

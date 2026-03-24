@@ -197,16 +197,16 @@
           </tr>
         </thead>
         <tbody>
-          {% for label, poids in [
-            ('💰 Soin des finances', '25 %'),
-            ('🌳 Soin du cadre de vie', '20 %'),
-            ('❤️ Soin des personnes', '20 %'),
-            ('🤝 Soin du lien social', '15 %'),
-            ('🏛️ Soin de la démocratie', '12 %'),
-            ('🌿 Soin du vivant', '8 %'),
+          {% for icon, label, poids in [
+            ('ri-home-4-line', 'Soin de la maison', '25 %'),
+            ('ri-landscape-line', 'Soin du territoire', '20 %'),
+            ('ri-heart-line', 'Soin des habitant·es', '20 %'),
+            ('ri-group-line', 'Soin du lien', '15 %'),
+            ('ri-government-line', 'Soin de la parole', '12 %'),
+            ('ri-leaf-line', 'Soin du vivant', '8 %'),
           ] %}
           <tr class="border-b border-gray-100">
-            <td class="px-4 py-2 border border-gray-200 text-gray-700">{{ label }}</td>
+            <td class="px-4 py-2 border border-gray-200 text-gray-700"><i class="{{ icon }} text-gray-400 mr-1"></i>{{ label }}</td>
             <td class="px-4 py-2 border border-gray-200 text-center font-medium text-gray-800">{{ poids }}</td>
           </tr>
           {% endfor %}

@@ -1,16 +1,27 @@
 {% extends "base.html" %}
 {% block title %}{{ conseil.titre }} · {{ ville.nom }}{% endblock %}
+{% block breadcrumb %}
+<nav class="bg-white border-b border-sand-100" aria-label="Fil d'Ariane">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-1.5 text-xs text-sand-400 flex-wrap">
+    <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" class="hover:text-forest-600 transition">{{ ville.nom }}</a>
+    <span>›</span>
+    <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}" class="hover:text-forest-600 transition">Vie municipale</a>
+    <span>›</span>
+    <span class="text-gray-700 font-medium">{{ conseil.date_conseil | date_fr }}</span>
+  </div>
+</nav>
+{% endblock %}
 
 {% block content %}
-{% set THEMES_ORDRE = ["Soin des personnes", "Soin des finances / RH", "Soin du cadre de vie", "Soin du lien social", "Soin de la démocratie", "Soin du vivant"] %}
-{% set THEMES_EMOJI = {"Soin des personnes": "❤️", "Soin des finances / RH": "💰", "Soin du cadre de vie": "🏗️", "Soin du lien social": "🤝", "Soin de la démocratie": "🏛️", "Soin du vivant": "🌿"} %}
+{% set THEMES_ORDRE = ["Soin des habitant·es", "Soin de la maison", "Soin du territoire", "Soin du lien", "Soin de la parole", "Soin du vivant"] %}
+{% set THEMES_ICON = {"Soin des habitant·es": "ri-heart-line", "Soin de la maison": "ri-home-4-line", "Soin du territoire": "ri-landscape-line", "Soin du lien": "ri-group-line", "Soin de la parole": "ri-government-line", "Soin du vivant": "ri-leaf-line"} %}
 {% set THEMES_DESC = {
-  "Soin des personnes":      "Santé, éducation, enfance, seniors, aide sociale et services au public.",
-  "Soin des finances / RH":  "Budget communal, fiscalité, emprunts, personnel et indemnités des élus.",
-  "Soin du cadre de vie":    "Urbanisme, voirie, logement, travaux et équipements publics.",
-  "Soin du lien social":     "Associations sportives et culturelles, événements et vie associative.",
-  "Soin de la démocratie":   "Gouvernance, délégations, conventions et intercommunalité.",
-  "Soin du vivant":          "Environnement, biodiversité, eau, énergie et alimentation."
+  "Soin des habitant·es": "Santé, éducation, enfance, seniors, aide sociale et services au public.",
+  "Soin de la maison":    "Budget communal, fiscalité, emprunts, personnel et indemnités des élus.",
+  "Soin du territoire":   "Urbanisme, voirie, logement, travaux et équipements publics.",
+  "Soin du lien":         "Associations sportives et culturelles, événements et vie associative.",
+  "Soin de la parole":    "Gouvernance, délégations, conventions et intercommunalité.",
+  "Soin du vivant":       "Environnement, biodiversité, eau, énergie et alimentation."
 } %}
 
 {# ── Stats globales ──────────────────────────────────────────────── #}
@@ -33,7 +44,7 @@
   <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
 
     <div class="flex items-start gap-3">
-      <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0">🏛️</div>
+      <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0 text-emerald-700"><i class="ri-government-line"></i></div>
       <div class="flex-1 min-w-0">
         <h1 class="text-base font-bold text-gray-900">Conseil municipal</h1>
         <div class="flex flex-wrap gap-x-3 mt-0.5 text-xs text-gray-400">
@@ -100,11 +111,11 @@
 
   {# ── GRILLE THÈMES 3×2 ──────────────────────────────────────────── #}
   {% set THEMES_COURT = {
-    "Soin des personnes": "Personnes",
-    "Soin des finances / RH": "Finances / RH",
-    "Soin du cadre de vie": "Cadre de vie",
-    "Soin du lien social": "Lien social",
-    "Soin de la démocratie": "Démocratie",
+    "Soin des habitant·es": "Habitant·es",
+    "Soin de la maison": "Maison",
+    "Soin du territoire": "Territoire",
+    "Soin du lien": "Lien",
+    "Soin de la parole": "Parole",
     "Soin du vivant": "Vivant"
   } %}
   <div class="grid grid-cols-3 gap-1.5">
@@ -118,13 +129,13 @@
     <button onclick="showTheme({{ i }}, this)"
             id="theme-btn-{{ i }}"
             class="theme-btn {% if is_first %}active{% endif %} rounded-xl border-2 {% if is_first %}border-emerald-500 bg-emerald-600 text-white{% else %}border-gray-200 bg-white text-gray-600 hover:border-gray-300{% endif %} px-2 py-1.5 text-center transition">
-      <div class="text-sm leading-none">{{ THEMES_EMOJI[titre] }}</div>
+      <div class="text-base leading-none"><i class="{{ THEMES_ICON[titre] }}"></i></div>
       <div class="text-xs font-semibold leading-tight mt-0.5">{{ THEMES_COURT[titre] }}</div>
       <div class="theme-count text-xs font-bold mt-0.5 {% if is_first %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-500{% endif %} rounded-full px-1.5 inline-block">{{ nb }}</div>
     </button>
     {% else %}
     <div class="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-2 py-1.5 text-center opacity-40">
-      <div class="text-sm leading-none">{{ THEMES_EMOJI[titre] }}</div>
+      <div class="text-base leading-none"><i class="{{ THEMES_ICON[titre] }}"></i></div>
       <div class="text-xs font-semibold leading-tight mt-0.5 text-gray-400">{{ THEMES_COURT[titre] }}</div>
       <div class="text-xs mt-0.5 text-gray-300">—</div>
     </div>

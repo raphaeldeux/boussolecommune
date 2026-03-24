@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" rel="stylesheet">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -82,175 +84,260 @@
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
       pointer-events: none; border-radius: inherit;
     }
+
+
   </style>
 </head>
 <body class="bg-sand-50 text-gray-800 min-h-screen flex flex-col">
 
-  <!-- ── Barre 1 : contexte ville ──────────────────────────────────── -->
-  <header class="bg-forest-800 text-white sticky top-0 z-40 shadow-sm">
-    <div class="max-w-6xl mx-auto px-4 h-12 flex items-center gap-3">
+  <!-- ── Navigation unifiée ──────────────────────────────────────────── -->
+  <header class="bg-forest-800 text-white sticky top-0 z-40 shadow-md relative">
+    <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center gap-2 sm:gap-3 relative">
 
-      <!-- Logo -->
+      <!-- Logo : toujours "BoussoleCommune" -->
       <a href="{{ url_for('public.index') }}"
-         class="flex items-center gap-1.5 text-white hover:text-forest-100 transition flex-shrink-0">
+         class="flex items-center gap-2 text-white hover:text-forest-100 transition flex-shrink-0">
+        <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polygon points="12,2 14.5,9.5 12,12 9.5,9.5" fill="currentColor" stroke="none" opacity="0.9"/>
+          <polygon points="12,22 9.5,14.5 12,12 14.5,14.5" fill="currentColor" stroke="none" opacity="0.4"/>
+        </svg>
         <span class="font-semibold text-sm tracking-wide">BoussoleCommune</span>
       </a>
 
-      <span class="text-forest-600 hidden sm:inline select-none flex-shrink-0">·</span>
-
-      <!-- Centre : nom de ville + score -->
-      <div class="flex-1 min-w-0 flex items-center">
-        {% if ville is defined and ville %}
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="font-medium text-white truncate text-sm">{{ ville.nom }}</span>
-          {% if ville.departement_code is defined and ville.departement_code %}
-          <span class="text-xs text-forest-200 flex-shrink-0">({{ ville.departement_code }})</span>
-          {% endif %}
-          {% if score_global is defined and score_global %}
-          <span class="score-badge score-{{ score_global }} flex-shrink-0"
-                style="width:1.5rem;height:1.5rem;font-size:.7rem;border-radius:.25rem"
-                title="Score global : {{ score_global }}">{{ score_global }}</span>
-          {% endif %}
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Droite : Admin + hamburger -->
-      <div class="flex items-center gap-1 flex-shrink-0">
-        {% if session.get('user_id') %}
-        <a href="{{ url_for('admin.dashboard') }}"
-           class="ml-1 px-2.5 py-1.5 rounded-md bg-forest-900 hover:bg-forest-950 text-forest-200 text-xs font-medium transition">
-          ⚙
-        </a>
-        {% endif %}
-        <button id="hamburger-btn" aria-label="Menu" aria-expanded="false"
-                class="md:hidden p-1.5 rounded-md hover:bg-forest-700 transition ml-1"
-                onclick="toggleMobileMenu()">
-          <svg id="icon-menu" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-          <svg id="icon-close" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ── Barre 2 : navigation ville (tabs) ─────────────────────────── -->
-  {% if ville is defined and ville %}
-  <nav class="bg-white border-b border-sand-200 sticky top-12 z-30 shadow-sm">
-    <div class="max-w-6xl mx-auto px-2 sm:px-4">
-      <div class="flex items-end gap-0 h-10 text-sm tabs-scroll overflow-x-auto">
-
-        {% set tab_active = "border-b-2 border-forest-700 text-forest-700 font-semibold" %}
-        {% set tab_idle   = "border-b-2 border-transparent text-sand-400 hover:text-gray-700 hover:border-sand-300" %}
-
-        <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
-           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.dashboard' else tab_idle }}">
-          Tableau de bord
-        </a>
-        <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
-           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.portrait' else tab_idle }}">
-          Portrait
-        </a>
-
-        {% set nav_items = [
-          ('finances',   '💰', 'Soin des finances'),
-          ('cadre_vie',  '🌳', 'Soin du cadre de vie'),
-          ('personnes',  '❤️', 'Soin des personnes'),
-          ('lien_social','🤝', 'Soin du lien social'),
-          ('democratie', '🏛️', 'Soin de la démocratie'),
-          ('vivant',     '🌿', 'Soin du vivant')
-        ] %}
-        <button id="them-dd-btn"
-                onclick="toggleThemDropdown()"
-                class="flex px-3 sm:px-4 h-full items-center gap-1 whitespace-nowrap transition
-                  {{ tab_active if request.endpoint == 'public.thematique' else tab_idle }}">
-          Thématiques
-          <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </button>
-
-        <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
-           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.conseils' else tab_idle }}">
-          Conseils
-        </a>
-        <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
-           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.documents' else tab_idle }}">
-          Documents
-        </a>
-        <a href="{{ url_for('public.methodologie') }}"
-           class="px-3 sm:px-4 h-full flex items-center whitespace-nowrap transition
-             {{ tab_active if request.endpoint == 'public.methodologie' else tab_idle }}">
-          Méthodologie
-        </a>
-      </div>
-    </div>
-    <div id="them-dropdown"
-         class="hidden absolute w-52 bg-white rounded-b-xl shadow-lg border border-sand-200 py-1 z-50">
       {% if ville is defined and ville %}
-      {% for nav_slug, nav_icon, nav_label in nav_items %}
-      <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}"
-         class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-sand-50 transition
-           {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}font-semibold text-forest-700{% else %}text-gray-600{% endif %}">
-        {{ nav_icon }} {{ nav_label }}
-      </a>
-      {% endfor %}
-      {% endif %}
-    </div>
-  </nav>
-  {% endif %}
-
-  <!-- Mobile menu -->
-  <div id="mobile-menu"
-       class="hidden md:hidden fixed inset-x-0 top-12 z-50 bg-forest-800 text-white shadow-lg border-t border-forest-700">
-    <div class="px-3 py-2 flex flex-col gap-0.5 max-h-96 overflow-y-auto">
-      {% if ville is defined and ville %}
-      <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.dashboard' %}bg-forest-900{% endif %}"
-         onclick="toggleMobileMenu()">🏠 Tableau de bord</a>
-      <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.portrait' %}bg-forest-900{% endif %}"
-         onclick="toggleMobileMenu()">🏘️ Portrait</a>
-      {% set nav_items_m = [
-        ('finances','💰','Soin des finances'),('cadre_vie','🌳','Soin du cadre de vie'),
-        ('personnes','❤️','Soin des personnes'),('lien_social','🤝','Soin du lien social'),
-        ('democratie','🏛️','Soin de la démocratie'),('vivant','🌿','Soin du vivant')
+      {% set nav_items = [
+        ('finances',   'ri-home-4-line',       'Soin de la maison'),
+        ('cadre_vie',  'ri-landscape-line',     'Soin du territoire'),
+        ('personnes',  'ri-heart-line',         'Soin des habitant·es'),
+        ('lien_social','ri-group-line',         'Soin du lien'),
+        ('democratie', 'ri-government-line',    'Soin de la parole'),
+        ('vivant',     'ri-leaf-line',          'Soin du vivant')
       ] %}
-      {% for nav_slug, nav_icon, nav_label in nav_items_m %}
-      <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}"
-         class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}bg-forest-900{% endif %}"
-         onclick="toggleMobileMenu()">{{ nav_icon }} {{ nav_label }}</a>
-      {% endfor %}
-      <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.conseils' %}bg-forest-900{% endif %}"
-         onclick="toggleMobileMenu()">🏛️ Conseils</a>
-      <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.documents' %}bg-forest-900{% endif %}"
-         onclick="toggleMobileMenu()">📁 Documents</a>
-      <a href="{{ url_for('public.methodologie') }}"
-         class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition {% if request.endpoint == 'public.methodologie' %}bg-forest-900{% endif %}"
-         onclick="toggleMobileMenu()">📖 Méthodologie</a>
+
+      <!-- ── Nav desktop ───────────────────────────────────────────────── -->
+      <nav class="hidden md:flex items-end h-14 gap-0 flex-1 ml-2 overflow-visible" aria-label="Navigation principale">
+        {% set ta = "border-b-2 border-forest-200 text-white font-semibold" %}
+        {% set ti = "border-b-2 border-transparent text-forest-200 hover:text-white hover:border-forest-400 transition" %}
+        <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}"
+           class="px-3 h-full flex items-center whitespace-nowrap text-sm {{ ta if request.endpoint == 'public.dashboard' else ti }}">
+          Ma ville
+        </a>
+        {% set ind_active = request.endpoint in ('public.indicateurs', 'public.thematique') %}
+        <div class="relative h-full flex items-end">
+          <button id="them-dd-btn" onclick="toggleThemDropdown()"
+                  class="px-3 h-full flex items-center gap-1 whitespace-nowrap text-sm {{ ta if ind_active else ti }}">
+            Indicateurs
+            <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="them-dropdown" class="hidden absolute top-full left-0 w-52 bg-white rounded-b-xl shadow-xl border border-sand-200 py-1 z-50">
+            <a href="{{ url_for('public.indicateurs', ville_slug=ville.slug) }}"
+               class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-sand-50 transition border-b border-sand-100 {% if request.endpoint == 'public.indicateurs' %}font-semibold text-forest-700{% else %}text-gray-700{% endif %}">
+              <i class="ri-layout-grid-line text-base text-gray-400"></i> Vue d'ensemble
+            </a>
+            {% for nav_slug, nav_icon, nav_label in nav_items %}
+            <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}"
+               class="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-sand-50 transition {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}font-semibold text-forest-700{% else %}text-gray-600{% endif %}">
+              <i class="{{ nav_icon }} text-base text-gray-400"></i> {{ nav_label }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% set vie_active = request.endpoint in ('public.vie_municipale', 'public.conseils', 'public.conseil_detail', 'public.documents') %}
+        <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
+           class="px-3 h-full flex items-center whitespace-nowrap text-sm {{ ta if vie_active else ti }}">
+          Vie municipale
+        </a>
+        {% set apropos_active = request.endpoint in ('public.portrait', 'public.methodologie', 'public.comparer') %}
+        <div class="relative h-full flex items-end">
+          <button id="apropos-dd-btn" onclick="toggleAproposDropdown()"
+                  class="px-3 h-full flex items-center gap-1 whitespace-nowrap text-sm {{ ta if apropos_active else ti }}">
+            À propos
+            <svg class="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="apropos-dropdown" class="hidden absolute top-full left-0 w-56 bg-white rounded-b-xl shadow-xl border border-sand-200 py-1 z-50">
+            <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}"
+               class="flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap hover:bg-sand-50 transition {% if request.endpoint == 'public.portrait' %}font-semibold text-forest-700{% else %}text-gray-600{% endif %}">
+              <i class="ri-id-card-line text-base text-gray-400 flex-shrink-0"></i> Portrait de la ville</a>
+            <a href="{{ url_for('public.methodologie') }}"
+               class="flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap hover:bg-sand-50 transition {% if request.endpoint == 'public.methodologie' %}font-semibold text-forest-700{% else %}text-gray-600{% endif %}">
+              <i class="ri-book-2-line text-base text-gray-400 flex-shrink-0"></i> Méthodologie</a>
+            <a href="{{ url_for('public.comparer') }}"
+               class="flex items-center gap-2 px-4 py-2.5 text-sm whitespace-nowrap hover:bg-sand-50 transition {% if request.endpoint == 'public.comparer' %}font-semibold text-forest-700{% else %}text-gray-600{% endif %}">
+              <i class="ri-scales-3-line text-base text-gray-400 flex-shrink-0"></i> Comparer des communes</a>
+          </div>
+        </div>
+      </nav>
+
+      {% else %}
+      <div class="flex-1"></div>
       {% endif %}
-      <div class="border-t border-forest-700 mt-1 pt-2">
+
+      <!-- Spacer mobile (flex-1 uniquement sur mobile, le desktop nav remplit l'espace) -->
+      <div class="flex-1 md:hidden"></div>
+
+      <!-- Droite : barre de recherche + loupe + admin + hamburger ──────── -->
+      <div class="flex items-center gap-1.5 flex-shrink-0 md:ml-0">
+        {% if ville is defined and ville %}
+
+        <!-- Barre de recherche -->
+        <div id="search-panel" class="hidden items-center gap-2 bg-white rounded-lg px-3 h-9 border border-gray-200 shadow-sm" style="min-width:320px">
+          <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Rechercher…"
+                 class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                 autocomplete="off" oninput="doSearch(this.value)">
+          <button onclick="toggleSearch()" class="text-gray-400 hover:text-gray-700 transition flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Bouton loupe (caché quand recherche ouverte) -->
+        <button id="search-toggle" onclick="toggleSearch()" aria-label="Rechercher"
+                class="p-2 rounded-lg hover:bg-forest-700 transition text-forest-200 hover:text-white">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
+          </svg>
+        </button>
+
+        {% endif %}
+
+        <!-- Bouton connexion/admin -->
         {% if session.get('user_id') %}
         <a href="{{ url_for('admin.dashboard') }}"
-           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition"
-           onclick="toggleMobileMenu()">⚙️ Administration</a>
+           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-forest-900 hover:bg-forest-950 text-forest-200 hover:text-white text-xs font-medium transition"
+           title="Espace admin">
+          <i class="ri-settings-3-line text-base"></i>
+          <span class="hidden sm:inline">Admin</span>
+        </a>
         {% else %}
         <a href="{{ url_for('admin.login') }}"
-           class="flex items-center gap-2 px-3 py-2.5 rounded-lg hover:bg-forest-700 text-sm transition"
-           onclick="toggleMobileMenu()">🔐 Connexion</a>
+           class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-forest-900 hover:bg-forest-950 text-forest-200 hover:text-white text-xs font-medium transition"
+           title="Connexion">
+          <i class="ri-user-line text-base"></i>
+          <span class="hidden sm:inline">Connexion</span>
+        </a>
         {% endif %}
+
+        <!-- Hamburger — mobile uniquement, tout à droite -->
+        {% if ville is defined and ville %}
+        <button id="mob-menu-btn" onclick="toggleMobMenu()"
+                class="md:hidden p-2 rounded-lg hover:bg-forest-700 transition text-forest-200 hover:text-white"
+                aria-label="Menu">
+          <i class="ri-menu-line text-xl"></i>
+        </button>
+        {% endif %}
+
+      </div><!-- fin droite -->
+    </div>
+
+    <!-- Résultats de recherche (dropdown sous le header) -->
+    {% if ville is defined and ville %}
+    <div id="search-results"
+         class="hidden absolute left-0 right-0 top-full bg-forest-900 border-t border-forest-700 shadow-xl px-4 py-3 z-50 text-sm max-h-80 overflow-y-auto">
+    </div>
+    {% endif %}
+  </header>
+
+  <!-- ── Menu mobile (drawer accordion) ───────────────────────────── -->
+  {% if ville is defined and ville %}
+  {% set nav_items_mob = [
+    ('finances',   'ri-home-4-line',    'Soin de la maison'),
+    ('cadre_vie',  'ri-landscape-line', 'Soin du territoire'),
+    ('personnes',  'ri-heart-line',     'Soin des habitant·es'),
+    ('lien_social','ri-group-line',     'Soin du lien'),
+    ('democratie', 'ri-government-line','Soin de la parole'),
+    ('vivant',     'ri-leaf-line',      'Soin du vivant')
+  ] %}
+  {% set ind_mob_open = request.endpoint in ('public.indicateurs','public.thematique') %}
+  {% set apropos_mob_open = request.endpoint in ('public.portrait','public.methodologie','public.comparer') %}
+  <div id="mob-menu" class="hidden fixed inset-0 z-50 md:hidden" aria-modal="true">
+    <div onclick="toggleMobMenu()" class="absolute inset-0 bg-black/60"></div>
+    <div class="absolute top-0 right-0 bottom-0 w-72 bg-forest-900 text-white shadow-2xl overflow-y-auto flex flex-col">
+
+      <!-- En-tête drawer -->
+      <div class="flex items-center justify-between px-4 h-14 border-b border-forest-700 flex-shrink-0">
+        <span class="font-semibold text-sm text-forest-100">{{ ville.nom }}</span>
+        <button onclick="toggleMobMenu()" class="p-2 text-forest-300 hover:text-white transition">
+          <i class="ri-close-line text-xl"></i>
+        </button>
       </div>
+
+      <!-- Liens avec accordéon -->
+      <nav class="px-3 py-3 flex-1 overflow-y-auto">
+
+        <!-- Ma ville — lien direct -->
+        <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mb-0.5 {% if request.endpoint == 'public.dashboard' %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+          <i class="ri-home-line text-base text-forest-400 flex-shrink-0"></i> Ma ville
+        </a>
+
+        <!-- Indicateurs — section accordion -->
+        <div class="mt-1">
+          <button onclick="toggleMobSection('mob-ind')"
+                  class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition text-sm {% if ind_mob_open %}text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+            <span class="flex items-center gap-3">
+              <i class="ri-bar-chart-grouped-line text-base text-forest-400 flex-shrink-0"></i>
+              Indicateurs
+            </span>
+            <i id="mob-ind-chevron" class="ri-arrow-down-s-line text-forest-400 transition-transform {% if ind_mob_open %}rotate-180{% endif %}"></i>
+          </button>
+          <div id="mob-ind" class="{% if not ind_mob_open %}hidden{% endif %} pl-3 mt-0.5 space-y-0.5">
+            <a href="{{ url_for('public.indicateurs', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm {% if request.endpoint == 'public.indicateurs' %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+              <i class="ri-layout-grid-line text-sm text-forest-400 flex-shrink-0"></i> Vue d'ensemble
+            </a>
+            <div class="border-t border-forest-700 my-1"></div>
+            {% for nav_slug, nav_icon, nav_label in nav_items_mob %}
+            <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=nav_slug) }}" onclick="toggleMobMenu()"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm {% if request.endpoint == 'public.thematique' and (slug | default('')) == nav_slug %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+              <i class="{{ nav_icon }} text-sm text-forest-400 flex-shrink-0"></i> {{ nav_label }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Vie municipale — lien direct -->
+        <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mt-1 {% if request.endpoint in ('public.vie_municipale','public.conseils','public.conseil_detail','public.documents') %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+          <i class="ri-calendar-event-line text-base text-forest-400 flex-shrink-0"></i> Vie municipale
+        </a>
+
+        <!-- À propos — section accordion -->
+        <div class="mt-1">
+          <button onclick="toggleMobSection('mob-apropos')"
+                  class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition text-sm {% if apropos_mob_open %}text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+            <span class="flex items-center gap-3">
+              <i class="ri-information-line text-base text-forest-400 flex-shrink-0"></i>
+              À propos
+            </span>
+            <i id="mob-apropos-chevron" class="ri-arrow-down-s-line text-forest-400 transition-transform {% if apropos_mob_open %}rotate-180{% endif %}"></i>
+          </button>
+          <div id="mob-apropos" class="{% if not apropos_mob_open %}hidden{% endif %} pl-3 mt-0.5 space-y-0.5">
+            <a href="{{ url_for('public.portrait', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm {% if request.endpoint == 'public.portrait' %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+              <i class="ri-id-card-line text-sm text-forest-400 flex-shrink-0"></i> Portrait de la ville
+            </a>
+            <a href="{{ url_for('public.methodologie') }}" onclick="toggleMobMenu()"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm {% if request.endpoint == 'public.methodologie' %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+              <i class="ri-book-2-line text-sm text-forest-400 flex-shrink-0"></i> Méthodologie
+            </a>
+            <a href="{{ url_for('public.comparer') }}" onclick="toggleMobMenu()"
+               class="flex items-center gap-3 px-3 py-2 rounded-lg transition text-sm {% if request.endpoint == 'public.comparer' %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
+              <i class="ri-scales-3-line text-sm text-forest-400 flex-shrink-0"></i> Comparer
+            </a>
+          </div>
+        </div>
+
+      </nav>
     </div>
   </div>
+  {% endif %}
+
+  {% block breadcrumb %}{% endblock %}
 
   <!-- Flash messages -->
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -276,51 +363,188 @@
 
   <!-- Footer -->
   <footer class="bg-white border-t border-sand-200 mt-8">
-    <div class="max-w-6xl mx-auto px-4 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-sand-400">
-      <span class="font-body">BoussoleCommune · Observatoire citoyen indépendant</span>
-      <div class="flex gap-4">
-        <a href="{{ url_for('public.methodologie') }}" class="hover:text-forest-700 transition">Note méthodologique</a>
-        <a href="mailto:contact@sautronautrement.fr" class="hover:text-forest-700 transition">Contact</a>
+    <div class="max-w-6xl mx-auto px-4 pt-5 pb-4">
+      {% if ville is defined and ville %}
+      <p class="text-xs text-sand-400 leading-relaxed mb-3">
+        BoussoleCommune agrège les données financières officielles et les délibérations du conseil municipal
+        de {{ ville.nom }} pour les rendre accessibles à tous les habitants.
+        Sources&nbsp;: OFGL, comptes financiers officiels, procès-verbaux du conseil municipal.
+      </p>
+      {% endif %}
+      <div class="flex flex-col sm:flex-row justify-between gap-2 text-xs text-sand-400">
+        <span><span class="font-semibold text-gray-600">BoussoleCommune</span><span class="text-gray-400"> · </span><span class="font-semibold text-gray-600">Observatoire citoyen indépendant</span></span>
+        <div class="flex gap-4">
+          <a href="{{ url_for('public.methodologie') }}" class="hover:text-forest-700 transition">Note méthodologique</a>
+          <a href="mailto:contact@sautronautrement.fr" class="hover:text-forest-700 transition">Contact</a>
+        </div>
       </div>
     </div>
   </footer>
 
+
   {% block scripts %}{% endblock %}
 
   <script>
-  function toggleMobileMenu() {
-    var menu = document.getElementById('mobile-menu');
-    var btn  = document.getElementById('hamburger-btn');
-    var iconMenu  = document.getElementById('icon-menu');
-    var iconClose = document.getElementById('icon-close');
-    var open = menu.classList.toggle('hidden');
-    btn.setAttribute('aria-expanded', String(!open));
-    iconMenu.classList.toggle('hidden', !open);
-    iconClose.classList.toggle('hidden', open);
-  }
-
-  function toggleThemDropdown() {
-    var panel = document.getElementById('them-dropdown');
-    var btn   = document.getElementById('them-dd-btn');
-    if (panel.classList.contains('hidden')) {
-      var bRect = btn.getBoundingClientRect();
-      var nav   = btn.closest('nav');
-      var nRect = nav.getBoundingClientRect();
-      panel.style.left = (bRect.left - nRect.left) + 'px';
-      panel.style.top  = '100%';
-      panel.classList.remove('hidden');
+  // ── Menu mobile ──────────────────────────────────────────────────────
+  var _mobMenuOpen = false;
+  function toggleMobMenu() {
+    _mobMenuOpen = !_mobMenuOpen;
+    var menu = document.getElementById('mob-menu');
+    if (!menu) return;
+    if (_mobMenuOpen) {
+      menu.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
     } else {
-      panel.classList.add('hidden');
+      menu.classList.add('hidden');
+      document.body.style.overflow = '';
     }
   }
+  function toggleMobSection(id) {
+    var panel = document.getElementById(id);
+    var chevron = document.getElementById(id + '-chevron');
+    if (!panel) return;
+    panel.classList.toggle('hidden');
+    if (chevron) chevron.classList.toggle('rotate-180');
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && _mobMenuOpen) toggleMobMenu();
+  });
+
+  // ── Search ────────────────────────────────────────────────────────────
+  var _searchOpen = false;
+  var _searchTimer = null;
+  {% if ville is defined and ville %}
+  var _rechercheUrl = "{{ url_for('public.api_recherche_contenu', ville_slug=ville.slug) }}";
+  {% else %}
+  var _rechercheUrl = null;
+  {% endif %}
+
+  function toggleSearch() {
+    _searchOpen = !_searchOpen;
+    var panel   = document.getElementById('search-panel');
+    var toggle  = document.getElementById('search-toggle');
+    var results = document.getElementById('search-results');
+    if (_searchOpen) {
+      if (panel)  { panel.classList.remove('hidden'); panel.style.display = 'flex'; }
+      if (toggle) toggle.classList.add('hidden');
+      var inp = document.getElementById('search-input');
+      if (inp) { inp.value = ''; inp.focus(); }
+      if (results) results.classList.add('hidden');
+    } else {
+      if (panel)  { panel.classList.add('hidden'); panel.style.display = ''; }
+      if (toggle) toggle.classList.remove('hidden');
+      if (results) results.classList.add('hidden');
+    }
+  }
+
+  function doSearch(q) {
+    if (_searchTimer) clearTimeout(_searchTimer);
+    if (!_rechercheUrl || q.trim().length < 2) {
+      document.getElementById('search-results').classList.add('hidden');
+      return;
+    }
+    _searchTimer = setTimeout(function() {
+      fetch(_rechercheUrl + '?q=' + encodeURIComponent(q))
+        .then(function(r) { return r.json(); })
+        .then(function(data) { renderSearchResults(data, q); });
+    }, 250);
+  }
+
+  function renderSearchResults(data, q) {
+    var el = document.getElementById('search-results');
+    var html = '';
+    var hasResults = false;
+
+    if (data.indicateurs && data.indicateurs.length) {
+      hasResults = true;
+      html += '<p class="text-forest-300 text-xs font-semibold uppercase tracking-wide mb-1 px-1">Indicateurs</p>';
+      data.indicateurs.forEach(function(i) {
+        {% if ville is defined and ville %}
+        var url = '{{ url_for("public.thematique", ville_slug=ville.slug, slug="__SLUG__") }}'.replace('__SLUG__', i.slug);
+        {% else %}
+        var url = '#';
+        {% endif %}
+        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-700 transition group">'
+              + '<span class="text-forest-300 text-xs">' + escHtml(i.thematique) + '</span>'
+              + '<span class="text-white text-sm flex-1">' + escHtml(i.libelle) + '</span>'
+              + '</a>';
+      });
+    }
+
+    if (data.conseils && data.conseils.length) {
+      hasResults = true;
+      html += '<p class="text-forest-300 text-xs font-semibold uppercase tracking-wide mb-1 px-1 mt-2">Conseils</p>';
+      data.conseils.forEach(function(c) {
+        {% if ville is defined and ville %}
+        var url = '{{ url_for("public.conseil_detail", ville_slug=ville.slug, conseil_id=0) }}'.replace('/0', '/' + c.id);
+        {% else %}
+        var url = '#';
+        {% endif %}
+        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-700 transition">'
+              + '<span class="text-white text-sm flex-1">' + escHtml(c.titre) + '</span>'
+              + '<span class="text-forest-300 text-xs">' + escHtml(c.date) + '</span>'
+              + '</a>';
+      });
+    }
+
+    if (data.documents && data.documents.length) {
+      hasResults = true;
+      html += '<p class="text-forest-300 text-xs font-semibold uppercase tracking-wide mb-1 px-1 mt-2">Documents</p>';
+      data.documents.forEach(function(d) {
+        {% if ville is defined and ville %}
+        var url = '{{ url_for("public.documents", ville_slug=ville.slug) }}';
+        {% else %}
+        var url = '#';
+        {% endif %}
+        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-700 transition">'
+              + '<span class="text-white text-sm flex-1">' + escHtml(d.titre) + '</span>'
+              + '<span class="text-forest-300 text-xs">' + escHtml(d.categorie) + '</span>'
+              + '</a>';
+      });
+    }
+
+    if (!hasResults) {
+      html = '<p class="text-forest-300 text-sm px-3 py-2">Aucun résultat pour « ' + escHtml(q) + ' »</p>';
+    }
+
+    el.innerHTML = html;
+    el.classList.remove('hidden');
+  }
+
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Desktop dropdowns ────────────────────────────────────────────────
+  function toggleThemDropdown() {
+    var d = document.getElementById('them-dropdown');
+    var a = document.getElementById('apropos-dropdown');
+    if (a) a.classList.add('hidden');
+    if (d) d.classList.toggle('hidden');
+  }
+
+  function toggleAproposDropdown() {
+    var a = document.getElementById('apropos-dropdown');
+    var d = document.getElementById('them-dropdown');
+    if (d) d.classList.add('hidden');
+    if (a) a.classList.toggle('hidden');
+  }
+
+  // Close dropdowns on outside click
   document.addEventListener('click', function(e) {
-    var btn = document.getElementById('them-dd-btn');
-    var d   = document.getElementById('them-dropdown');
-    if (btn && d && !btn.contains(e.target) && !d.contains(e.target)) d.classList.add('hidden');
-    var menu = document.getElementById('mobile-menu');
-    var hbtn = document.getElementById('hamburger-btn');
-    if (menu && !menu.classList.contains('hidden') && !menu.contains(e.target) && hbtn && !hbtn.contains(e.target)) {
-      toggleMobileMenu();
+    var btnT = document.getElementById('them-dd-btn');
+    var d    = document.getElementById('them-dropdown');
+    if (btnT && d && !btnT.contains(e.target) && !d.contains(e.target)) d.classList.add('hidden');
+
+    var btnA = document.getElementById('apropos-dd-btn');
+    var a    = document.getElementById('apropos-dropdown');
+    if (btnA && a && !btnA.contains(e.target) && !a.contains(e.target)) a.classList.add('hidden');
+
+    var searchBtn = document.getElementById('search-toggle');
+    var panel = document.getElementById('search-panel');
+    if (_searchOpen && panel && searchBtn
+        && !panel.contains(e.target) && !searchBtn.contains(e.target)) {
+      toggleSearch();
     }
   });
   </script>

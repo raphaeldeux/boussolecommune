@@ -16,191 +16,141 @@
   {% set sc_bg = '#f7f5f0' %}{% set sc_border = '#dbd4c8' %}{% set sc_text = '#5c5448' %}
 {% endif %}
 
-{# ── Bloc 1 : Accroche ─────────────────────────────────────────────── #}
-<div class="relative rounded-2xl overflow-hidden mb-6"
-     style="background: {{ sc_bg }}; border: 1.5px solid {{ sc_border }};">
+{# ── Bloc 1 : Hero Search (style Google) ──────────────────────────── #}
+<div class="relative mb-8 px-2 sm:px-4 py-8 sm:py-12 text-center">
 
-  {# Subtle decorative circle in corner #}
-  <div class="absolute -top-12 -right-12 w-48 h-48 rounded-full opacity-10"
-       style="background: radial-gradient(circle, {{ sc_border }}, transparent 70%); pointer-events:none"></div>
+  <!-- Accroche -->
+  <h1 class="text-2xl sm:text-3xl font-bold mb-6 leading-snug" style="color:#1a1a16;">
+    Tout ce qui se passe à <em class="not-italic" style="color:{{ sc_text }}">{{ ville.nom }}</em>,<br>
+    <span class="font-normal text-xl sm:text-2xl" style="color:#5c5448;">en clair.</span>
+  </h1>
 
-  <div class="relative px-6 sm:px-8 py-7 sm:py-9">
-    <div class="flex flex-col sm:flex-row items-start gap-6 sm:gap-10">
-
-      <!-- Headline -->
-      <div class="flex-1 min-w-0">
-        <p class="text-xs font-medium tracking-widest uppercase mb-3"
-           style="color: {{ sc_border | replace('#', '#') }}; opacity: 0.8; letter-spacing: 0.12em;">
-          BoussoleCommune · {{ ville.nom }}
-        </p>
-
-        <h1 class="text-3xl sm:text-4xl font-bold leading-tight mb-4"
-            style="color: #1a1a16">
-          Tout ce qui se décide<br>
-          à <em class="not-italic" style="color: {{ sc_text }}">{{ ville.nom }}</em>.<br>
-          <span class="italic font-normal text-2xl sm:text-3xl" style="color: #5c5448;">
-            En clair. En un coup d'œil.
-          </span>
-        </h1>
-
-        {# Context phrase from scores #}
-        {% set cartes_scorees = cartes | selectattr('score') | list %}
-        {% if cartes_scorees %}
-          {% set worst = cartes_scorees | sort(attribute='score') | last %}
-          {% set best  = cartes_scorees | sort(attribute='score') | first %}
-          {% if worst.score in ('D', 'E') %}
-          <p class="text-sm mb-4" style="color: #5c5448; max-width: 38rem; line-height: 1.7;">
-            {{ ville.nom }} mérite une attention particulière sur
-            <strong style="color: #1a1a16;">{{ worst.label }}</strong>.
-            <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=worst.slug) }}"
-               class="font-semibold transition"
-               style="color: {{ sc_text }}; text-decoration: underline; text-underline-offset: 3px;">
-              Voici pourquoi →
-            </a>
-          </p>
-          {% elif score_global in ('A', 'B') %}
-          <p class="text-sm mb-4" style="color: #5c5448; max-width: 38rem; line-height: 1.7;">
-            {{ ville.nom }} se distingue particulièrement sur
-            <strong style="color: #1a1a16;">{{ best.label }}</strong>.
-            <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=best.slug) }}"
-               class="font-semibold transition"
-               style="color: {{ sc_text }}; text-decoration: underline; text-underline-offset: 3px;">
-              Explorer →
-            </a>
-          </p>
-          {% endif %}
-        {% endif %}
-
-        {% if not score_global %}
-        <p class="text-sm italic mb-4" style="color: #a09080;">
-          La note apparaîtra dès que suffisamment de données seront saisies.
-        </p>
-        {% endif %}
-
-        <a href="#thematiques"
-           class="inline-flex items-center gap-1.5 text-xs font-medium transition"
-           style="color: #9d6e33;">
-          <span>Explorer les 6 thématiques</span>
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
-          </svg>
-        </a>
-      </div>
-
-      <!-- Score stamp -->
-      {% if score_global %}
-      <div class="flex-shrink-0 flex flex-col items-center self-start">
-        <div class="score-badge score-{{ score_global }} shadow-sm"
-             style="width:5.5rem;height:5.5rem;font-size:3rem;border-radius:1.25rem;
-                    line-height:5.5rem;
-                    box-shadow: 0 4px 20px {{ sc_border }}80;">
-          {{ score_global }}
-        </div>
-        <div class="text-xs font-medium mt-2.5 text-center" style="color: #9d6e33; letter-spacing: 0.05em;">
-          Score global
-        </div>
-        <details class="mt-1.5 text-center relative">
-          <summary class="text-xs cursor-pointer select-none transition" style="color: #c5bbae;">
-            Comment ?
-          </summary>
-          <div class="absolute z-10 mt-1 w-64 bg-white rounded-xl shadow-lg p-4 text-xs text-left leading-relaxed"
-               style="right:0; border: 1px solid #dbd4c8; color: #5c5448;">
-            Moyenne pondérée des 6 thématiques.<br>A = excellent · E = critique.<br>
-            <a href="{{ url_for('public.methodologie') }}"
-               class="mt-1 inline-block" style="color: #285a44;">Note méthodologique →</a>
-          </div>
-        </details>
-      </div>
-      {% endif %}
-
+  <!-- Barre de recherche large + centrée -->
+  <div class="relative max-w-2xl mx-auto">
+    <div class="flex items-center gap-3 bg-white rounded-2xl shadow-md px-5 py-3.5"
+         style="border: 1.5px solid #dbd4c8;">
+      <svg class="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+           style="color: #9d8c7a;">
+        <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input id="home-search" type="text"
+             placeholder="Que voulez-vous savoir sur {{ ville.nom }} ?"
+             class="flex-1 text-sm bg-transparent outline-none"
+             style="color: #1a1a16;"
+             autocomplete="off"
+             oninput="doHomeSearch(this.value)">
+      <span id="home-search-spinner" class="hidden">
+        <svg class="w-4 h-4 animate-spin" style="color:{{ sc_text }};opacity:.5" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+        </svg>
+      </span>
+    </div>
+    <!-- Résultats inline -->
+    <div id="home-results-wrap" class="hidden absolute inset-x-0 top-full mt-1 z-30">
+      <div id="home-search-results"
+           class="bg-white rounded-xl shadow-xl text-sm overflow-hidden text-left"
+           style="border: 1.5px solid #dbd4c8;"></div>
     </div>
   </div>
+
+  <!-- Raccourcis rapides -->
+  <div class="flex flex-wrap gap-2 mt-5 justify-center">
+    <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
+       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition hover:bg-sand-100"
+       style="background: white; border: 1px solid #dbd4c8; color: #5c5448;">
+      🏛️ Derniers conseils
+    </a>
+    <a href="{{ url_for('public.indicateurs', ville_slug=ville.slug) }}"
+       class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition hover:bg-sand-100"
+       style="background: white; border: 1px solid #dbd4c8; color: #5c5448;">
+      📊 Tous les indicateurs
+    </a>
+  </div>
+
 </div>
 
-{# ── Bloc 2 : Quoi de neuf ─────────────────────────────────────────── #}
-{% if derniers_conseils or ville.whatsapp_url %}
-<div class="bg-white rounded-xl mb-6 overflow-hidden"
-     style="border: 1.5px solid #dbd4c8;">
-  <div class="px-5 py-4 border-b flex items-center gap-2" style="border-color: #ede8df; background: #faf8f5;">
-    <span class="text-xs font-semibold tracking-widest uppercase" style="color: #9d8c7a; letter-spacing: 0.1em;">Quoi de neuf ?</span>
-  </div>
-  <div class="px-5 py-4">
-    {% if derniers_conseils %}
-    {% set dc = derniers_conseils[0] %}
-    <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=dc.id) }}"
-       class="flex items-start gap-4 mb-4 group">
-      <div class="flex-shrink-0 mt-0.5 w-10 h-10 rounded-lg flex items-center justify-center text-xl"
-           style="background: #edf5f0; border: 1px solid #d4e9df;">🏛️</div>
-      <div>
-        <div class="font-semibold transition group-hover:underline" style="color: #1a4231; text-underline-offset: 3px; font-size: 0.9375rem;">
-          Conseil du {{ dc.date_conseil | format_date }}
-        </div>
-        {% if dc.nb_delib %}
-        <div class="text-sm mt-0.5" style="color: #9d8c7a;">
-          {{ dc.nb_delib }} point{{ 's' if dc.nb_delib > 1 }} à l'ordre du jour
-        </div>
-        {% elif dc.resume_citoyen %}
-        <div class="text-sm mt-0.5 italic" style="color: #9d8c7a; max-width: 40rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical;">
-          {{ dc.resume_citoyen }}
-        </div>
-        {% endif %}
-      </div>
+{# ── Feed ──────────────────────────────────────────────────────────── #}
+
+{# Dernier conseil (actu principale) #}
+{% if derniers_conseils %}
+{% set dc = derniers_conseils[0] %}
+<div class="bg-white rounded-2xl mb-4 overflow-hidden" style="border: 1.5px solid #dbd4c8;">
+  <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:#ede8df; background:#faf8f5;">
+    <span class="text-xs font-semibold tracking-widest uppercase" style="color:#9d8c7a;">Dernière actualité</span>
+    <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
+       class="text-xs font-semibold transition" style="color:#9d6e33; text-decoration:underline; text-underline-offset:3px;">
+      Voir tout →
     </a>
-    {% endif %}
-    <div class="flex flex-wrap gap-3 items-center">
-      <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
-         class="text-xs font-semibold transition"
-         style="color: #285a44; text-decoration: underline; text-underline-offset: 3px;">
-        Voir tous les conseils →
-      </a>
-      {% if ville.whatsapp_url %}
-      <a href="{{ ville.whatsapp_url }}" target="_blank" rel="noopener noreferrer"
-         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition"
-         style="background: #edf5f0; border: 1px solid #a8d5be; color: #1a4231;">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" style="color: #25D366">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-        Recevoir les résumés via WhatsApp
-      </a>
+  </div>
+  <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=dc.id) }}"
+     class="flex items-start gap-4 px-5 py-4 group hover:bg-sand-50 transition">
+    <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+         style="background:#edf5f0; border:1px solid #d4e9df;">🏛️</div>
+    <div class="flex-1 min-w-0">
+      <div class="text-xs font-medium mb-0.5" style="color:#9d6e33;">
+        Conseil du {{ dc.date_conseil | date_fr }}
+        {% if dc.nb_delib %} · {{ dc.nb_delib }} délibération{{ 's' if dc.nb_delib > 1 }}{% endif %}
+      </div>
+      <div class="font-semibold text-sm leading-snug group-hover:text-forest-700 transition" style="color:#1a1a16;">
+        {{ dc.titre }}
+      </div>
+      {% if dc.resume_citoyen %}
+      <p class="text-xs mt-1.5 leading-relaxed" style="color:#5c5448;
+         display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+        {{ dc.resume_citoyen }}
+      </p>
+      {% elif dc.theme_dominant %}
+      <p class="text-xs mt-1.5" style="color:#9d8c7a;">{{ dc.theme_dominant }}</p>
+      {% else %}
+      <p class="text-xs mt-1.5 italic" style="color:#c5bbae;">Résumé en cours de rédaction</p>
       {% endif %}
     </div>
+    <svg class="w-4 h-4 flex-shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform"
+         fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:#c5bbae">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+    </svg>
+  </a>
+  {% if ville.whatsapp_url %}
+  <div class="px-5 pb-4">
+    <a href="{{ ville.whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition"
+       style="background:#edf5f0; border:1px solid #a8d5be; color:#1a4231;">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="#25D366">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      Recevoir les résumés via WhatsApp
+    </a>
   </div>
+  {% endif %}
 </div>
 {% endif %}
 
-{# ── Bloc 3 : Indicateurs vedettes ────────────────────────────────── #}
+{# Indicateurs vedettes #}
 {% if indicateurs_vedettes %}
-<div class="grid grid-cols-1 sm:grid-cols-{{ indicateurs_vedettes | length }} gap-4 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-{{ indicateurs_vedettes | length }} gap-3 mb-4">
   {% for ind in indicateurs_vedettes %}
   <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=ind.thematique) }}"
-     class="group relative bg-white rounded-xl overflow-hidden transition-all duration-200"
-     style="border: 1.5px solid #dbd4c8;"
-     onmouseover="this.style.borderColor='#a8d5be'; this.style.boxShadow='0 4px 16px rgba(26,66,49,0.08)'"
+     class="group bg-white rounded-xl overflow-hidden transition-all"
+     style="border:1.5px solid #dbd4c8;"
+     onmouseover="this.style.borderColor='#a8d5be'; this.style.boxShadow='0 4px 16px rgba(26,66,49,.08)'"
      onmouseout="this.style.borderColor='#dbd4c8'; this.style.boxShadow=''">
-    <div class="px-5 py-5">
-      <div class="text-2xl mb-3">{{ ind.icon }}</div>
-      <div class="text-xs mb-1.5 leading-snug" style="color: #9d8c7a;">{{ ind.libelle_citoyen }}</div>
-      <div class="text-2xl font-bold leading-none mb-1"
-           style="color: #1a1a16">
+    <div class="px-4 py-4">
+      <div class="text-xl mb-2 text-gray-400"><i class="{{ ind.icon }}"></i></div>
+      <div class="text-xs leading-snug mb-2" style="color:#9d8c7a;">{{ ind.libelle_citoyen }}</div>
+      <div class="text-xl font-bold" style="color:#1a1a16">
         {{ ind.donnee.valeur | format_valeur }}
-        <span class="text-sm font-body font-normal" style="color: #9d8c7a">{{ ind.unite }}</span>
+        <span class="text-xs font-normal" style="color:#9d8c7a">{{ ind.unite }}</span>
       </div>
-      {% if ind.tendance and ind.valeur_ancienne is not none %}
-      <div class="text-xs font-semibold mt-1.5">
-        {% if ind.tendance_bonne %}<span style="color: #285a44;">{{ ind.tendance }} +{{ ind.pct_evolution }}%</span>
-        {% elif ind.tendance_mauvaise %}<span style="color: #dc2626;">{{ ind.tendance }} {{ ind.pct_evolution }}%</span>
-        {% else %}<span style="color: #9d8c7a;">→ stable</span>
-        {% endif %}
-      </div>
-      {% endif %}
-      {% if ind.valeur_reference is not none %}
-      <div class="text-xs mt-1.5" style="color: #c5bbae;">
-        Moy. similaires : {{ ind.valeur_reference | format_valeur }} {{ ind.unite }}
+      {% if ind.tendance and ind.donnee %}
+      <div class="text-xs font-semibold mt-1">
+        {% if ind.tendance_bonne %}<span style="color:#285a44;">{{ ind.tendance }} +{{ ind.pct_evolution }}%</span>
+        {% elif ind.tendance_mauvaise %}<span style="color:#dc2626;">{{ ind.tendance }} {{ ind.pct_evolution }}%</span>
+        {% else %}<span style="color:#9d8c7a;">→ stable</span>{% endif %}
       </div>
       {% endif %}
     </div>
-    <div class="px-5 py-2.5 text-xs font-medium transition"
-         style="background: #f7f5f0; border-top: 1px solid #ede8df; color: #285a44;">
+    <div class="px-4 py-2 text-xs font-medium" style="background:#f7f5f0; border-top:1px solid #ede8df; color:#285a44;">
       Voir la thématique →
     </div>
   </a>
@@ -208,191 +158,162 @@
 </div>
 {% endif %}
 
-{# ── Bloc 4 : Derniers conseils en cartes ─────────────────────────── #}
-{% if derniers_conseils %}
-<div class="mb-8">
-  <div class="flex items-baseline justify-between mb-4">
-    <h2 class="text-xl font-semibold"
-        style="color: #1a1a16">
-      Derniers conseils municipaux
-    </h2>
-    <a href="{{ url_for('public.conseils', ville_slug=ville.slug) }}"
-       class="text-xs font-semibold transition"
-       style="color: #9d6e33; text-decoration: underline; text-underline-offset: 3px;">
+{# Points forts / Vigilance #}
+{% if top_inds or flop_inds %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+  {% if top_inds %}
+  <div class="bg-white rounded-xl p-4" style="border:1.5px solid #dbd4c8;">
+    <h3 class="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5" style="color:#285a44;">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+      Ce qui va bien
+    </h3>
+    <div class="space-y-1">
+      {% for ind in top_inds %}
+      <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=ind.thematique) }}"
+         class="flex items-start gap-2 py-1.5 rounded-lg px-2 hover:bg-forest-50 transition group">
+        <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0 mt-1.5"></span>
+        <span class="text-sm leading-snug group-hover:text-forest-700 transition" style="color:#1a1a16;">{{ ind.libelle_citoyen }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% if flop_inds %}
+  <div class="bg-white rounded-xl p-4" style="border:1.5px solid #fca5a5;">
+    <h3 class="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-1.5" style="color:#dc2626;">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01"/><circle cx="12" cy="12" r="9" stroke-linecap="round"/></svg>
+      À surveiller
+    </h3>
+    <div class="space-y-1">
+      {% for ind in flop_inds %}
+      <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=ind.thematique) }}"
+         class="flex items-start gap-2 py-1.5 rounded-lg px-2 hover:bg-red-50 transition group">
+        <span class="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-1.5"></span>
+        <span class="text-sm leading-snug group-hover:text-red-700 transition" style="color:#1a1a16;">{{ ind.libelle_citoyen }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{# Documents récents #}
+{% if documents_recents %}
+<div class="bg-white rounded-xl overflow-hidden mb-4" style="border:1.5px solid #dbd4c8;">
+  <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:#ede8df; background:#faf8f5;">
+    <span class="text-xs font-semibold tracking-widest uppercase" style="color:#9d8c7a;">Documents récents</span>
+    <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}#documents"
+       class="text-xs font-semibold" style="color:#9d6e33; text-decoration:underline; text-underline-offset:3px;">
       Tous →
     </a>
   </div>
-  <div class="grid grid-cols-1 sm:grid-cols-{{ [derniers_conseils | length, 3] | min }} gap-4">
-    {% for conseil in derniers_conseils %}
-    <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=conseil.id) }}"
-       class="group bg-white rounded-xl flex flex-col overflow-hidden transition-all duration-200"
-       style="border: 1.5px solid #dbd4c8;"
-       onmouseover="this.style.borderColor='#a8d5be'; this.style.boxShadow='0 4px 16px rgba(26,66,49,0.08)'"
-       onmouseout="this.style.borderColor='#dbd4c8'; this.style.boxShadow=''">
-      <div class="px-5 pt-5 pb-4 flex-1">
-        <div class="text-xs font-semibold mb-2" style="color: #9d6e33; letter-spacing: 0.04em;">
-          {{ conseil.date_conseil | format_date | upper if conseil.date_conseil else '' }}
-        </div>
-        <div class="font-semibold leading-snug mb-3"
-             style="color: #1a1a16; font-size: 0.9375rem;
-                    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-          {{ conseil.titre }}
-        </div>
-        {% if conseil.nb_delib %}
-        <div class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full"
-             style="background: #edf5f0; color: #285a44; border: 1px solid #d4e9df;">
-          🗳️ {{ conseil.nb_delib }} point{{ 's' if conseil.nb_delib > 1 }}
-        </div>
-        {% endif %}
-        {% if conseil.theme_dominant %}
-        <div class="mt-2 text-xs font-medium truncate" style="color: #9d8c7a;">
-          {{ conseil.theme_dominant }}
-        </div>
-        {% endif %}
+  <div class="divide-y" style="divide-color:#f0ebe3;">
+    {% for doc in documents_recents %}
+    <div class="flex items-center gap-3 px-5 py-3">
+      <span class="text-base flex-shrink-0">📄</span>
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-medium truncate" style="color:#1a1a16;">{{ doc.titre }}</div>
+        <div class="text-xs" style="color:#9d8c7a;">{{ doc.categorie }}</div>
       </div>
-      <div class="px-5 py-2.5 text-xs font-medium"
-           style="background: #f7f5f0; border-top: 1px solid #ede8df; color: #285a44;">
-        Lire le résumé →
-      </div>
-    </a>
+    </div>
     {% endfor %}
   </div>
 </div>
 {% endif %}
 
-{# ── Section thématiques ──────────────────────────────────────────── #}
-<div id="thematiques">
-
-  {# Points forts / Points d'attention #}
-  {% if top_inds or flop_inds %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-    {% if top_inds %}
-    <div class="bg-white rounded-xl p-5" style="border: 1.5px solid #dbd4c8;">
-      <h3 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: #9d8c7a; letter-spacing: 0.1em;">Points forts</h3>
-      <div class="space-y-3">
-        {% for ind in top_inds %}
-        <div class="flex items-center gap-3">
-          <span class="score-badge score-{{ ind.score }}"
-                style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.35rem;flex-shrink:0">{{ ind.score }}</span>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm truncate" style="color: #1a1a16;">{{ ind.libelle_citoyen }}</div>
-            <div class="text-xs" style="color: #9d8c7a;">{{ ind._them_label }}</div>
-          </div>
-          {% if ind.donnee %}
-          <div class="text-sm font-semibold flex-shrink-0 text-right" style="color: #1a1a16">
-            {{ ind.donnee.valeur | format_valeur }}
-            <span class="text-xs font-normal" style="color: #9d8c7a">{{ ind.unite }}</span>
-          </div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-    {% if flop_inds %}
-    <div class="bg-white rounded-xl p-5" style="border: 1.5px solid #dbd4c8;">
-      <h3 class="text-xs font-semibold uppercase tracking-widest mb-4" style="color: #9d8c7a; letter-spacing: 0.1em;">Points d'attention</h3>
-      <div class="space-y-3">
-        {% for ind in flop_inds %}
-        <div class="flex items-center gap-3">
-          <span class="score-badge score-{{ ind.score }}"
-                style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.35rem;flex-shrink:0">{{ ind.score }}</span>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm truncate" style="color: #1a1a16;">{{ ind.libelle_citoyen }}</div>
-            <div class="text-xs" style="color: #9d8c7a;">{{ ind._them_label }}</div>
-          </div>
-          {% if ind.donnee %}
-          <div class="text-sm font-semibold flex-shrink-0 text-right" style="color: #1a1a16">
-            {{ ind.donnee.valeur | format_valeur }}
-            <span class="text-xs font-normal" style="color: #9d8c7a">{{ ind.unite }}</span>
-          </div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-
-  {# Cartes thématiques #}
-  <div class="flex items-baseline justify-between mb-4">
-    <h2 class="text-xl font-semibold"
-        style="color: #1a1a16">
-      Les 6 thématiques
-    </h2>
-  </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-    {% for carte in cartes %}
-    <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=carte.slug) }}"
-       class="group bg-white rounded-xl flex flex-col overflow-hidden transition-all duration-200"
-       style="border: 1.5px solid #dbd4c8;"
-       onmouseover="this.style.borderColor='#a8d5be'; this.style.boxShadow='0 4px 16px rgba(26,66,49,0.08)'"
-       onmouseout="this.style.borderColor='#dbd4c8'; this.style.boxShadow=''">
-      <div class="px-4 py-4 flex-1">
-        <div class="flex items-start justify-between mb-3">
-          <span class="text-2xl">{{ carte.icon }}</span>
-          {% if carte.score %}
-          <span class="score-badge score-{{ carte.score }}"
-                style="width:1.75rem;height:1.75rem;font-size:.8rem;border-radius:.35rem;flex-shrink:0">{{ carte.score }}</span>
-          {% else %}
-          <span style="width:1.75rem;height:1.75rem;border-radius:.35rem;display:inline-flex;align-items:center;justify-content:center;background:#ede8df;color:#c5bbae;font-size:.75rem;font-weight:700;flex-shrink:0">—</span>
-          {% endif %}
-        </div>
-        <div class="font-semibold text-sm leading-tight mb-1" style="color: #1a1a16;">{{ carte.label }}</div>
-        {% if carte.score %}
-        {% set score_pct = {'A': 100, 'B': 80, 'C': 60, 'D': 40, 'E': 20}[carte.score] | default(0) %}
-        <div class="h-1 rounded-full mt-2 mb-1" style="background: #ede8df;">
-          <div class="h-1 rounded-full score-{{ carte.score }}" style="width: {{ score_pct }}%; opacity: 0.7;"></div>
-        </div>
-        {% else %}
-        <div class="h-1 rounded-full mt-2 mb-1" style="background: #ede8df;"></div>
-        {% endif %}
-        <div class="text-xs mt-1" style="color: #c5bbae;">{{ carte.nb_renseignes }}/{{ carte.nb_total }} indicateurs</div>
-      </div>
-      <div class="px-4 py-2.5 text-xs font-medium transition"
-           style="background: #f7f5f0; border-top: 1px solid #ede8df; color: #285a44;">
-        Voir le détail →
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-
-  {# Documents récents #}
-  {% if documents_recents %}
-  <div class="bg-white rounded-xl overflow-hidden mb-6" style="border: 1.5px solid #dbd4c8;">
-    <div class="px-5 py-3.5 border-b flex items-center justify-between" style="border-color: #ede8df; background: #faf8f5;">
-      <span class="text-xs font-semibold tracking-widest uppercase" style="color: #9d8c7a; letter-spacing: 0.1em;">Documents récents</span>
-      <a href="{{ url_for('public.documents', ville_slug=ville.slug) }}"
-         class="text-xs font-semibold transition" style="color: #9d6e33; text-decoration: underline; text-underline-offset: 3px;">
-        Tous →
-      </a>
-    </div>
-    <div class="divide-y" style="divide-color: #f0ebe3;">
-      {% for doc in documents_recents %}
-      <div class="flex items-center gap-3 px-5 py-3">
-        <span class="text-lg flex-shrink-0">📄</span>
-        <div class="min-w-0">
-          <div class="text-sm font-medium truncate" style="color: #1a1a16;">{{ doc.titre }}</div>
-          <div class="text-xs" style="color: #9d8c7a;">{{ doc.categorie }}</div>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
-</div>
-
-{# ── Bloc 5 : Ce qu'est BoussoleCommune ───────────────────────────── #}
-<div class="mt-6 pt-6" style="border-top: 1px solid #dbd4c8;">
-  <p class="text-xs text-center leading-relaxed max-w-2xl mx-auto" style="color: #c5bbae;">
-    BoussoleCommune agrège les données financières officielles et les délibérations du conseil
-    municipal de {{ ville.nom }} pour les rendre accessibles à tous les habitants.<br>
-    Sources&nbsp;: OFGL, comptes financiers officiels, procès-verbaux du conseil municipal.
-  </p>
-</div>
 
 {% endblock %}
 
-{% block scripts %}{% endblock %}
+{% block scripts %}
+<script>
+var _homeSearchTimer = null;
+var _homeSearchUrl = "{{ url_for('public.api_recherche_contenu', ville_slug=ville.slug) }}";
+
+function doHomeSearch(q) {
+  if (_homeSearchTimer) clearTimeout(_homeSearchTimer);
+  var wrap = document.getElementById('home-results-wrap');
+  var res  = document.getElementById('home-search-results');
+  var spin = document.getElementById('home-search-spinner');
+  if (!q || q.trim().length < 2) {
+    wrap.classList.add('hidden');
+    if (spin) spin.classList.add('hidden');
+    return;
+  }
+  if (spin) spin.classList.remove('hidden');
+  _homeSearchTimer = setTimeout(function() {
+    fetch(_homeSearchUrl + '?q=' + encodeURIComponent(q))
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (spin) spin.classList.add('hidden');
+        renderHomeResults(data, q, res, wrap);
+      })
+      .catch(function() { if (spin) spin.classList.add('hidden'); });
+  }, 220);
+}
+
+function renderHomeResults(data, q, el, wrap) {
+  var html = '';
+  var any = false;
+
+  if (data.indicateurs && data.indicateurs.length) {
+    any = true;
+    html += '<div class="px-4 pt-3 pb-1"><p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Indicateurs</p>';
+    data.indicateurs.forEach(function(i) {
+      var url = "{{ url_for('public.thematique', ville_slug=ville.slug, slug='__S__') }}".replace('__S__', i.slug);
+      html += '<a href="' + url + '" class="flex items-center gap-2 py-2 hover:text-forest-700 transition">'
+            + '<span class="text-xs text-gray-400 flex-shrink-0">' + escHtml(i.thematique) + '</span>'
+            + '<span class="text-sm text-gray-800 flex-1 truncate">' + escHtml(i.libelle) + '</span>'
+            + '</a>';
+    });
+    html += '</div>';
+  }
+
+  if (data.conseils && data.conseils.length) {
+    any = true;
+    html += '<div class="px-4 pt-2 pb-1 border-t border-gray-100"><p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Conseils</p>';
+    data.conseils.forEach(function(c) {
+      var url = "{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=0) }}".replace('/0', '/' + c.id);
+      html += '<a href="' + url + '" class="flex items-center gap-2 py-2 hover:text-forest-700 transition">'
+            + '<span class="text-sm text-gray-800 flex-1 truncate">' + escHtml(c.titre) + '</span>'
+            + '<span class="text-xs text-gray-400 flex-shrink-0">' + escHtml(c.date) + '</span>'
+            + '</a>';
+    });
+    html += '</div>';
+  }
+
+  if (data.documents && data.documents.length) {
+    any = true;
+    html += '<div class="px-4 pt-2 pb-3 border-t border-gray-100"><p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Documents</p>';
+    data.documents.forEach(function(d) {
+      var url = "{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}#documents";
+      html += '<a href="' + url + '" class="flex items-center gap-2 py-2 hover:text-forest-700 transition">'
+            + '<span class="text-sm text-gray-800 flex-1 truncate">' + escHtml(d.titre) + '</span>'
+            + '<span class="text-xs text-gray-400 flex-shrink-0">' + escHtml(d.categorie) + '</span>'
+            + '</a>';
+    });
+    html += '</div>';
+  }
+
+  if (!any) {
+    html = '<div class="px-4 py-4 text-sm text-gray-400">Aucun résultat pour « ' + escHtml(q) + ' »</div>';
+  }
+
+  el.innerHTML = html;
+  wrap.classList.remove('hidden');
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Close on outside click
+document.addEventListener('click', function(e) {
+  var inp = document.getElementById('home-search');
+  var wrap = document.getElementById('home-results-wrap');
+  if (wrap && inp && !inp.contains(e.target) && !wrap.contains(e.target)) {
+    wrap.classList.add('hidden');
+  }
+});
+</script>
+{% endblock %}

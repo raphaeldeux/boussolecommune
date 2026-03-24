@@ -199,6 +199,14 @@ def create_app():
     def format_date(d):
         if not d:
             return "—"
+        import datetime
+        if isinstance(d, str):
+            try:
+                d = datetime.date.fromisoformat(str(d)[:10])
+            except ValueError:
+                return str(d)[:10]
+        if isinstance(d, (datetime.date, datetime.datetime)):
+            return d.strftime("%d/%m/%Y")
         return str(d)[:10]
 
     @app.template_filter("from_json")

@@ -338,6 +338,60 @@ def dashboard(ville_slug):
     )
 
 
+@bp.route("/v/<ville_slug>/indicateurs")
+def indicateurs(ville_slug):
+    """Vue d'ensemble des 6 thématiques avec scores."""
+    from app.models.indicateur import THEMATIQUE_ICONS, THEMATIQUE_LABELS
+    ville = _get_ville_or_404(ville_slug)
+    cartes, score_global, top_inds, flop_inds = _build_cartes(ville["id"])
+    return render_template(
+        "public/indicateurs.html",
+        ville=ville,
+        cartes=cartes,
+        score_global=score_global,
+        score_global_couleur=SCORE_COULEURS.get(score_global) or "#9ca3af",
+        top_inds=top_inds,
+        flop_inds=flop_inds,
+    )
+
+
+@bp.route("/v/<ville_slug>/vie-municipale")
+def vie_municipale(ville_slug):
+    """Page fusionnée : conseils + documents."""
+    import json as _json
+    import app.models.conseil as conseil_model
+    import app.models.document as document_model
+    ville = ville_model.get_by_slug(ville_slug)
+    if not ville:
+        abort(404)
+
+    conseils_raw = conseil_model.get_publies(ville["id"], limit=20)
+
+    def _enrich(c):
+        nb_delib, theme_dominant = 0, None
+        structure = c.get("resume_structure")
+        if structure:
+            try:
+                data = _json.loads(structure)
+                nb_delib = data.get("nb_points_odj") or 0
+                themes = data.get("themes") or []
+                if themes:
+                    best = max(themes, key=lambda t: len(t.get("deliberations") or []))
+                    theme_dominant = best.get("titre")
+            except Exception:
+                pass
+        return {**c, "nb_delib": nb_delib, "theme_dominant": theme_dominant}
+
+    conseils = [_enrich(c) for c in conseils_raw]
+    documents = document_model.get_publies(ville["id"], limit=30)
+    return render_template(
+        "public/vie_municipale.html",
+        ville=ville,
+        conseils=conseils,
+        documents=documents,
+    )
+
+
 @bp.route("/v/<ville_slug>/thematique/<slug>")
 def thematique(ville_slug, slug):
     ville = _get_ville_or_404(ville_slug)
@@ -662,3 +716,169 @@ def documents(ville_slug):
         abort(404)
     items = document_model.get_publies(ville["id"], limit=50)
     return render_template("public/documents.html", ville=ville, documents=items)
+
+
+# ── Synonymes pour la recherche intelligente ──────────────────────────────
+_SEARCH_SYNONYMS = {
+    "bio":           ["bio", "biologique", "egalim", "cantine"],
+    "cantine":       ["cantine", "restauration", "repas", "scolaire", "egalim"],
+    "eau":           ["eau", "fluides", "énergie", "dépenses"],
+    "énergie":       ["énergie", "fluides", "eau", "enr", "renouvelable", "dpe"],
+    "renouvelable":  ["renouvelable", "enr", "énergie"],
+    "dette":         ["dette", "désendettement", "emprunt", "capacité"],
+    "emprunt":       ["emprunt", "dette", "désendettement"],
+    "impôt":         ["impôt", "taxe", "foncière", "fiscalité"],
+    "taxe":          ["taxe", "foncière", "impôt"],
+    "logement":      ["logement", "hlm", "social", "vacance"],
+    "hlm":           ["hlm", "logement", "social"],
+    "emploi":        ["emploi", "emplois", "chômage", "travail", "entreprise"],
+    "chômage":       ["chômage", "emploi", "travail"],
+    "arbre":         ["arbre", "arbres", "espaces verts", "végétal", "biodiversité"],
+    "vert":          ["vert", "espaces verts", "nature", "vivant", "arbre"],
+    "déchet":        ["déchet", "déchets", "tri", "recyclage"],
+    "recyclage":     ["recyclage", "tri", "déchet", "déchets"],
+    "association":   ["association", "associations", "subvention", "sport", "culture"],
+    "subvention":    ["subvention", "subventions", "association"],
+    "budget":        ["budget", "finances", "investissement", "dépenses"],
+    "investissement":["investissement", "budget", "finances"],
+    "jeunesse":      ["jeunesse", "jeunes", "enfants", "crèche"],
+    "enfant":        ["enfant", "crèche", "jeunesse", "cantine"],
+    "crèche":        ["crèche", "enfants", "petite enfance"],
+    "urbanisme":     ["urbanisme", "permis", "construire", "vacance"],
+    "permis":        ["permis", "construire", "urbanisme", "délai"],
+    "handicap":      ["handicap", "pmr", "accessibilité", "personnes handicapées"],
+    "accessibilité": ["accessibilité", "pmr", "handicap"],
+    "conseil":       ["conseil", "municipal", "séances", "délibération", "parole"],
+    "démocratie":    ["démocratie", "parole", "conseil", "élus", "présence", "unanimité"],
+    "transparence":  ["transparence", "publication", "pv", "délai", "réponses", "parole"],
+    "maison":        ["maison", "finances", "budget", "investissement", "dette"],
+    "territoire":    ["territoire", "cadre", "urbanisme", "patrimoine", "espaces verts"],
+    "habitant":      ["habitant", "personnes", "cantine", "crèche", "logement", "jeunesse"],
+    "lien":          ["lien", "association", "commerce", "emploi", "marché"],
+    "parole":        ["parole", "démocratie", "conseil", "élus", "transparence"],
+    "patrimoine":    ["patrimoine", "bâtiments", "état", "dpe", "énergie"],
+    "commerce":      ["commerce", "commerces", "vacance", "entreprise"],
+    "marché":        ["marché", "marchés", "événement", "commerce"],
+    "salaire":       ["salaire", "masse salariale", "agents", "personnel", "rh"],
+    "artificialisation": ["artificialisation", "zan", "terres", "naturelles"],
+    "zan":           ["zan", "artificialisation", "quota"],
+}
+
+_STOP_WORDS = {
+    "de", "du", "des", "le", "la", "les", "un", "une", "dans", "à", "au",
+    "aux", "en", "et", "ou", "que", "qui", "il", "elle", "ils", "elles",
+    "on", "nous", "vous", "pour", "par", "sur", "sous", "avec", "sans",
+    "est", "sont", "a", "ont", "ce", "se", "si", "y", "ne", "pas", "plus",
+    "très", "bien", "aussi", "quelle", "quel", "combien", "comment", "quand",
+    "où", "leur", "leurs", "mon", "ton", "son", "ma", "ta", "sa", "mes",
+    "tes", "ses", "nos", "vos", "tout", "toute", "tous", "toutes",
+}
+
+import unicodedata as _ud, re as _re
+
+def _norm(s):
+    """Supprime les accents et met en minuscules."""
+    return _ud.normalize("NFD", s.lower()).encode("ascii", "ignore").decode()
+
+def _stem(w):
+    """Racine simple : supprime pluriels/féminins courants."""
+    for suffix in ("aux", "elles", "euse", "eux", "ers", "ées", "ée", "es", "s"):
+        if w.endswith(suffix) and len(w) - len(suffix) >= 4:
+            return w[: -len(suffix)]
+    return w
+
+def _search_keywords(q):
+    """Extrait les mots-clés d'une requête et les étend avec les synonymes."""
+    words = _re.findall(r"[\w\u00c0-\u017e]+", q.lower())
+    # Construit un index normalisé des synonymes une seule fois
+    norm_syn_index = {_norm(k): syns for k, syns in _SEARCH_SYNONYMS.items()}
+    # Ajoute aussi les synonymes eux-mêmes comme clés
+    for syns in list(_SEARCH_SYNONYMS.values()):
+        for s in syns:
+            ns = _norm(s)
+            if ns not in norm_syn_index:
+                norm_syn_index[ns] = syns
+
+    keywords = set()
+    for w in words:
+        nw = _norm(w)
+        if nw in _STOP_WORDS or len(nw) < 3:
+            continue
+        keywords.add(w)
+        # Cherche avec et sans pluriel/accent
+        for candidate in (nw, _stem(nw)):
+            if candidate in norm_syn_index:
+                keywords.update(norm_syn_index[candidate])
+                break
+            # Correspondance partielle : le mot de la requête commence par la clé
+            for key in norm_syn_index:
+                if len(key) >= 4 and (candidate.startswith(key) or key.startswith(candidate)):
+                    keywords.update(norm_syn_index[key])
+    return keywords
+
+def _score_indicator(ind, keywords):
+    """Score d'un indicateur par rapport aux mots-clés (nombre de mots trouvés)."""
+    text = _norm(" ".join(filter(None, [
+        ind.get("libelle_citoyen", ""),
+        ind.get("libelle_technique", ""),
+        ind.get("description", ""),
+        ind.get("thematique", ""),
+    ])))
+    return sum(1 for kw in keywords if _norm(kw) in text)
+
+def _score_text(text, keywords):
+    t = _norm(text or "")
+    return sum(1 for kw in keywords if _norm(kw) in t)
+
+
+@bp.route("/v/<ville_slug>/api/recherche-contenu")
+def api_recherche_contenu(ville_slug):
+    """Recherche intelligente dans les indicateurs, conseils et documents d'une ville."""
+    import app.models.conseil as conseil_model
+    import app.models.document as document_model
+    ville = ville_model.get_by_slug(ville_slug)
+    if not ville:
+        return jsonify({"indicateurs": [], "conseils": [], "documents": []})
+    q = request.args.get("q", "").strip().lower()
+    if len(q) < 2:
+        return jsonify({"indicateurs": [], "conseils": [], "documents": []})
+
+    keywords = _search_keywords(q)
+    # Fallback : si aucun mot-clé extrait, utiliser la requête brute
+    if not keywords:
+        keywords = {q}
+
+    all_inds = ind_model.get_all(actif_only=True)
+    scored_inds = [(i, _score_indicator(i, keywords)) for i in all_inds]
+    inds = [i for i, s in sorted(scored_inds, key=lambda x: -x[1]) if s > 0][:6]
+
+    all_conseils = conseil_model.get_publies(ville["id"], limit=100)
+    scored_conseils = []
+    for c in all_conseils:
+        s = _score_text(c.get("titre"), keywords) + _score_text(c.get("resume_citoyen"), keywords)
+        if s > 0:
+            scored_conseils.append((c, s))
+    conseils = [c for c, _ in sorted(scored_conseils, key=lambda x: -x[1])][:4]
+
+    all_docs = document_model.get_publies(ville["id"], limit=100)
+    scored_docs = []
+    for d in all_docs:
+        s = _score_text(d.get("titre"), keywords) + _score_text(d.get("categorie"), keywords)
+        if s > 0:
+            scored_docs.append((d, s))
+    docs = [d for d, _ in sorted(scored_docs, key=lambda x: -x[1])][:4]
+
+    THEM_SLUGS = {
+        "finances": "finances", "cadre_vie": "cadre_vie", "personnes": "personnes",
+        "lien_social": "lien_social", "democratie": "democratie", "vivant": "vivant",
+        "portrait": "portrait",
+    }
+    return jsonify({
+        "indicateurs": [{"libelle": i["libelle_citoyen"],
+                         "thematique": i["thematique"],
+                         "slug": THEM_SLUGS.get(i.get("thematique", ""), i.get("thematique", ""))} for i in inds],
+        "conseils": [{"id": c["id"], "titre": c["titre"],
+                      "date": str(c.get("date_conseil", ""))} for c in conseils],
+        "documents": [{"id": d["id"], "titre": d["titre"],
+                       "categorie": d.get("categorie", "")} for d in docs],
+    })

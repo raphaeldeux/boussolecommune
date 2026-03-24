@@ -1,29 +1,19 @@
 {% extends "base.html" %}
 {% block title %}{{ label }} — BoussoleCommune {{ ville.nom }}{% endblock %}
+{% block breadcrumb %}
+<nav class="bg-white border-b border-sand-100" aria-label="Fil d'Ariane">
+  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-1.5 text-xs text-sand-400 flex-wrap">
+    <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" class="hover:text-forest-600 transition">{{ ville.nom }}</a>
+    <span>›</span>
+    <a href="{{ url_for('public.indicateurs', ville_slug=ville.slug) }}" class="hover:text-forest-600 transition">Indicateurs</a>
+    <span>›</span>
+    <span class="text-gray-700 font-medium">{{ label }}</span>
+  </div>
+</nav>
+{% endblock %}
 
 {% block content %}
-<!-- Fil d'Ariane + retour -->
-<div class="mb-4">
-  <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" class="inline-flex items-center gap-1 text-sm text-emerald-600 hover:text-emerald-800 transition">
-    ← Tableau de bord
-  </a>
-</div>
 
-<!-- Navigation entre thématiques -->
-<div class="flex flex-wrap gap-2 mb-5">
-  {% for t in nav_thematiques %}
-  <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=t.slug) }}"
-     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition
-            {% if t.slug == slug %}
-              bg-emerald-600 text-white
-            {% else %}
-              bg-gray-100 text-gray-600 hover:bg-gray-200
-            {% endif %}">
-    <span>{{ t.icon }}</span>
-    <span>{{ t.label }}</span>
-  </a>
-  {% endfor %}
-</div>
 
 <!-- En-tête thématique -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 mb-6">
@@ -31,7 +21,7 @@
 
     <!-- 2/3 : icône + titre + question + légende -->
     <div class="lg:col-span-2 flex items-start gap-4 mb-4 lg:mb-0">
-      <span class="text-4xl sm:text-5xl flex-shrink-0 mt-0.5">{{ icon }}</span>
+      <span class="text-4xl sm:text-5xl flex-shrink-0 mt-0.5 text-emerald-600"><i class="{{ icon }}"></i></span>
       <div class="flex-1 min-w-0">
         <div class="flex items-start justify-between gap-3 flex-wrap">
           <div class="min-w-0">
@@ -47,7 +37,7 @@
           </div>
         </div>
         <!-- Légende A–E -->
-        <div class="flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
+        <div class="hidden md:flex items-center gap-3 flex-wrap mt-3 pt-3 border-t border-gray-100 text-xs text-gray-400">
           <span class="flex-shrink-0">Scores :</span>
           <span class="flex items-center gap-1"><span class="score-badge-xs score-A">A</span> Très satisfaisant</span>
           <span class="flex items-center gap-1"><span class="score-badge-xs score-B">B</span> Bon</span>
@@ -61,7 +51,7 @@
     <!-- 1/3 : bloc "Ce qu'il faut retenir" -->
     {% if synthese %}
     <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col">
-      <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">📌 Ce qu'il faut retenir</p>
+      <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2"><i class="ri-pushpin-2-line mr-1"></i>Ce qu'il faut retenir</p>
       <ul class="space-y-2">
         {% for ligne in synthese.texte.split('\n') if ligne.strip() %}
         <li class="text-sm text-gray-700 flex items-start gap-2">
@@ -76,11 +66,12 @@
   </div>
 </div>
 
-{# ─── Sections par tendance ─────────────────────────────────────────────── #}
+{# ─── Desktop : sections accordéon ──────────────────────────────────────── #}
+<div class="hidden md:block">
 
-{% macro section_header(emoji, label_sg, label_pl, items, cls_h2, cls_count) %}
+{% macro section_header(icon_cls, label_sg, label_pl, items, cls_h2, cls_count) %}
 <div class="flex items-center gap-2 mb-3 px-1">
-  <span class="text-base leading-none">{{ emoji }}</span>
+  <i class="{{ icon_cls }} text-base {{ cls_h2 }}"></i>
   <h2 class="text-sm font-semibold {{ cls_h2 }} uppercase tracking-wide leading-tight">
     {{ label_sg if items | length == 1 else label_pl }}
   </h2>
@@ -93,7 +84,7 @@
 {# ── ↗ En amélioration ─────────────────────────────────────────────────── #}
 {% if grouped.amelioration %}
 <section>
-  {{ section_header('↗', 'En amélioration', 'En amélioration', grouped.amelioration, 'text-emerald-700', 'text-emerald-500') }}
+  {{ section_header('ri-arrow-up-line', 'En amélioration', 'En amélioration', grouped.amelioration, 'text-emerald-700', 'text-emerald-500') }}
   <div class="space-y-3">
     {% for ind in grouped.amelioration %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-400 overflow-hidden">
@@ -107,7 +98,7 @@
 {# ── ↘ À surveiller ────────────────────────────────────────────────────── #}
 {% if grouped.surveiller %}
 <section>
-  {{ section_header('↘', 'À surveiller', 'À surveiller', grouped.surveiller, 'text-red-700', 'text-red-500') }}
+  {{ section_header('ri-arrow-down-line', 'À surveiller', 'À surveiller', grouped.surveiller, 'text-red-700', 'text-red-500') }}
   <div class="space-y-3">
     {% for ind in grouped.surveiller %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-400 overflow-hidden">
@@ -121,7 +112,7 @@
 {# ── → Stable ──────────────────────────────────────────────────────────── #}
 {% if grouped.stable %}
 <section>
-  {{ section_header('→', 'Stable', 'Stables', grouped.stable, 'text-gray-500', 'text-gray-400') }}
+  {{ section_header('ri-arrow-right-line', 'Stable', 'Stables', grouped.stable, 'text-gray-500', 'text-gray-400') }}
   <div class="space-y-3">
     {% for ind in grouped.stable %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300 overflow-hidden">
@@ -138,7 +129,7 @@
   <button onclick="this.nextElementSibling.classList.toggle('hidden')"
           class="w-full flex items-center justify-between px-4 sm:px-5 py-3 text-left hover:bg-gray-50 transition">
     <span class="text-sm text-gray-500 font-medium flex items-center gap-2">
-      <span>📊</span>
+      <i class="ri-bar-chart-2-line text-gray-400"></i>
       <span>Manque d'historique</span>
       <span class="ml-1.5 text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ grouped.no_history | length }}</span>
     </span>
@@ -172,6 +163,9 @@
     </svg>
   </button>
   <div class="hidden divide-y divide-gray-50">
+    <div class="px-4 sm:px-5 py-3 text-sm text-gray-500 leading-relaxed">
+      Ces données ne sont pas encore disponibles en open data pour cette commune.
+    </div>
     {% for ind in grouped.unset %}
     <div class="px-4 sm:px-5 py-3 opacity-50">
       <div class="flex items-center justify-between gap-4">
@@ -191,13 +185,264 @@
 
 </div>{# end space-y-6 #}
 
+</div>{# end hidden md:block – desktop sections #}
+
+
+{# ─── Mobile : liste plate ───────────────────────────────────────────────── #}
+<div class="md:hidden space-y-1.5 mb-6">
+
+  {# Indicateurs avec données (amélioration + surveiller + stable) #}
+  {% if grouped.amelioration or grouped.surveiller or grouped.stable %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50">
+
+    {% for ind in grouped.amelioration %}
+    {% set tb = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
+    {% set tm = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
+    <button onclick="openSheet('{{ ind.id }}')"
+            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-emerald-400 hover:bg-gray-50 active:bg-gray-100 transition">
+      <div class="flex-shrink-0 w-7 flex justify-center">
+        {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
+        {% if ind.interpretation and ind.interpretation.phrase_courte %}
+        <div class="text-xs text-gray-400 mt-0.5 truncate">{{ ind.interpretation.phrase_courte }}</div>
+        {% endif %}
+      </div>
+      <div class="flex-shrink-0 text-right min-w-[60px]">
+        <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
+        {% if ind.tendance %}
+        <div class="text-xs {% if tb %}text-emerald-600{% elif tm %}text-red-500{% else %}text-gray-400{% endif %}">
+          {{ ind.tendance }}{% if ind.pct_evolution is not none %} {% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+    {% endfor %}
+
+    {% for ind in grouped.surveiller %}
+    {% set tb = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
+    {% set tm = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
+    <button onclick="openSheet('{{ ind.id }}')"
+            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-red-400 hover:bg-gray-50 active:bg-gray-100 transition">
+      <div class="flex-shrink-0 w-7 flex justify-center">
+        {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
+        {% if ind.interpretation and ind.interpretation.phrase_courte %}
+        <div class="text-xs text-gray-400 mt-0.5 truncate">{{ ind.interpretation.phrase_courte }}</div>
+        {% endif %}
+      </div>
+      <div class="flex-shrink-0 text-right min-w-[60px]">
+        <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
+        {% if ind.tendance %}
+        <div class="text-xs {% if tb %}text-emerald-600{% elif tm %}text-red-500{% else %}text-gray-400{% endif %}">
+          {{ ind.tendance }}{% if ind.pct_evolution is not none %} {% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+    {% endfor %}
+
+    {% for ind in grouped.stable %}
+    {% set tb = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
+    {% set tm = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
+    <button onclick="openSheet('{{ ind.id }}')"
+            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-gray-300 hover:bg-gray-50 active:bg-gray-100 transition">
+      <div class="flex-shrink-0 w-7 flex justify-center">
+        {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
+        {% if ind.interpretation and ind.interpretation.phrase_courte %}
+        <div class="text-xs text-gray-400 mt-0.5 truncate">{{ ind.interpretation.phrase_courte }}</div>
+        {% endif %}
+      </div>
+      <div class="flex-shrink-0 text-right min-w-[60px]">
+        <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
+        {% if ind.tendance %}
+        <div class="text-xs {% if tb %}text-emerald-600{% elif tm %}text-red-500{% else %}text-gray-400{% endif %}">
+          {{ ind.tendance }}{% if ind.pct_evolution is not none %} {% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%{% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </button>
+    {% endfor %}
+
+  </div>
+  {% endif %}
+
+  {# Sans données historiques #}
+  {% if grouped.no_history %}
+  <details class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <summary class="px-4 py-3 flex items-center gap-2 list-none cursor-pointer select-none hover:bg-gray-50">
+      <i class="ri-bar-chart-2-line text-gray-400"></i>
+      <span class="text-sm text-gray-500 font-medium">Sans données historiques</span>
+      <span class="ml-auto text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ grouped.no_history | length }}</span>
+    </summary>
+    <div class="divide-y divide-gray-50">
+      {% for ind in grouped.no_history %}
+      <button onclick="openSheet('{{ ind.id }}')"
+              class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-gray-200 hover:bg-gray-50 active:bg-gray-100 transition">
+        <div class="flex-shrink-0 w-7 flex justify-center">
+          {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
+        </div>
+        {% if ind.donnee %}
+        <div class="flex-shrink-0 text-right min-w-[60px]">
+          <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
+        </div>
+        {% endif %}
+        <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+
+  {# Non renseignés #}
+  {% if grouped.unset %}
+  <details class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <summary class="px-4 py-3 flex items-center gap-2 list-none cursor-pointer select-none hover:bg-gray-50">
+      <span class="text-sm text-gray-400 font-medium">Données non disponibles</span>
+      <span class="ml-auto text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ grouped.unset | length }}</span>
+    </summary>
+    <div class="px-4 py-3 text-xs text-gray-400 border-t border-gray-50">Ces données ne sont pas encore disponibles en open data pour cette commune.</div>
+    <div class="divide-y divide-gray-50">
+      {% for ind in grouped.unset %}
+      <div class="px-4 py-3 opacity-60 flex items-center justify-between gap-2">
+        <div class="text-sm text-gray-500 truncate">{{ ind.libelle_citoyen }}</div>
+        <span class="bg-gray-100 text-gray-400 text-xs px-2 py-0.5 rounded-full flex-shrink-0">N/A</span>
+      </div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+
+</div>{# end mobile flat list #}
+
+
+{# ── Bottom sheet templates (un par indicateur avec données) ─────────────── #}
+{% set all_sheet_inds = grouped.amelioration + grouped.surveiller + grouped.stable + grouped.no_history %}
+{% for ind in all_sheet_inds %}
+{% set hausse_bonne = ind.sens_positif == 'haut' %}
+{% set has_historique = ind.historique and ind.historique | length > 1 %}
+<template id="bs-tpl-{{ ind.id }}"
+          data-label="{{ ind.libelle_citoyen }}"
+          data-score="{{ ind.score or '' }}">
+
+  {# Valeur principale + tendance #}
+  <div class="flex items-baseline gap-2 mb-4">
+    <span class="text-3xl font-bold text-gray-800">{{ ind.donnee.valeur | format_valeur }}</span>
+    <span class="text-sm text-gray-400">{{ ind.unite }}</span>
+    {% if ind.tendance and ind.valeur_ancienne is not none %}
+    {% set tb2 = (ind.tendance == '↗' and hausse_bonne) or (ind.tendance == '↘' and not hausse_bonne and ind.sens_positif != 'neutre') %}
+    {% set tm2 = (ind.tendance == '↘' and hausse_bonne) or (ind.tendance == '↗' and not hausse_bonne and ind.sens_positif != 'neutre') %}
+    <span class="text-sm font-semibold {% if tb2 %}text-emerald-600{% elif tm2 %}text-red-500{% else %}text-gray-400{% endif %}">
+      {{ ind.tendance }}{% if ind.pct_evolution is not none %}&nbsp;{% if ind.pct_evolution > 0 %}+{% endif %}{{ ind.pct_evolution }}%{% endif %}
+    </span>
+    {% endif %}
+  </div>
+
+  {% if ind.interpretation and ind.interpretation.phrase_courte %}
+  <p class="text-sm text-gray-500 italic mb-4 leading-relaxed">{{ ind.interpretation.phrase_courte }}</p>
+  {% endif %}
+
+  {# Comparaison communes similaires #}
+  {% if ind.valeur_reference %}
+  {% set v_ville = ind.donnee.valeur %}
+  {% set v_ref   = ind.valeur_reference %}
+  {% set v_max   = [v_ville, v_ref] | max %}
+  {% set pct_s   = ((v_ville / v_max) * 100) | round(1) if v_max > 0 else 0 %}
+  {% set pct_r   = ((v_ref   / v_max) * 100) | round(1) if v_max > 0 else 0 %}
+  {% set ecart   = (((v_ville - v_ref) / v_ref) * 100) | round(1) if v_ref != 0 else 0 %}
+  {% set ecart_bon    = (ecart > 0 and hausse_bonne) or (ecart < 0 and ind.sens_positif == 'bas') %}
+  {% set ecart_mauvais = (ecart < 0 and hausse_bonne) or (ecart > 0 and ind.sens_positif == 'bas') %}
+  <div class="bg-gray-50 rounded-lg px-3 py-3 mb-4">
+    <div class="text-xs text-gray-400 font-medium uppercase tracking-wide mb-3">Comparaison — communes similaires</div>
+    <div class="mb-2">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs font-semibold text-gray-700 truncate max-w-[55%]">{{ ville.nom }}</span>
+        <span class="text-xs font-bold {% if ecart_bon %}text-emerald-700{% elif ecart_mauvais %}text-red-600{% else %}text-gray-700{% endif %}">
+          {{ v_ville | format_valeur }}&nbsp;{{ ind.unite }}
+        </span>
+      </div>
+      <div class="bg-gray-200 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full" style="width:{{ pct_s }}%;background-color:{{ ind.score_couleur or '#10b981' }}"></div>
+      </div>
+    </div>
+    <div class="mb-2">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs text-gray-400 truncate max-w-[55%]">
+          {% if ind.ref_ville and ind.ref_ville.banque_nom %}{{ ind.ref_ville.banque_nom }}{% elif ind.libelle_reference %}{{ ind.libelle_reference }}{% else %}Communes similaires{% endif %}
+        </span>
+        <span class="text-xs text-gray-500">{{ v_ref | format_valeur }}&nbsp;{{ ind.unite }}{% if ind.annee_reference %} ({{ ind.annee_reference }}){% endif %}</span>
+      </div>
+      <div class="bg-gray-200 rounded-full h-2.5">
+        <div class="h-2.5 rounded-full bg-gray-400" style="width:{{ pct_r }}%"></div>
+      </div>
+    </div>
+    <div class="text-xs {% if ecart_bon %}text-emerald-700 bg-emerald-50{% elif ecart_mauvais %}text-red-600 bg-red-50{% else %}text-gray-500 bg-gray-100{% endif %} rounded px-2 py-1">
+      {% if ecart_bon %}✓ {{ ecart | abs }}% {% if ecart > 0 %}au-dessus{% else %}en dessous{% endif %} — favorable
+      {% elif ecart_mauvais %}✗ {{ ecart | abs }}% {% if ecart > 0 %}au-dessus{% else %}en dessous{% endif %} — point d'attention
+      {% else %}{% if ecart > 0 %}+{% endif %}{{ ecart }}% vs communes similaires{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# Graphique historique (canvas — init déclenché par openSheet) #}
+  {% if has_historique %}
+  <div class="mb-4">
+    <canvas data-chart-id="mob-chart-{{ ind.id }}" style="height:150px"></canvas>
+  </div>
+  {% endif %}
+
+  {# Analyse IA + description #}
+  {% if ind.interpretation and ind.interpretation.phrase_longue %}
+  <div class="mb-4">
+    <div class="flex items-center gap-1.5 mb-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+      <span class="text-xs text-gray-400">Analyse BoussoleCommune</span>
+    </div>
+    <p class="text-sm text-gray-600 leading-relaxed">{{ ind.interpretation.phrase_longue }}</p>
+    {% if ind.description %}
+    <div class="mt-2 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
+    {% endif %}
+  </div>
+  {% elif ind.description %}
+  <div class="mb-4 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
+  {% endif %}
+
+  {# Source #}
+  <div class="text-xs text-gray-400 italic pt-3 border-t border-gray-100">
+    Source : {{ ind.donnee.source if ind.donnee.source else "Source non renseignée" }}
+  </div>
+
+</template>
+{% endfor %}
+
+
 {% if subventions_years %}
 <!-- Section subventions -->
 <div class="mt-6 sm:mt-8 border border-gray-100 rounded-xl bg-white shadow-sm overflow-hidden">
   <button onclick="var c=this.nextElementSibling;c.classList.toggle('hidden');this.querySelector('[data-arrow]').textContent=c.classList.contains('hidden')?'▼':'▲'"
           class="w-full flex items-center justify-between px-4 sm:px-5 py-3.5 text-left hover:bg-gray-50 transition">
     <span id="subv-header" class="font-semibold text-gray-800 text-sm sm:text-base flex items-center flex-wrap gap-2">
-      💰 Subventions
+      <i class="ri-money-euro-circle-line text-emerald-600"></i> Subventions
       <span id="subv-header-annee" class="text-gray-400 font-normal text-xs">{{ subventions_annee if subventions_annee }}</span>
       <span id="subv-header-total" class="text-emerald-700 font-bold">
         {% if subventions_total > 0 %}{{ "{:,.0f}".format(subventions_total).replace(",", " ") }} €{% endif %}
@@ -244,10 +489,27 @@
 
 <!-- Note comparaison -->
 <p class="mt-4 text-xs text-gray-400 leading-relaxed px-1">
-  ℹ️ Les comparaisons sont calculées par rapport à des communes de taille similaire (sources : OFGL, INSEE).
+  <i class="ri-information-line"></i> Les comparaisons sont calculées par rapport à des communes de taille similaire (sources : OFGL, INSEE).
   Un écart peut refléter des choix locaux assumés, pas nécessairement un problème.
   <a href="{{ url_for('public.methodologie') }}" class="text-emerald-600 hover:underline">Note méthodologique →</a>
 </p>
+
+<!-- Navigation autres thématiques -->
+{% set autres = nav_thematiques | rejectattr('slug', 'equalto', slug) | list %}
+{% if autres %}
+<div class="mt-8">
+  <p class="text-xs text-gray-400 uppercase tracking-wide font-medium mb-3">Voir aussi les indicateurs sur…</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+    {% for t in autres %}
+    <a href="{{ url_for('public.thematique', ville_slug=ville.slug, slug=t.slug) }}"
+       class="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-3 hover:border-emerald-200 hover:bg-emerald-50 transition group">
+      <span class="text-base text-gray-400 group-hover:text-emerald-600 transition flex-shrink-0"><i class="{{ t.icon }}"></i></span>
+      <span class="text-xs font-medium text-gray-700 leading-snug">{{ t.label }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 <!-- Modales description -->
 {% for ind in indicateurs if ind.description %}
@@ -273,7 +535,109 @@
 </div>
 {% endfor %}
 
+<!-- ─── Bottom Sheet (mobile) ──────────────────────────────────────────── -->
+<div id="bs-overlay"
+     class="md:hidden fixed inset-0 bg-black/40 z-40 opacity-0 pointer-events-none transition-opacity duration-300"
+     onclick="closeSheet()"></div>
+<div id="bs-panel"
+     class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl
+            transform translate-y-full transition-transform duration-300 ease-out
+            flex flex-col"
+     style="max-height:85vh">
+  <!-- Drag handle -->
+  <div id="bs-drag" class="flex-shrink-0 flex justify-center pt-3 pb-1 touch-none">
+    <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+  </div>
+  <!-- Header -->
+  <div class="flex-shrink-0 flex items-start justify-between gap-3 px-5 pb-3 pt-1 border-b border-gray-100">
+    <p id="bs-label" class="font-bold text-gray-900 text-base leading-snug flex-1 min-w-0"></p>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <span id="bs-score" class="score-badge score-badge-lg" style="display:none"></span>
+      <button onclick="closeSheet()" class="text-gray-400 hover:text-gray-600 transition p-1 -mr-1 -mt-1">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <!-- Corps scrollable -->
+  <div id="bs-body" class="flex-1 overflow-y-auto overscroll-contain px-5 py-4"></div>
+</div>
+
 <script>
+// ── Bottom Sheet ──────────────────────────────────────────────────────────────
+function openSheet(indId) {
+  var tpl = document.getElementById('bs-tpl-' + indId);
+  if (!tpl) return;
+
+  // En-tête
+  document.getElementById('bs-label').textContent = tpl.dataset.label || '';
+  var scoreEl = document.getElementById('bs-score');
+  var score   = tpl.dataset.score;
+  if (score) {
+    scoreEl.textContent  = score;
+    scoreEl.className    = 'score-badge score-badge-lg score-' + score;
+    scoreEl.style.display = '';
+  } else {
+    scoreEl.style.display = 'none';
+  }
+
+  // Injecter le contenu du template
+  var body = document.getElementById('bs-body');
+  body.innerHTML = '';
+  body.appendChild(tpl.content.cloneNode(true));
+
+  // Initialiser les graphiques
+  body.querySelectorAll('canvas[data-chart-id]').forEach(function(canvas) {
+    var init = window._chartInits && window._chartInits[canvas.dataset.chartId];
+    if (init && !Chart.getChart(canvas)) init(canvas);
+  });
+
+  // Afficher overlay + panel
+  var overlay = document.getElementById('bs-overlay');
+  var panel   = document.getElementById('bs-panel');
+  overlay.classList.remove('pointer-events-none', 'opacity-0');
+  overlay.classList.add('opacity-100');
+  panel.classList.remove('translate-y-full');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSheet() {
+  var overlay = document.getElementById('bs-overlay');
+  var panel   = document.getElementById('bs-panel');
+  panel.classList.add('translate-y-full');
+  overlay.classList.remove('opacity-100');
+  overlay.classList.add('opacity-0');
+  setTimeout(function() {
+    overlay.classList.add('pointer-events-none');
+    document.getElementById('bs-body').innerHTML = '';
+    document.body.style.overflow = '';
+  }, 300);
+}
+
+// Drag-to-close sur le handle
+(function() {
+  var panel    = document.getElementById('bs-panel');
+  var drag     = document.getElementById('bs-drag');
+  if (!panel || !drag) return;
+  var startY = 0, currentY = 0, dragging = false;
+  drag.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY; currentY = 0; dragging = true;
+    panel.style.transition = 'none';
+  }, { passive: true });
+  drag.addEventListener('touchmove', function(e) {
+    if (!dragging) return;
+    currentY = Math.max(0, e.touches[0].clientY - startY);
+    panel.style.transform = 'translateY(' + currentY + 'px)';
+  }, { passive: true });
+  drag.addEventListener('touchend', function() {
+    dragging = false;
+    panel.style.transition = '';
+    panel.style.transform  = '';
+    if (currentY > 100) closeSheet();
+  });
+})();
+
 // ── Détail accordéon ─────────────────────────────────────────────────────────
 function toggleDetail(btn) {
   var detail = btn.nextElementSibling;
@@ -307,10 +671,42 @@ document.addEventListener('keydown', function(e) {
     document.querySelectorAll('[id^="modal-"]').forEach(function(el) {
       if (!el.classList.contains('hidden')) closeModal(el.id);
     });
+    closeSheet();
   }
 });
 
+
 </script>
+
+{# ── Chart inits mobile (bottom sheet) ──────────────────────────────────── #}
+{% set all_sheet_inds2 = grouped.amelioration + grouped.surveiller + grouped.stable + grouped.no_history %}
+{% set has_mob_charts = all_sheet_inds2 | selectattr('historique') | list | length > 0 %}
+{% if has_mob_charts %}
+<script>
+window._chartInits = window._chartInits || {};
+{% for ind in all_sheet_inds2 %}{% if ind.historique and ind.historique | length > 1 %}
+window._chartInits['mob-chart-{{ ind.id }}'] = function(canvas) {
+  var labels = {{ ind.historique | map(attribute='annee')  | list | tojson }}.slice().reverse();
+  var data   = {{ ind.historique | map(attribute='valeur') | list | tojson }}.slice().reverse();
+  var isTm   = labels.length > 2;
+  new Chart(canvas.getContext('2d'), {
+    type: isTm ? 'line' : 'bar',
+    data: { labels: labels, datasets: [{ label: {{ ind.unite | tojson }}, data: data,
+      backgroundColor: isTm ? '{{ ind.score_couleur or "#10b981" }}18' : '{{ ind.score_couleur or "#10b981" }}33',
+      borderColor: '{{ ind.score_couleur or "#10b981" }}', borderWidth: 2, borderRadius: isTm ? 0 : 4,
+      pointRadius: isTm ? 4 : 0, pointBackgroundColor: '{{ ind.score_couleur or "#10b981" }}', tension: 0.3, fill: isTm
+    }] },
+    options: { responsive: true, plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: false, ticks: { maxTicksLimit: 4, callback: function(v) { return v + '\u00a0' + {{ ind.unite | tojson }}; } } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+};
+{% endif %}{% endfor %}
+</script>
+{% endif %}
 
 {% if subventions_years | length > 1 %}
 <script>
