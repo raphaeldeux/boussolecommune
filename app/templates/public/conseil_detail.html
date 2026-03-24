@@ -106,6 +106,9 @@
 
   {% if structure and structure.themes %}
 
+  {# ══ DESKTOP : grille thèmes + délibérations ══════════════════════════ #}
+  <div class="hidden md:contents">
+
   {# ── GRILLE THÈMES ──────────────────────────────────────────────── #}
   <div class="grid grid-cols-3 gap-1.5">
     {% for theme in structure.themes %}
@@ -126,8 +129,6 @@
   {% for theme in structure.themes %}
   {% set i = loop.index0 %}
   <div id="theme-content-{{ i }}" class="theme-section {% if loop.first %}active{% endif %} space-y-3">
-
-    {# Table subventions si ≥ 2 #}
     {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
     {% if subventions | length > 1 %}
     <div class="rounded-xl p-3 border border-emerald-200 text-xs" style="background:#f0fdf4">
@@ -147,49 +148,33 @@
       </div>
     </div>
     {% endif %}
-
-    {# Délibérations — card individuelle #}
     {% for delib in theme.deliberations %}
     {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
       {% set adopte = delib.vote.pour > delib.vote.contre %}
-      {% set delib_class = "delib-adopte" %}
+      {% set delib_class = "delib-adopte" if adopte else "delib-rejete" %}
     {% else %}
-      {% set adopte = none %}
-      {% set delib_class = "delib-info" %}
+      {% set adopte = none %}{% set delib_class = "delib-info" %}
     {% endif %}
-    {% if adopte == false %}{% set delib_class = "delib-rejete" %}{% endif %}
     <div class="{{ delib_class }} rounded-xl">
-      {# Vue compacte mobile / vue complète desktop #}
       <div class="flex items-start gap-3 p-4">
-        {# Badge vote #}
         <div class="flex-shrink-0 mt-0.5">
           {% if adopte is not none %}
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm
-            {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-600' }}">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-600' }}">
             <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
           </span>
           {% else %}
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-sm">
-            <i class="ri-information-line"></i>
-          </span>
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-sm"><i class="ri-information-line"></i></span>
           {% endif %}
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm {% if adopte is none %}font-medium text-gray-600{% else %}font-semibold text-gray-900{% endif %} leading-snug">{{ delib.titre }}</p>
           {% if delib.beneficiaire %}
-          <p class="text-xs font-medium mt-0.5 {{ 'text-red-700' if adopte == false else 'text-emerald-700' }}">
-            {{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}
-          </p>
+          <p class="text-xs font-medium mt-0.5 {{ 'text-red-700' if adopte == false else 'text-emerald-700' }}">{{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}</p>
           {% elif delib.montant %}
-            {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}
-            <div class="text-xs mt-1">{{ delib.montant | format_delib_desc | safe }}</div>
-            {% else %}
-            <p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>
-            {% endif %}
+            {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}<div class="text-xs mt-1">{{ delib.montant | format_delib_desc | safe }}</div>
+            {% else %}<p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>{% endif %}
           {% endif %}
-          {% if delib.description %}
-          <div class="text-xs text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
-          {% endif %}
+          {% if delib.description %}<div class="text-xs text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>{% endif %}
           {% if adopte is not none %}
           <p class="text-xs text-gray-400 mt-1.5">
             <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }}
@@ -201,14 +186,101 @@
       </div>
     </div>
     {% endfor %}
-
   </div>
+  {% endfor %}
+
+  </div>{# end hidden md:contents #}
+
+  {# ══ MOBILE : cartes compactes + bottom sheet ═════════════════════════ #}
+  <div class="md:hidden space-y-5">
+    {% for theme in structure.themes %}
+    {% set ti = loop.index0 %}
+    <div>
+      <div class="flex items-center gap-2 mb-2 px-1">
+        <i class="{{ theme_icon(theme.titre) | trim }} text-gray-400 text-sm"></i>
+        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">{{ theme.titre | replace('Soin des ', '') | replace('Soin de la ', '') | replace('Soin du ', '') | replace('Soin de ', '') }}</span>
+      </div>
+      <div class="space-y-2">
+        {% for delib in theme.deliberations %}
+        {% set di = loop.index0 %}
+        {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
+          {% set adopte = delib.vote.pour > delib.vote.contre %}
+        {% else %}
+          {% set adopte = none %}
+        {% endif %}
+        {% if adopte is sameas true %}{% set bc = '#86efac' %}{% elif adopte is sameas false %}{% set bc = '#dc2626' %}{% else %}{% set bc = '#e5e7eb' %}{% endif %}
+        <button onclick="openDelib('{{ ti }}-{{ di }}')"
+                class="w-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex items-center gap-3 px-4 py-3.5 text-left border-l-4 hover:bg-gray-50 active:bg-gray-100 transition"
+                style="border-left-color:{{ bc }}">
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 text-sm
+            {% if adopte is sameas true %}bg-emerald-100 text-emerald-700{% elif adopte is sameas false %}bg-red-100 text-red-600{% else %}bg-gray-100 text-gray-400{% endif %}">
+            <i class="{{ 'ri-checkbox-circle-line' if adopte is sameas true else 'ri-close-circle-line' if adopte is sameas false else 'ri-information-line' }}"></i>
+          </span>
+          <p class="flex-1 min-w-0 text-sm font-medium text-gray-800 leading-snug line-clamp-2">{{ delib.titre }}</p>
+          <span class="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+            {% if adopte is sameas true %}bg-emerald-100 text-emerald-700{% elif adopte is sameas false %}bg-red-100 text-red-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+            {{ 'Adopté' if adopte is sameas true else 'Rejeté' if adopte is sameas false else 'Info' }}
+          </span>
+          <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+          </svg>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── Templates bottom sheet délibérations ─────────────────────────── #}
+  {% for theme in structure.themes %}
+  {% set ti = loop.index0 %}
+  {% for delib in theme.deliberations %}
+  {% set di = loop.index0 %}
+  {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
+    {% set adopte = delib.vote.pour > delib.vote.contre %}
+  {% else %}
+    {% set adopte = none %}
+  {% endif %}
+  <template id="delib-tpl-{{ ti }}-{{ di }}" data-label="{{ delib.titre | e }}">
+    {# Vote result #}
+    {% if adopte is not none %}
+    <div class="flex items-center gap-2 mb-4">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
+        <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
+        {{ 'Adopté' if adopte else 'Rejeté' }}
+      </span>
+      <span class="text-sm text-gray-400">
+        <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }}
+        · <i class="ri-close-circle-line text-red-400"></i> {{ delib.vote.contre }}
+        {% if delib.vote.abstentions %} · <i class="ri-subtract-line"></i> {{ delib.vote.abstentions }} abstention{{ 's' if delib.vote.abstentions > 1 }}{% endif %}
+      </span>
+    </div>
+    {% else %}
+    <div class="mb-4">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
+        <i class="ri-information-line"></i> Information
+      </span>
+    </div>
+    {% endif %}
+    {# Beneficiaire + montant #}
+    {% if delib.beneficiaire or delib.montant %}
+    <div class="mb-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm">
+      {% if delib.beneficiaire %}<p class="font-semibold text-emerald-800">{{ delib.beneficiaire }}</p>{% endif %}
+      {% if delib.montant %}<p class="text-emerald-700 font-bold mt-0.5">{{ delib.montant }}</p>{% endif %}
+    </div>
+    {% endif %}
+    {# Description #}
+    {% if delib.description %}
+    <div class="text-sm text-gray-700 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
+    {% endif %}
+  </template>
+  {% endfor %}
   {% endfor %}
 
   {% if conseil.fichier_pdf %}
   <a href="{{ url_for('public.conseil_pdf', ville_slug=ville.slug, conseil_id=conseil.id) }}"
      class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-3 rounded-xl transition">
-    📄 Télécharger le procès-verbal complet
+    <i class="ri-file-pdf-line"></i> Télécharger le procès-verbal complet
   </a>
   {% endif %}
 
@@ -223,6 +295,29 @@
   {% endif %}
 
 </div>
+
+<!-- ─── Bottom Sheet mobile (délibérations) ──────────────────────────── -->
+<div id="delib-overlay"
+     class="md:hidden fixed inset-0 bg-black/40 z-40 opacity-0 pointer-events-none transition-opacity duration-300"
+     onclick="closeDelib()"></div>
+<div id="delib-panel"
+     class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl
+            transform translate-y-full transition-transform duration-300 ease-out flex flex-col"
+     style="max-height:85vh">
+  <div id="delib-drag" class="flex-shrink-0 flex justify-center pt-3 pb-1 touch-none">
+    <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+  </div>
+  <div class="flex-shrink-0 flex items-start justify-between gap-3 px-5 pb-3 pt-1 border-b border-gray-100">
+    <p id="delib-label" class="font-bold text-gray-900 text-base leading-snug flex-1 min-w-0"></p>
+    <button onclick="closeDelib()" class="text-gray-400 hover:text-gray-600 transition p-1 -mr-1 -mt-1">
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div id="delib-body" class="flex-1 overflow-y-auto overscroll-contain px-5 py-4"></div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -232,7 +327,7 @@
   .delib-adopte { border-left: 3px solid #86efac; background: #ffffff; }
   .delib-rejete { border-left: 3px solid #dc2626; background: #fff5f5; }
   .delib-info   { border-left: 3px solid #e5e7eb; background: #ffffff; }
-  .resume-clamped { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .resume-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .resume-clamped.expanded { display: block; }
 </style>
 <script>
@@ -261,6 +356,44 @@
     var c = btn.querySelector('.theme-count');
     if (c) c.className = 'theme-count text-xs font-bold mt-0.5 bg-white/20 text-white rounded-full px-1.5 inline-block';
   };
+
+  // ── Bottom Sheet délibérations (mobile) ─────────────────────────────
+  window.openDelib = function(key) {
+    var tpl = document.getElementById('delib-tpl-' + key);
+    if (!tpl) return;
+    document.getElementById('delib-label').textContent = tpl.dataset.label || '';
+    var body = document.getElementById('delib-body');
+    body.innerHTML = '';
+    body.appendChild(tpl.content.cloneNode(true));
+    var overlay = document.getElementById('delib-overlay');
+    var panel   = document.getElementById('delib-panel');
+    overlay.classList.remove('pointer-events-none', 'opacity-0');
+    overlay.classList.add('opacity-100');
+    panel.classList.remove('translate-y-full');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeDelib = function() {
+    var overlay = document.getElementById('delib-overlay');
+    var panel   = document.getElementById('delib-panel');
+    panel.classList.add('translate-y-full');
+    overlay.classList.remove('opacity-100');
+    overlay.classList.add('opacity-0');
+    setTimeout(function() {
+      overlay.classList.add('pointer-events-none');
+      document.getElementById('delib-body').innerHTML = '';
+      document.body.style.overflow = '';
+    }, 300);
+  };
+  // Drag-to-close
+  (function() {
+    var panel = document.getElementById('delib-panel');
+    var drag  = document.getElementById('delib-drag');
+    if (!panel || !drag) return;
+    var startY = 0, currentY = 0, dragging = false;
+    drag.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; currentY = 0; dragging = true; panel.style.transition = 'none'; }, { passive: true });
+    drag.addEventListener('touchmove', function(e) { if (!dragging) return; currentY = Math.max(0, e.touches[0].clientY - startY); panel.style.transform = 'translateY(' + currentY + 'px)'; }, { passive: true });
+    drag.addEventListener('touchend', function() { dragging = false; panel.style.transition = ''; panel.style.transform = ''; if (currentY > 100) closeDelib(); });
+  })();
 })();
 </script>
 {% endblock %}
