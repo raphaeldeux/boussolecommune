@@ -1,276 +1,200 @@
-{% extends "base.html" %}
+{% extends "base_discovery.html" %}
 {% block title %}BoussoleCommune — Santé & bien-être de votre commune{% endblock %}
 
 {% block content %}
-<style>
-  /* Transitions CSS pilotées par la classe .search-active sur #hero-section */
-  #hero-text {
-    overflow: hidden;
-    max-height: 240px;
-    opacity: 1;
-    padding-bottom: 2.5rem;
-    transition: max-height 0.35s ease, opacity 0.25s ease, padding-bottom 0.35s ease;
-  }
-  #hero-stats {
-    overflow: hidden;
-    max-height: 48px;
-    opacity: 1;
-    transition: max-height 0.3s ease, opacity 0.2s ease;
-  }
-  #hero-section {
-    padding-top: 5rem;
-    transition: padding-top 0.35s ease;
-  }
-  #hero-section.search-active #hero-text {
-    max-height: 0;
-    opacity: 0;
-    padding-bottom: 0;
-  }
-  #hero-section.search-active #hero-stats {
-    max-height: 0;
-    opacity: 0;
-  }
-  #hero-section.search-active {
-    padding-top: 1.5rem;
-  }
-</style>
+<div class="max-w-3xl mx-auto px-4 py-16 text-center">
 
-<!-- Backdrop blanc (visible quand recherche active, couvre le reste de la page) -->
-<div id="search-backdrop"
-     class="hidden fixed z-20 bg-white"
-     style="top:3rem;left:0;right:0;bottom:0"
-     onclick="deactivateSearch()"></div>
+  <!-- Hero -->
+  <h1 class="text-4xl font-bold text-gray-900 mb-3">
+    La santé de votre commune,<br>en toute transparence
+  </h1>
+  <p class="text-gray-500 text-lg mb-10">
+    Retrouvez les indicateurs de santé, de bien-être et de finances de toutes les communes françaises.
+  </p>
 
-<!-- Hero section -->
-<div id="hero-section"
-     class="relative z-30 max-w-3xl mx-auto px-4 text-center pb-8">
-
-  <!-- Titre + sous-titre (s'effacent à l'activation) -->
-  <div id="hero-text">
-    <h1 class="text-4xl font-bold text-gray-900 mb-3">
-      La santé de votre commune,<br>en toute transparence
-    </h1>
-    <p class="text-gray-500 text-lg">
-      Retrouvez les indicateurs de santé, de bien-être et de finances de toutes les communes françaises.
-    </p>
-  </div>
-
-  <!-- Barre de recherche -->
-  <div id="search-container" class="relative max-w-xl mx-auto">
+  <!-- Champ de recherche -->
+  <div class="relative max-w-xl mx-auto mb-4" id="search-container">
     <form method="GET" action="{{ url_for('public.recherche') }}" id="search-form" autocomplete="off">
-
-      <div class="relative">
-        <!-- Icône loupe intégrée -->
-        <div class="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-          <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
-          </svg>
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <input
+            type="text"
+            name="q"
+            id="search-input"
+            placeholder="Nom de commune… (ex: Sautron, Lyon)"
+            autofocus
+            class="w-full px-4 py-3.5 pr-10 text-base rounded-xl border border-gray-300 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+            aria-label="Rechercher une commune"
+            aria-autocomplete="list"
+            aria-controls="autocomplete-list"
+            aria-expanded="false"
+          >
+          <button type="button" id="clear-btn"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"
+                  aria-label="Effacer">✕</button>
         </div>
-        <input
-          type="text"
-          name="q"
-          id="search-input"
-          placeholder="Nom de commune… (ex: Sautron, Lyon)"
-          class="w-full pl-12 pr-10 py-4 text-base rounded-full border border-gray-200 shadow-md hover:shadow-lg focus:shadow-xl focus:outline-none transition-shadow duration-200 bg-white"
-          aria-label="Rechercher une commune"
-          aria-autocomplete="list"
-          aria-controls="autocomplete-list"
-          aria-expanded="false"
-          autocomplete="off"
-        >
-        <!-- Bouton effacer -->
-        <button type="button" id="clear-btn"
-                class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"
-                aria-label="Effacer">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-          </svg>
+        <button type="submit"
+                class="px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl shadow-sm transition text-sm">
+          Rechercher
         </button>
       </div>
 
-      <!-- Dropdown suggestions -->
+      <!-- Dropdown autocomplétion -->
       <ul id="autocomplete-list" role="listbox"
-          class="hidden absolute left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden text-left divide-y divide-gray-50">
+          class="absolute left-0 right-14 mt-1 bg-white rounded-xl shadow-lg border border-gray-200 z-50 hidden text-left divide-y divide-gray-100 overflow-hidden">
       </ul>
-
     </form>
+
   </div>
 
-  <!-- Compteur (s'efface à l'activation) -->
+  <!-- Compteur -->
   {% if nb_communes or nb_indicateurs %}
-  <div id="hero-stats" class="mt-6">
-    <p class="text-xs text-gray-400">
-      {% if nb_communes %}<strong class="text-gray-600">{{ nb_communes }}</strong> commune{% if nb_communes > 1 %}s{% endif %} analysée{% if nb_communes > 1 %}s{% endif %}{% endif %}
-      {% if nb_communes and nb_indicateurs %} · {% endif %}
-      {% if nb_indicateurs %}<strong class="text-gray-600">{{ nb_indicateurs }}</strong> indicateur{% if nb_indicateurs > 1 %}s{% endif %} suivi{% if nb_indicateurs > 1 %}s{% endif %}{% endif %}
-    </p>
-  </div>
+  <p class="text-xs text-gray-400 mt-6">
+    {% if nb_communes %}<strong class="text-gray-600">{{ nb_communes }}</strong> commune{% if nb_communes > 1 %}s{% endif %} analysée{% if nb_communes > 1 %}s{% endif %}{% endif %}
+    {% if nb_communes and nb_indicateurs %} · {% endif %}
+    {% if nb_indicateurs %}<strong class="text-gray-600">{{ nb_indicateurs }}</strong> indicateur{% if nb_indicateurs > 1 %}s{% endif %} suivi{% if nb_indicateurs > 1 %}s{% endif %}{% endif %}
+  </p>
   {% endif %}
-
 </div>
+
+<!-- Communes en vedette -->
+{% if vedettes %}
+<div class="max-w-5xl mx-auto px-4 pb-16">
+  <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 text-center">Communes analysées</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    {% for v in vedettes %}
+    <a href="{{ url_for('public.commune', slug=v.slug) if not v.ville_slug else url_for('public.dashboard', ville_slug=v.ville_slug) }}"
+       class="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition p-5 text-left group">
+      <div class="flex items-start justify-between mb-2">
+        <div>
+          <div class="font-semibold text-gray-900 group-hover:text-emerald-700 transition">{{ v.nom }}</div>
+          <div class="text-xs text-gray-400">{{ v.departement_nom }}{% if v.departement_code %} ({{ v.departement_code }}){% endif %}</div>
+        </div>
+        {% if v.score %}
+        <span class="score-badge score-{{ v.score }} flex-shrink-0">{{ v.score }}</span>
+        {% else %}
+        <span class="inline-flex items-center justify-content px-2 py-1 rounded-md bg-gray-100 text-gray-400 text-xs font-medium">—</span>
+        {% endif %}
+      </div>
+      <div class="text-xs text-gray-500 mt-2">
+        {% if v.score %}
+          Score global de santé : <strong>{{ v.score }}</strong>
+        {% else %}
+          Données en cours de saisie
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 <script>
 (function() {
-
-  // ── Communes vedettes pour suggestions pré-saisie ──────────────────────
-  var _vedettes = [
-    {% for v in vedettes %}{ nom: {{ v.nom | tojson }}, slug: {{ v.slug | tojson }} }{% if not loop.last %},{% endif %}
-    {% endfor %}
-  ];
-
-  // ── State ──────────────────────────────────────────────────────────────
-  var _active    = false;
-  var _items     = [];
-  var _activeIdx = -1;
-  var _debounce  = null;
-  var _lastQ     = '';
-
-  var input    = document.getElementById('search-input');
-  var list     = document.getElementById('autocomplete-list');
+  var input = document.getElementById('search-input');
+  var list  = document.getElementById('autocomplete-list');
   var clearBtn = document.getElementById('clear-btn');
+  var activeIdx = -1;
+  var lastQuery = '';
+  var debounceTimer = null;
+  var items = [];
 
-  // ── Activation ─────────────────────────────────────────────────────────
-  input.addEventListener('focus', function() { activateSearch(); });
-
-  function activateSearch() {
-    if (_active) return;
-    _active = true;
-    document.getElementById('hero-section').classList.add('search-active');
-    document.getElementById('search-backdrop').classList.remove('hidden');
-    if (input.value.trim().length < 2) showVedettes();
-  }
-
-  function deactivateSearch() {
-    if (!_active) return;
-    _active = false;
-    hideSuggestions();
-    input.value = '';
-    _lastQ = '';
-    clearBtn.classList.add('hidden');
-    document.getElementById('hero-section').classList.remove('search-active');
-    document.getElementById('search-backdrop').classList.add('hidden');
-    input.blur();
-  }
-
-  // ── Saisie ─────────────────────────────────────────────────────────────
-  input.addEventListener('input', function() {
-    var val = this.value;
-    clearBtn.classList.toggle('hidden', !val);
-    clearTimeout(_debounce);
-    if (val.trim().length < 2) { _lastQ = ''; showVedettes(); return; }
-    _debounce = setTimeout(function() { doSearch(val); }, 200);
-  });
-
+  function showClear() { clearBtn.classList.toggle('hidden', !input.value); }
+  input.addEventListener('input', function() { showClear(); scheduleSearch(); });
   clearBtn.addEventListener('click', function() {
-    input.value = ''; clearBtn.classList.add('hidden'); _lastQ = '';
-    showVedettes(); input.focus();
+    input.value = ''; showClear(); hideSuggestions(); input.focus();
   });
 
-  function doSearch(q) {
-    if (q === _lastQ) return;
-    _lastQ = q;
+  function scheduleSearch() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(doSearch, 200);
+  }
+
+  function doSearch() {
+    var q = input.value.trim();
+    if (q === lastQuery) return;
+    lastQuery = q;
+    if (q.length < 2) { hideSuggestions(); return; }
     fetch('/api/recherche?q=' + encodeURIComponent(q))
       .then(function(r) { return r.json(); })
       .then(function(data) { renderSuggestions(data, q); })
       .catch(function() { hideSuggestions(); });
   }
 
-  // ── Suggestions vedettes (avant saisie) ────────────────────────────────
-  function showVedettes() {
-    if (!_vedettes.length) { hideSuggestions(); return; }
-    _items = _vedettes.map(function(v) { return { nom: v.nom, slug: v.slug, _isVedette: true }; });
-    _activeIdx = -1;
+  function renderSuggestions(data, q) {
+    items = data;
+    activeIdx = -1;
     list.innerHTML = '';
-    _vedettes.forEach(function(v) {
+    if (!data.length) { hideSuggestions(); return; }
+    data.forEach(function(item, i) {
       var li = document.createElement('li');
       li.setAttribute('role', 'option');
-      li.className = 'px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-3 text-sm transition-colors';
-      li.innerHTML = '<svg class="w-4 h-4 text-gray-300 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="12,2 14.5,9.5 12,12 9.5,9.5" fill="currentColor" stroke="none" opacity="0.8"/><polygon points="12,22 9.5,14.5 12,12 14.5,14.5" fill="currentColor" stroke="none" opacity="0.3"/></svg>'
-             + '<span class="text-gray-700">' + escHtml(v.nom) + '</span>';
-      li.addEventListener('mousedown', function(e) { e.preventDefault(); window.location.href = '/v/' + v.slug + '/'; });
+      li.setAttribute('id', 'ac-item-' + i);
+      li.className = 'px-4 py-2.5 cursor-pointer hover:bg-gray-50 flex items-center justify-between gap-3';
+      var nom = item.nom || '';
+      var dep = item.departement_nom ? item.departement_nom + (item.departement_code ? ' (' + item.departement_code + ')' : '') : '';
+      var highlight = nom.replace(new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i'), '<strong>$1</strong>');
+      var leftHtml = '<span><span class="text-gray-900">' + highlight + '</span>';
+      if (dep) leftHtml += '<span class="text-xs text-gray-400 ml-1">' + dep + '</span>';
+      leftHtml += '</span>';
+      var rightHtml = '';
+      if (item.score) {
+        rightHtml = '<span class="score-badge score-' + item.score + ' text-xs" style="width:1.5rem;height:1.5rem;font-size:.75rem">' + item.score + '</span>';
+      } else if (item.dans_la_base) {
+        rightHtml = '<span class="text-xs text-emerald-600 font-medium whitespace-nowrap">Données dispo.</span>';
+      }
+      li.innerHTML = leftHtml + rightHtml;
+      li.addEventListener('mousedown', function(e) { e.preventDefault(); selectItem(i); });
       list.appendChild(li);
     });
     list.classList.remove('hidden');
     input.setAttribute('aria-expanded', 'true');
   }
 
-  // ── Résultats de recherche ──────────────────────────────────────────────
-  function renderSuggestions(data, q) {
-    _items = data;
-    _activeIdx = -1;
-    list.innerHTML = '';
-    if (!data.length) { hideSuggestions(); return; }
-    var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'i');
-    data.forEach(function(item) {
-      var li = document.createElement('li');
-      li.setAttribute('role', 'option');
-      li.className = 'px-4 py-3 cursor-pointer hover:bg-gray-50 flex items-center gap-3 text-sm transition-colors';
-      var nom = item.nom || '';
-      var dep = item.departement_nom
-        ? item.departement_nom + (item.departement_code ? ' (' + item.departement_code + ')' : '')
-        : '';
-      var highlight = escHtml(nom).replace(re, '<strong class="text-gray-900">$1</strong>');
-      var icon = '<svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/></svg>';
-      var left = icon + '<span class="flex-1 text-gray-700">' + highlight
-               + (dep ? '<span class="text-xs text-gray-400 ml-1.5">' + escHtml(dep) + '</span>' : '')
-               + '</span>';
-      var right = '';
-      if (item.score) {
-        right = '<span class="score-badge score-' + item.score + '" style="width:1.5rem;height:1.5rem;font-size:.7rem">' + item.score + '</span>';
-      } else if (item.dans_la_base) {
-        right = '<span class="text-xs text-emerald-600 font-medium whitespace-nowrap">Données dispo.</span>';
-      }
-      li.innerHTML = left + right;
-      li.addEventListener('mousedown', function(e) {
-        e.preventDefault();
-        window.location.href = item.ville_slug ? '/v/' + item.ville_slug + '/' : '/commune/' + item.slug;
-      });
-      list.appendChild(li);
-    });
-    list.classList.remove('hidden');
-    input.setAttribute('aria-expanded', 'true');
+  function selectItem(i) {
+    var item = items[i];
+    if (!item) return;
+    // Navigate to city page
+    var url = item.ville_slug
+      ? '/v/' + item.ville_slug + '/'
+      : '/commune/' + item.slug;
+    window.location.href = url;
   }
 
   function hideSuggestions() {
     list.innerHTML = '';
     list.classList.add('hidden');
     input.setAttribute('aria-expanded', 'false');
-    _activeIdx = -1;
-    _items = [];
+    activeIdx = -1;
   }
 
-  // ── Navigation clavier ─────────────────────────────────────────────────
   input.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { deactivateSearch(); return; }
     if (list.classList.contains('hidden')) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      _activeIdx = Math.min(_activeIdx + 1, _items.length - 1);
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
       updateActive();
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      _activeIdx = Math.max(_activeIdx - 1, -1);
+      activeIdx = Math.max(activeIdx - 1, -1);
       updateActive();
-    } else if (e.key === 'Enter' && _activeIdx >= 0) {
-      e.preventDefault();
-      var item = _items[_activeIdx];
-      window.location.href = item._isVedette
-        ? '/v/' + item.slug + '/'
-        : (item.ville_slug ? '/v/' + item.ville_slug + '/' : '/commune/' + item.slug);
+    } else if (e.key === 'Enter') {
+      if (activeIdx >= 0) { e.preventDefault(); selectItem(activeIdx); }
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
     }
   });
 
   function updateActive() {
     list.querySelectorAll('li').forEach(function(li, i) {
-      li.classList.toggle('bg-gray-50', i === _activeIdx);
+      li.classList.toggle('bg-emerald-50', i === activeIdx);
     });
   }
 
-  function escHtml(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  document.addEventListener('click', function(e) {
+    if (!document.getElementById('search-container').contains(e.target)) hideSuggestions();
+  });
 
 })();
 </script>
-
 {% endblock %}

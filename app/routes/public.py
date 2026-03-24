@@ -294,15 +294,8 @@ def villes():
 
 @bp.route("/")
 def index():
-    """Page d'accueil avec recherche de communes."""
-    villes = ville_model.get_all(actif_only=True)
-    inds   = ind_model.get_all(actif_only=True)
-    return render_template(
-        "public/index.html",
-        nb_communes=len(villes),
-        nb_indicateurs=len(inds),
-        vedettes=villes,
-    )
+    """Redirige vers le tableau de bord de Sautron."""
+    return redirect(url_for('public.dashboard', ville_slug='sautron'))
 
 
 @bp.route("/recherche")
