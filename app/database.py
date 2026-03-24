@@ -1,11 +1,31 @@
 import os
 import psycopg2
 import psycopg2.extras
+import psycopg2.pool
 
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
     "postgresql://boussole:boussole@localhost:5432/boussolecommune"
 )
+
+# ── Connection pool (per-process, PID-aware) ─────────────────────────────
+_pool = None
+_pool_pid = None
+
+
+def _get_pool():
+    """Return (or create) the per-process connection pool."""
+    global _pool, _pool_pid
+    pid = os.getpid()
+    if _pool is None or _pool_pid != pid:
+        if _pool is not None:
+            try:
+                _pool.closeall()
+            except Exception:
+                pass
+        _pool = psycopg2.pool.ThreadedConnectionPool(2, 10, DATABASE_URL)
+        _pool_pid = pid
+    return _pool
 
 
 class PgConnection:
@@ -57,10 +77,36 @@ class PgConnection:
         self._conn.close()
 
 
+class _PooledConnection(PgConnection):
+    """PgConnection backed by the per-process connection pool."""
+
+    def __init__(self, pool, connection):
+        super().__init__(connection)
+        self._pool = pool
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type is None:
+            try:
+                self._conn.commit()
+            except Exception:
+                pass
+        else:
+            try:
+                self._conn.rollback()
+            except Exception:
+                pass
+        self._pool.putconn(self._conn)
+        return False
+
+    def close(self):
+        self._pool.putconn(self._conn)
+
+
 def get_db() -> PgConnection:
-    """Return a new PgConnection wrapping a fresh psycopg2 connection."""
-    conn = psycopg2.connect(DATABASE_URL)
-    return PgConnection(conn)
+    """Return a pooled PgConnection from the per-process pool."""
+    pool = _get_pool()
+    conn = pool.getconn()
+    return _PooledConnection(pool, conn)
 
 
 # ── Helper: check whether a column exists ────────────────────────────────
@@ -86,7 +132,9 @@ def _table_exists(conn: PgConnection, table: str) -> bool:
 # ── Schema creation ───────────────────────────────────────────────────────
 
 def init_db():  # noqa: C901
-    conn = get_db()
+    # Use a direct (non-pooled) connection: init_db() runs before Gunicorn
+    # forks workers, so the pool must not be created here.
+    conn = PgConnection(psycopg2.connect(DATABASE_URL))
 
     # Advisory lock — held for the entire init to prevent race conditions
     # between Gunicorn workers starting simultaneously.

@@ -1,3 +1,4 @@
+import time
 from flask import Blueprint, render_template, abort, redirect, url_for, session, request, jsonify, send_from_directory
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
@@ -12,6 +13,78 @@ from app.services.scoring import (
 )
 
 bp = Blueprint("public", __name__)
+
+# ── Simple in-process TTL cache for _build_cartes ───────────────────────
+_CARTES_CACHE: dict = {}   # {ville_id: (timestamp, result)}
+_CACHE_TTL = 300           # 5 minutes
+
+
+def _invalidate_cache(ville_id=None):
+    """Called after admin data changes to flush the cache."""
+    if ville_id is not None:
+        _CARTES_CACHE.pop(ville_id, None)
+    else:
+        _CARTES_CACHE.clear()
+
+
+# ── Bulk data loader: 3 queries instead of 6 × N ────────────────────────
+
+def _load_ville_data(ville_id):
+    """
+    Fetch all donnees, interpretations and reference values for a ville
+    in 3 SQL queries. Returns (donnees_by_ind, interp_by_key, refs_by_ind).
+
+    donnees_by_ind  : {ind_id: [rows sorted DESC by annee]}
+    interp_by_key   : {(ind_id, annee): row}
+    refs_by_ind     : {ind_id: row with resolved 'valeur'}
+    """
+    from app.database import get_db
+    with get_db() as conn:
+        donnees_rows = conn.execute(
+            "SELECT * FROM donnees WHERE ville_id = %s ORDER BY indicateur_id, annee DESC",
+            (ville_id,)
+        ).fetchall()
+        interp_rows = conn.execute(
+            "SELECT * FROM interpretations WHERE ville_id = %s",
+            (ville_id,)
+        ).fetchall()
+        ref_rows = conn.execute("""
+            SELECT ivr.*,
+                   rb.valeur AS banque_valeur,
+                   rb.source AS banque_source,
+                   rb.annee  AS banque_annee,
+                   s.nom     AS strate_nom
+            FROM indicateur_ville_ref ivr
+            LEFT JOIN refs_banque      rb ON ivr.ref_banque_id = rb.id AND rb.statut = 'valide'
+            LEFT JOIN banque_references s  ON rb.strate_id = s.id
+            WHERE ivr.ville_id = %s
+        """, (ville_id,)).fetchall()
+
+    donnees_by_ind = {}
+    for row in donnees_rows:
+        r = dict(row)
+        iid = r["indicateur_id"]
+        donnees_by_ind.setdefault(iid, []).append(r)
+
+    interp_by_key = {}
+    for row in interp_rows:
+        r = dict(row)
+        interp_by_key[(r["indicateur_id"], r["annee"])] = r
+
+    refs_by_ind = {}
+    for row in ref_rows:
+        r = dict(row)
+        if r.get("ref_banque_id") and r.get("banque_valeur") is not None:
+            r["valeur"] = r["banque_valeur"]
+            r["is_banque"] = True
+        elif r.get("valeur_locale") is not None:
+            r["valeur"] = r["valeur_locale"]
+            r["is_banque"] = False
+        else:
+            r["is_banque"] = False
+        refs_by_ind[r["indicateur_id"]] = r
+
+    return donnees_by_ind, interp_by_key, refs_by_ind
 
 
 def _get_ville_or_404(slug=None):
@@ -37,24 +110,53 @@ def _get_ville_or_404(slug=None):
     return ville
 
 
-def _enrichir_indicateur(ind, ville_id=1, annee=None):
-    """Ajoute valeur, score, interprétation, tendance à un indicateur."""
-    donnee = donnee_model.get_latest(ind["id"], ville_id)
+def _enrichir_indicateur(ind, ville_id=1, annee=None, _preloaded=None):
+    """Ajoute valeur, score, interprétation, tendance à un indicateur.
+
+    Quand _preloaded=(donnees_by_ind, interp_by_key, refs_by_ind) est fourni,
+    aucune requête SQL n'est exécutée (données déjà chargées en bulk).
+    """
+    if _preloaded is not None:
+        donnees_by_ind, interp_by_key, refs_by_ind = _preloaded
+        historique = donnees_by_ind.get(ind["id"], [])  # sorted DESC by annee
+        donnee = historique[0] if historique else None
+    else:
+        donnee = donnee_model.get_latest(ind["id"], ville_id)
+        historique = None
+
     if not donnee:
-        return {**ind, "donnee": None, "score": None, "interpretation": None, "tendance": None}
+        return {**ind, "donnee": None, "score": None, "interpretation": None, "tendance": None,
+                "valeur_n1": None, "valeur_ancienne": None, "annee_ancienne": None,
+                "pct_evolution": None, "historique": [], "valeur_reference": None, "ref_ville": None}
 
-    annee_donnee = annee or donnee["annee"]
-    donnee_courante = donnee_model.get_by_indicateur_annee(ind["id"], annee_donnee, ville_id)
-    if not donnee_courante:
-        donnee_courante = donnee
+    if _preloaded is not None:
+        if annee and annee != donnee["annee"]:
+            donnee_courante = next((d for d in historique if d["annee"] == annee), donnee)
+        else:
+            donnee_courante = donnee
+    else:
+        annee_donnee = annee or donnee["annee"]
+        donnee_courante = donnee_model.get_by_indicateur_annee(ind["id"], annee_donnee, ville_id)
+        if not donnee_courante:
+            donnee_courante = donnee
+        historique = donnee_model.get_by_indicateur(ind["id"], ville_id)
 
-    historique = donnee_model.get_by_indicateur(ind["id"], ville_id)
     donnee_ancienne = historique[-1] if len(historique) > 1 else None
     valeur_ancienne = donnee_ancienne["valeur"] if donnee_ancienne else None
-    annee_ancienne = donnee_ancienne["annee"] if donnee_ancienne else None
+    annee_ancienne  = donnee_ancienne["annee"]  if donnee_ancienne else None
 
-    donnee_n1 = donnee_model.get_by_indicateur_annee(ind["id"], donnee_courante["annee"] - 1, ville_id)
-    valeur_n1 = donnee_n1["valeur"] if donnee_n1 else None
+    if _preloaded is not None:
+        annee_n1 = donnee_courante["annee"] - 1
+        donnee_n1_obj = next((d for d in historique if d["annee"] == annee_n1), None)
+        valeur_n1 = donnee_n1_obj["valeur"] if donnee_n1_obj else None
+        ref_ville = refs_by_ind.get(ind["id"])
+        interpretation = interp_by_key.get((ind["id"], donnee_courante["annee"]))
+    else:
+        donnee_n1_obj = donnee_model.get_by_indicateur_annee(ind["id"], donnee_courante["annee"] - 1, ville_id)
+        valeur_n1 = donnee_n1_obj["valeur"] if donnee_n1_obj else None
+        from app.models.banque_reference import get_ref_for_indicateur_ville
+        ref_ville = get_ref_for_indicateur_ville(ind["id"], ville_id)
+        interpretation = interp_model.get(ind["id"], donnee_courante["annee"], ville_id)
 
     pct_evolution = None
     if valeur_ancienne is not None and valeur_ancienne != 0:
@@ -63,11 +165,7 @@ def _enrichir_indicateur(ind, ville_id=1, annee=None):
         )
 
     tendance = calculer_tendance(donnee_courante["valeur"], valeur_ancienne)
-
-    # Utiliser la référence ville si disponible, sinon la référence globale de l'indicateur
-    from app.models.banque_reference import get_ref_for_indicateur_ville
-    ref_ville = get_ref_for_indicateur_ville(ind["id"], ville_id)
-    valeur_ref = ref_ville["valeur"] if ref_ville else ind.get("valeur_reference")
+    valeur_ref = ref_ville["valeur"] if ref_ville and "valeur" in ref_ville else ind.get("valeur_reference")
 
     score = calculer_score(
         donnee_courante["valeur"],
@@ -84,7 +182,6 @@ def _enrichir_indicateur(ind, ville_id=1, annee=None):
         ind.get("sens_positif", "neutre"),
     )
 
-    interpretation = interp_model.get(ind["id"], donnee_courante["annee"], ville_id)
     if score is None and interpretation and interpretation.get("score"):
         score = interpretation["score"]
 
@@ -106,15 +203,37 @@ def _enrichir_indicateur(ind, ville_id=1, annee=None):
 
 
 def _build_cartes(ville_id=1):
-    """Construit la liste des cartes thématiques enrichies."""
+    """Construit la liste des cartes thématiques enrichies (avec cache TTL)."""
+    now = time.time()
+    cached = _CARTES_CACHE.get(ville_id)
+    if cached and (now - cached[0]) < _CACHE_TTL:
+        return cached[1]
+    result = _build_cartes_uncached(ville_id)
+    _CARTES_CACHE[ville_id] = (now, result)
+    return result
+
+
+def _build_cartes_uncached(ville_id=1):
+    """Construit la liste des cartes thématiques enrichies (sans cache)."""
     thematiques = ind_model.get_thematiques()
+    # Load all indicators in one query, group by thematique
+    all_indicateurs = ind_model.get_all(actif_only=True)
+    inds_by_them = {}
+    for i in all_indicateurs:
+        t = i["thematique"]
+        if t in thematiques:
+            inds_by_them.setdefault(t, []).append(i)
+
+    # Load all donnees/interps/refs in 3 queries
+    preloaded = _load_ville_data(ville_id)
+
     cartes = []
     scores_thematiques = {}
     tous_enrichis = []
 
     for them in thematiques:
-        indicateurs = ind_model.get_by_thematique(them)
-        enrichis = [_enrichir_indicateur(i, ville_id) for i in indicateurs]
+        indicateurs = inds_by_them.get(them, [])
+        enrichis = [_enrichir_indicateur(i, ville_id, _preloaded=preloaded) for i in indicateurs]
         renseignes = [e for e in enrichis if e["donnee"]]
 
         score_them = calculer_score_thematique([
@@ -298,14 +417,18 @@ def dashboard(ville_slug):
 
     derniers_conseils = [_enrich_conseil_card(c) for c in conseils_raw]
 
-    # Load featured indicators
+    # Load featured indicators (reuse bulk-loaded data)
     vedettes_ids = [v.strip() for v in (ville.get("indicateurs_vedettes") or "").split(",") if v.strip()]
     indicateurs_vedettes = []
+    if vedettes_ids:
+        _vedettes_preloaded = _load_ville_data(ville["id"])
+    else:
+        _vedettes_preloaded = None
     for ind_id in vedettes_ids[:3]:
         ind = ind_model.get_by_id(ind_id)
         if not ind:
             continue
-        enrichi = _enrichir_indicateur(ind, ville["id"])
+        enrichi = _enrichir_indicateur(ind, ville["id"], _preloaded=_vedettes_preloaded)
         if not enrichi.get("donnee"):
             continue
         enrichi["icon"] = THEMATIQUE_ICONS.get(enrichi.get("thematique"), "📊")
@@ -400,7 +523,8 @@ def thematique(ville_slug, slug):
         abort(404)
 
     indicateurs = ind_model.get_by_thematique(slug)
-    enrichis = [_enrichir_indicateur(i, ville["id"]) for i in indicateurs]
+    preloaded = _load_ville_data(ville["id"])
+    enrichis = [_enrichir_indicateur(i, ville["id"], _preloaded=preloaded) for i in indicateurs]
     renseignes = [e for e in enrichis if e["donnee"]]
 
     def _amelioration(e):
