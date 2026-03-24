@@ -115,7 +115,7 @@
         ('vivant',     'ri-leaf-line',          'Soin du vivant')
       ] %}
 
-      <!-- ── Nav desktop ───────────────────────────────────────────────── -->
+      <!-- ── Nav desktop (avec ville) ──────────────────────────────────── -->
       <nav class="hidden md:flex items-end h-14 gap-0 flex-1 ml-2 overflow-visible" aria-label="Navigation principale">
         {% set ta = "border-b-2 border-forest-200 text-white font-semibold" %}
         {% set ti = "border-b-2 border-transparent text-forest-200 hover:text-white hover:border-forest-400 transition" %}
@@ -170,7 +170,25 @@
       </nav>
 
       {% else %}
-      <div class="flex-1"></div>
+
+      <!-- ── Nav desktop (sans ville) ──────────────────────────────────── -->
+      <nav class="hidden md:flex items-end h-14 gap-0 flex-1 ml-2 overflow-visible" aria-label="Navigation principale">
+        {% set ta = "border-b-2 border-forest-200 text-white font-semibold" %}
+        {% set ti = "border-b-2 border-transparent text-forest-200 hover:text-white hover:border-forest-400 transition" %}
+        <a href="{{ url_for('public.index') }}"
+           class="px-3 h-full flex items-center whitespace-nowrap text-sm {{ ta if request.endpoint == 'public.index' else ti }}">
+          Accueil
+        </a>
+        <a href="{{ url_for('public.methodologie') }}"
+           class="px-3 h-full flex items-center whitespace-nowrap text-sm {{ ta if request.endpoint == 'public.methodologie' else ti }}">
+          Méthodologie
+        </a>
+        <a href="{{ url_for('public.comparer') }}"
+           class="px-3 h-full flex items-center whitespace-nowrap text-sm {{ ta if request.endpoint == 'public.comparer' else ti }}">
+          Comparer
+        </a>
+      </nav>
+
       {% endif %}
 
       <!-- Spacer mobile (flex-1 uniquement sur mobile, le desktop nav remplit l'espace) -->
@@ -223,13 +241,11 @@
         {% endif %}
 
         <!-- Hamburger — mobile uniquement, tout à droite -->
-        {% if ville is defined and ville %}
         <button id="mob-menu-btn" onclick="toggleMobMenu()"
                 class="md:hidden p-2 rounded-lg hover:bg-forest-700 transition text-forest-200 hover:text-white"
                 aria-label="Menu">
           <i class="ri-menu-line text-xl"></i>
         </button>
-        {% endif %}
 
       </div><!-- fin droite -->
     </div>
@@ -243,24 +259,15 @@
   </header>
 
   <!-- ── Menu mobile (drawer accordion) ───────────────────────────── -->
-  {% if ville is defined and ville %}
-  {% set nav_items_mob = [
-    ('finances',   'ri-home-4-line',    'Soin de la maison'),
-    ('cadre_vie',  'ri-landscape-line', 'Soin du territoire'),
-    ('personnes',  'ri-heart-line',     'Soin des habitant·es'),
-    ('lien_social','ri-group-line',     'Soin du lien'),
-    ('democratie', 'ri-government-line','Soin de la parole'),
-    ('vivant',     'ri-leaf-line',      'Soin du vivant')
-  ] %}
-  {% set ind_mob_open = request.endpoint in ('public.indicateurs','public.thematique') %}
-  {% set apropos_mob_open = request.endpoint in ('public.portrait','public.methodologie','public.comparer') %}
   <div id="mob-menu" class="hidden fixed inset-0 z-50 md:hidden" aria-modal="true">
     <div onclick="toggleMobMenu()" class="absolute inset-0 bg-black/60"></div>
     <div class="absolute top-0 right-0 bottom-0 w-72 bg-forest-900 text-white shadow-2xl overflow-y-auto flex flex-col">
 
       <!-- En-tête drawer -->
       <div class="flex items-center justify-between px-4 h-14 border-b border-forest-700 flex-shrink-0">
-        <span class="font-semibold text-sm text-forest-100">{{ ville.nom }}</span>
+        <span class="font-semibold text-sm text-forest-100">
+          {% if ville is defined and ville %}{{ ville.nom }}{% else %}BoussoleCommune{% endif %}
+        </span>
         <button onclick="toggleMobMenu()" class="p-2 text-forest-300 hover:text-white transition">
           <i class="ri-close-line text-xl"></i>
         </button>
@@ -268,6 +275,18 @@
 
       <!-- Liens avec accordéon -->
       <nav class="px-3 py-3 flex-1 overflow-y-auto">
+
+      {% if ville is defined and ville %}
+      {% set nav_items_mob = [
+        ('finances',   'ri-home-4-line',    'Soin de la maison'),
+        ('cadre_vie',  'ri-landscape-line', 'Soin du territoire'),
+        ('personnes',  'ri-heart-line',     'Soin des habitant·es'),
+        ('lien_social','ri-group-line',     'Soin du lien'),
+        ('democratie', 'ri-government-line','Soin de la parole'),
+        ('vivant',     'ri-leaf-line',      'Soin du vivant')
+      ] %}
+      {% set ind_mob_open = request.endpoint in ('public.indicateurs','public.thematique') %}
+      {% set apropos_mob_open = request.endpoint in ('public.portrait','public.methodologie','public.comparer') %}
 
         <!-- Ma ville — lien direct -->
         <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
@@ -332,10 +351,27 @@
           </div>
         </div>
 
+      {% else %}
+
+        <!-- Liens génériques (sans ville) -->
+        <a href="{{ url_for('public.index') }}" onclick="toggleMobMenu()"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mb-0.5 {% if request.endpoint == 'public.index' %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+          <i class="ri-compass-line text-base text-forest-400 flex-shrink-0"></i> Accueil
+        </a>
+        <a href="{{ url_for('public.methodologie') }}" onclick="toggleMobMenu()"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mb-0.5 {% if request.endpoint == 'public.methodologie' %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+          <i class="ri-book-2-line text-base text-forest-400 flex-shrink-0"></i> Méthodologie
+        </a>
+        <a href="{{ url_for('public.comparer') }}" onclick="toggleMobMenu()"
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mb-0.5 {% if request.endpoint == 'public.comparer' %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+          <i class="ri-scales-3-line text-base text-forest-400 flex-shrink-0"></i> Comparer des communes
+        </a>
+
+      {% endif %}
+
       </nav>
     </div>
   </div>
-  {% endif %}
 
   {% block breadcrumb %}{% endblock %}
 
