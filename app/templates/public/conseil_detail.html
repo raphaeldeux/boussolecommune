@@ -191,22 +191,8 @@
 
   </div>{# end hidden md:contents #}
 
-  {# ══ MOBILE : navigation par ancres + cartes délibs ══════════════════ #}
+  {# ══ MOBILE : sections par thème + scroll-to-top ═════════════════════ #}
   <div class="md:hidden">
-
-    {# Pills de navigation scrollables #}
-    <div class="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-      {% for theme in structure.themes %}
-      {% set ti = loop.index0 %}
-      {% set short = theme.titre | replace('Soin des ', '') | replace('Soin de la ', '') | replace('Soin du ', '') | replace('Soin de ', '') %}
-      <a href="#theme-mob-{{ ti }}"
-         class="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-600 hover:border-emerald-400 hover:text-emerald-700 transition">
-        <i class="{{ theme_icon(theme.titre) | trim }}"></i>
-        {{ short }}
-        <span class="bg-gray-100 text-gray-500 rounded-full px-1.5 text-xs">{{ theme.deliberations | length }}</span>
-      </a>
-      {% endfor %}
-    </div>
 
     {# Sections par thème — toujours visibles #}
     <div class="space-y-5">
@@ -317,6 +303,14 @@
 
 </div>
 
+<!-- ─── Scroll to top (mobile) ───────────────────────────────────────── -->
+<button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+        class="md:hidden fixed bottom-6 right-4 z-30 w-11 h-11 bg-emerald-600 text-white rounded-full shadow-lg
+               flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300"
+        aria-label="Retour en haut">
+  <i class="ri-arrow-up-line text-lg"></i>
+</button>
+
 <!-- ─── Bottom Sheet mobile (délibérations) ──────────────────────────── -->
 <div id="delib-overlay"
      class="md:hidden fixed inset-0 bg-black/40 z-40 opacity-0 pointer-events-none transition-opacity duration-300"
@@ -351,8 +345,6 @@
   .resume-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .resume-clamped.expanded { display: block; }
   [id^="theme-mob-"] { scroll-margin-top: 4rem; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>
 <script>
 (function() {
@@ -408,6 +400,21 @@
       document.body.style.overflow = '';
     }, 300);
   };
+  // Scroll-to-top button
+  (function() {
+    var btn = document.getElementById('scroll-top-btn');
+    if (!btn) return;
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 300) {
+        btn.classList.remove('opacity-0', 'pointer-events-none');
+        btn.classList.add('opacity-100');
+      } else {
+        btn.classList.add('opacity-0', 'pointer-events-none');
+        btn.classList.remove('opacity-100');
+      }
+    }, { passive: true });
+  })();
+
   // Drag-to-close
   (function() {
     var panel = document.getElementById('delib-panel');
