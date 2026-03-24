@@ -362,10 +362,6 @@
     {% endif %}
   </div>
 
-  {% if ind.interpretation and ind.interpretation.phrase_courte %}
-  <p class="text-sm text-gray-500 italic mb-4 leading-relaxed">{{ ind.interpretation.phrase_courte }}</p>
-  {% endif %}
-
   {# Analyse IA + description (en premier) #}
   {% if ind.interpretation and ind.interpretation.phrase_longue %}
   <div class="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
