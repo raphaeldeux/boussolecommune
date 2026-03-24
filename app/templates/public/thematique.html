@@ -16,7 +16,7 @@
 
 
 <!-- En-tête thématique -->
-<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 mb-6">
+<div class="px-1 pt-5 pb-6 mb-2">
   <div class="lg:grid lg:grid-cols-3 lg:gap-6">
 
     <!-- 2/3 : icône + titre + question + légende -->
@@ -85,7 +85,7 @@
 {% if grouped.amelioration %}
 <section>
   {{ section_header('ri-arrow-up-line', 'En amélioration', 'En amélioration', grouped.amelioration, 'text-emerald-700', 'text-emerald-500') }}
-  <div class="space-y-3">
+  <div class="space-y-5">
     {% for ind in grouped.amelioration %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-emerald-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
@@ -99,7 +99,7 @@
 {% if grouped.surveiller %}
 <section>
   {{ section_header('ri-arrow-down-line', 'À surveiller', 'À surveiller', grouped.surveiller, 'text-red-700', 'text-red-500') }}
-  <div class="space-y-3">
+  <div class="space-y-5">
     {% for ind in grouped.surveiller %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-red-400 overflow-hidden">
       {% include "public/_ind_card.html" %}
@@ -113,7 +113,7 @@
 {% if grouped.stable %}
 <section>
   {{ section_header('ri-arrow-right-line', 'Stable', 'Stables', grouped.stable, 'text-gray-500', 'text-gray-400') }}
-  <div class="space-y-3">
+  <div class="space-y-5">
     {% for ind in grouped.stable %}
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-gray-300 overflow-hidden">
       {% include "public/_ind_card.html" %}
