@@ -2,22 +2,51 @@
 {% block title %}BoussoleCommune — Santé & bien-être de votre commune{% endblock %}
 
 {% block content %}
+<style>
+  /* Transitions CSS pilotées par la classe .search-active sur #hero-section */
+  #hero-text {
+    overflow: hidden;
+    max-height: 240px;
+    opacity: 1;
+    padding-bottom: 2.5rem;
+    transition: max-height 0.35s ease, opacity 0.25s ease, padding-bottom 0.35s ease;
+  }
+  #hero-stats {
+    overflow: hidden;
+    max-height: 48px;
+    opacity: 1;
+    transition: max-height 0.3s ease, opacity 0.2s ease;
+  }
+  #hero-section {
+    padding-top: 5rem;
+    transition: padding-top 0.35s ease;
+  }
+  #hero-section.search-active #hero-text {
+    max-height: 0;
+    opacity: 0;
+    padding-bottom: 0;
+  }
+  #hero-section.search-active #hero-stats {
+    max-height: 0;
+    opacity: 0;
+  }
+  #hero-section.search-active {
+    padding-top: 1.5rem;
+  }
+</style>
 
 <!-- Backdrop blanc (visible quand recherche active, couvre le reste de la page) -->
 <div id="search-backdrop"
      class="hidden fixed z-20 bg-white"
-     style="top:3.5rem;left:0;right:0;bottom:0"
+     style="top:3rem;left:0;right:0;bottom:0"
      onclick="deactivateSearch()"></div>
 
 <!-- Hero section -->
 <div id="hero-section"
-     class="relative z-30 max-w-3xl mx-auto px-4 text-center transition-all duration-300"
-     style="padding-top:5rem;padding-bottom:2rem">
+     class="relative z-30 max-w-3xl mx-auto px-4 text-center pb-8">
 
   <!-- Titre + sous-titre (s'effacent à l'activation) -->
-  <div id="hero-text"
-       class="overflow-hidden transition-all duration-300"
-       style="max-height:220px;opacity:1;padding-bottom:2.5rem">
+  <div id="hero-text">
     <h1 class="text-4xl font-bold text-gray-900 mb-3">
       La santé de votre commune,<br>en toute transparence
     </h1>
@@ -69,9 +98,7 @@
 
   <!-- Compteur (s'efface à l'activation) -->
   {% if nb_communes or nb_indicateurs %}
-  <div id="hero-stats"
-       class="overflow-hidden transition-all duration-300 mt-6"
-       style="max-height:48px;opacity:1">
+  <div id="hero-stats" class="mt-6">
     <p class="text-xs text-gray-400">
       {% if nb_communes %}<strong class="text-gray-600">{{ nb_communes }}</strong> commune{% if nb_communes > 1 %}s{% endif %} analysée{% if nb_communes > 1 %}s{% endif %}{% endif %}
       {% if nb_communes and nb_indicateurs %} · {% endif %}
@@ -108,16 +135,8 @@
   function activateSearch() {
     if (_active) return;
     _active = true;
+    document.getElementById('hero-section').classList.add('search-active');
     document.getElementById('search-backdrop').classList.remove('hidden');
-    var heroText = document.getElementById('hero-text');
-    heroText.style.maxHeight = '0';
-    heroText.style.opacity = '0';
-    heroText.style.paddingBottom = '0';
-    var heroStats = document.getElementById('hero-stats');
-    if (heroStats) { heroStats.style.maxHeight = '0'; heroStats.style.opacity = '0'; }
-    var heroSection = document.getElementById('hero-section');
-    heroSection.style.paddingTop = '1.5rem';
-    heroSection.style.paddingBottom = '0.5rem';
     if (input.value.trim().length < 2) showVedettes();
   }
 
@@ -128,16 +147,8 @@
     input.value = '';
     _lastQ = '';
     clearBtn.classList.add('hidden');
+    document.getElementById('hero-section').classList.remove('search-active');
     document.getElementById('search-backdrop').classList.add('hidden');
-    var heroText = document.getElementById('hero-text');
-    heroText.style.maxHeight = '220px';
-    heroText.style.opacity = '1';
-    heroText.style.paddingBottom = '2.5rem';
-    var heroStats = document.getElementById('hero-stats');
-    if (heroStats) { heroStats.style.maxHeight = '48px'; heroStats.style.opacity = '1'; }
-    var heroSection = document.getElementById('hero-section');
-    heroSection.style.paddingTop = '5rem';
-    heroSection.style.paddingBottom = '2rem';
     input.blur();
   }
 
