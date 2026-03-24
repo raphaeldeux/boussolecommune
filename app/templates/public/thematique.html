@@ -199,7 +199,8 @@
     {% set tb = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
     {% set tm = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
     <button onclick="openSheet('{{ ind.id }}')"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-emerald-400 hover:bg-gray-50 active:bg-gray-100 transition">
+            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 hover:bg-gray-50 active:bg-gray-100 transition"
+            style="border-left-color: {{ ind.score_couleur or '#9ca3af' }}">
       <div class="flex-shrink-0 w-7 flex justify-center">
         {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
       </div>
@@ -227,7 +228,8 @@
     {% set tb = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
     {% set tm = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
     <button onclick="openSheet('{{ ind.id }}')"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-red-400 hover:bg-gray-50 active:bg-gray-100 transition">
+            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 hover:bg-gray-50 active:bg-gray-100 transition"
+            style="border-left-color: {{ ind.score_couleur or '#9ca3af' }}">
       <div class="flex-shrink-0 w-7 flex justify-center">
         {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
       </div>
@@ -255,7 +257,8 @@
     {% set tb = (ind.tendance == '↗' and ind.sens_positif == 'haut') or (ind.tendance == '↘' and ind.sens_positif == 'bas') %}
     {% set tm = (ind.tendance == '↘' and ind.sens_positif == 'haut') or (ind.tendance == '↗' and ind.sens_positif == 'bas') %}
     <button onclick="openSheet('{{ ind.id }}')"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-gray-300 hover:bg-gray-50 active:bg-gray-100 transition">
+            class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 hover:bg-gray-50 active:bg-gray-100 transition"
+            style="border-left-color: {{ ind.score_couleur or '#9ca3af' }}">
       <div class="flex-shrink-0 w-7 flex justify-center">
         {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
       </div>
@@ -293,7 +296,8 @@
     <div class="divide-y divide-gray-50">
       {% for ind in grouped.no_history %}
       <button onclick="openSheet('{{ ind.id }}')"
-              class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 border-l-gray-200 hover:bg-gray-50 active:bg-gray-100 transition">
+              class="w-full flex items-center gap-3 px-4 py-3 text-left border-l-4 hover:bg-gray-50 active:bg-gray-100 transition"
+              style="border-left-color: {{ ind.score_couleur or '#9ca3af' }}">
         <div class="flex-shrink-0 w-7 flex justify-center">
           {% if ind.score %}<span class="score-badge score-{{ ind.score }}" style="width:1.6rem;height:1.6rem;font-size:.75rem;border-radius:.3rem">{{ ind.score }}</span>{% endif %}
         </div>
@@ -362,6 +366,22 @@
   <p class="text-sm text-gray-500 italic mb-4 leading-relaxed">{{ ind.interpretation.phrase_courte }}</p>
   {% endif %}
 
+  {# Analyse IA + description (en premier) #}
+  {% if ind.interpretation and ind.interpretation.phrase_longue %}
+  <div class="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
+    <div class="flex items-center gap-1.5 mb-2">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
+      <span class="text-xs text-emerald-700 font-medium">Analyse BoussoleCommune</span>
+    </div>
+    <p class="text-sm text-gray-700 leading-relaxed">{{ ind.interpretation.phrase_longue }}</p>
+    {% if ind.description %}
+    <div class="mt-2 p-2 bg-white rounded-lg text-xs text-gray-500 leading-relaxed border border-emerald-100">{{ ind.description }}</div>
+    {% endif %}
+  </div>
+  {% elif ind.description %}
+  <div class="mb-4 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
+  {% endif %}
+
   {# Comparaison communes similaires #}
   {% if ind.valeur_reference %}
   {% set v_ville = ind.donnee.valeur %}
@@ -409,22 +429,6 @@
   <div class="mb-4">
     <canvas data-chart-id="mob-chart-{{ ind.id }}" style="height:150px"></canvas>
   </div>
-  {% endif %}
-
-  {# Analyse IA + description #}
-  {% if ind.interpretation and ind.interpretation.phrase_longue %}
-  <div class="mb-4">
-    <div class="flex items-center gap-1.5 mb-2">
-      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 flex-shrink-0"></span>
-      <span class="text-xs text-gray-400">Analyse BoussoleCommune</span>
-    </div>
-    <p class="text-sm text-gray-600 leading-relaxed">{{ ind.interpretation.phrase_longue }}</p>
-    {% if ind.description %}
-    <div class="mt-2 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
-    {% endif %}
-  </div>
-  {% elif ind.description %}
-  <div class="mb-4 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
   {% endif %}
 
   {# Source #}
