@@ -760,6 +760,16 @@ def methodologie():
     return render_template("public/methodologie.html", ville=ville_retour)
 
 
+@bp.route("/mentions-legales")
+def mentions_legales():
+    return render_template("public/mentions_legales.html")
+
+
+@bp.route("/accessibilite")
+def accessibilite():
+    return render_template("public/accessibilite.html")
+
+
 @bp.route("/v/<ville_slug>/conseils")
 def conseils(ville_slug):
     """Page des conseils municipaux."""

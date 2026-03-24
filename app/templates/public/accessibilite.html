@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Accessibilité numérique — BoussoleCommune{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <h1 class="text-2xl font-bold text-gray-900 mb-1">Accessibilité numérique</h1>
+  <p class="text-gray-500 text-sm mb-8">Déclaration d'accessibilité — mise à jour le {{ "mars 2026" }}.</p>
+
+  <div class="space-y-8 text-sm text-gray-700 leading-relaxed">
+
+    <section class="bg-amber-50 border border-amber-200 rounded-lg px-5 py-4">
+      <p class="font-semibold text-amber-800 mb-1">Conformité partielle</p>
+      <p class="text-amber-700">BoussoleCommune est en conformité partielle avec le Référentiel Général d'Amélioration de l'Accessibilité (RGAA 4.1). Les non-conformités et dérogations sont listées ci-dessous.</p>
+    </section>
+
+    <section>
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Qu'est-ce que l'accessibilité numérique ?</h2>
+      <p>Un site web accessible est un site qui permet à tous les utilisateurs, quelles que soient leurs capacités ou leur matériel, d'accéder à ses contenus et fonctionnalités. Cela inclut les personnes en situation de handicap (visuel, auditif, moteur, cognitif) ainsi que les utilisateurs de technologies d'assistance (lecteurs d'écran, clavier seul, etc.).</p>
+    </section>
+
+    <section>
+      <h2 class="text-base font-semibold text-gray-900 mb-3">État de conformité</h2>
+      <p>BoussoleCommune n'a pas fait l'objet d'un audit complet de conformité RGAA. Les points suivants ont été identifiés comme non-conformes ou à améliorer :</p>
+      <ul class="mt-3 space-y-2 text-gray-600">
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1.5"></span>
+          <span>Certains graphiques (Chart.js) ne disposent pas d'alternatives textuelles accessibles aux lecteurs d'écran.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1.5"></span>
+          <span>Les panneaux de détail (accordéon sur mobile) peuvent ne pas être correctement annoncés par certains lecteurs d'écran.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1.5"></span>
+          <span>Les contrastes de certains textes gris clair peuvent être insuffisants selon les critères WCAG AA.</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1.5"></span>
+          <span>Certaines icônes (Remixicon) ne disposent pas d'attributs <code class="bg-gray-100 px-1 rounded">aria-label</code> explicites.</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Fonctionnalités accessibles</h2>
+      <ul class="space-y-2 text-gray-600">
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5"></span>
+          <span>Le site est navigable au clavier (Tab, Entrée, Espace).</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5"></span>
+          <span>Le code HTML utilise des éléments sémantiques (header, nav, main, footer, section).</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5"></span>
+          <span>La langue de la page est déclarée (<code class="bg-gray-100 px-1 rounded">lang="fr"</code>).</span>
+        </li>
+        <li class="flex items-start gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 mt-1.5"></span>
+          <span>Le site est utilisable sans JavaScript pour les fonctions essentielles de consultation.</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Signaler un problème</h2>
+      <p>Si vous rencontrez une difficulté d'accès à un contenu ou une fonctionnalité, vous pouvez nous contacter :</p>
+      <ul class="mt-3 space-y-1 text-gray-600">
+        <li><span class="font-medium text-gray-700">Par e-mail :</span> <a href="mailto:contact@sautronautrement.fr" class="text-forest-700 hover:underline">contact@sautronautrement.fr</a></li>
+      </ul>
+      <p class="mt-3">Nous nous engageons à vous répondre dans un délai de 5 jours ouvrés et à trouver une solution alternative si le problème ne peut être résolu immédiatement.</p>
+    </section>
+
+    <section>
+      <h2 class="text-base font-semibold text-gray-900 mb-3">Voies de recours</h2>
+      <p>Si vous n'obtenez pas de réponse satisfaisante, vous pouvez contacter le <a href="https://www.defenseurdesdroits.fr" class="text-forest-700 hover:underline" target="_blank" rel="noopener">Défenseur des droits</a>.</p>
+    </section>
+
+  </div>
+
+</div>
+{% endblock %}

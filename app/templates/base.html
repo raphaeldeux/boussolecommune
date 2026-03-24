@@ -373,8 +373,10 @@
       {% endif %}
       <div class="flex flex-col sm:flex-row justify-between gap-2 text-xs text-sand-400">
         <span><span class="font-semibold text-gray-600">BoussoleCommune</span><span class="text-gray-400"> · </span><span class="font-semibold text-gray-600">Observatoire citoyen indépendant</span></span>
-        <div class="flex gap-4">
+        <div class="flex flex-wrap gap-4">
           <a href="{{ url_for('public.methodologie') }}" class="hover:text-forest-700 transition">Note méthodologique</a>
+          <a href="{{ url_for('public.mentions_legales') }}" class="hover:text-forest-700 transition">Mentions légales</a>
+          <a href="{{ url_for('public.accessibilite') }}" class="hover:text-forest-700 transition">Accessibilité</a>
           <a href="mailto:contact@sautronautrement.fr" class="hover:text-forest-700 transition">Contact</a>
         </div>
       </div>
