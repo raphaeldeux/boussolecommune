@@ -13,16 +13,17 @@
 {% endblock %}
 
 {% block content %}
-{% set THEMES_ORDRE = ["Soin des habitant·es", "Soin de la maison", "Soin du territoire", "Soin du lien", "Soin de la parole", "Soin du vivant"] %}
-{% set THEMES_ICON = {"Soin des habitant·es": "ri-heart-line", "Soin de la maison": "ri-home-4-line", "Soin du territoire": "ri-landscape-line", "Soin du lien": "ri-group-line", "Soin de la parole": "ri-government-line", "Soin du vivant": "ri-leaf-line"} %}
-{% set THEMES_DESC = {
-  "Soin des habitant·es": "Santé, éducation, enfance, seniors, aide sociale et services au public.",
-  "Soin de la maison":    "Budget communal, fiscalité, emprunts, personnel et indemnités des élus.",
-  "Soin du territoire":   "Urbanisme, voirie, logement, travaux et équipements publics.",
-  "Soin du lien":         "Associations sportives et culturelles, événements et vie associative.",
-  "Soin de la parole":    "Gouvernance, délégations, conventions et intercommunalité.",
-  "Soin du vivant":       "Environnement, biodiversité, eau, énergie et alimentation."
-} %}
+{# Macro : icône Remixicon selon les mots-clés du titre de thème #}
+{% macro theme_icon(titre) %}
+{% set t = titre | lower %}
+{% if 'personne' in t or 'habitant' in t or 'santé' in t or 'soin des p' in t %}ri-heart-line
+{% elif 'finance' in t or 'maison' in t or 'budget' in t or 'rh' in t or 'fiscal' in t %}ri-home-4-line
+{% elif 'territoire' in t or 'cadre' in t or 'vie' in t or 'urba' in t or 'voirie' in t %}ri-landscape-line
+{% elif 'lien' in t or 'social' in t or 'assoc' in t %}ri-group-line
+{% elif 'démocrat' in t or 'parole' in t or 'gouvern' in t or 'conseil' in t %}ri-government-line
+{% elif 'vivant' in t or 'environ' in t or 'nature' in t or 'biodiv' in t %}ri-leaf-line
+{% else %}ri-folder-line{% endif %}
+{% endmacro %}
 
 {# ── Stats globales ──────────────────────────────────────────────── #}
 {% set ns = namespace(total=0, adoptes=0, rejetes=0, infos=0) %}
@@ -105,64 +106,32 @@
 
   {% if structure and structure.themes %}
 
-  {# Trouver le premier thème disponible #}
-  {% set ns_fi = namespace(first_i=none) %}
-  {% for titre in THEMES_ORDRE %}
-    {% if ns_fi.first_i is none %}
-      {% set tl = structure.themes | selectattr('titre', 'equalto', titre) | list %}
-      {% if tl %}{% set ns_fi.first_i = loop.index0 %}{% endif %}
-    {% endif %}
-  {% endfor %}
-
-  {# ── GRILLE THÈMES 3×2 ──────────────────────────────────────────── #}
-  {% set THEMES_COURT = {
-    "Soin des habitant·es": "Habitant·es",
-    "Soin de la maison": "Maison",
-    "Soin du territoire": "Territoire",
-    "Soin du lien": "Lien",
-    "Soin de la parole": "Parole",
-    "Soin du vivant": "Vivant"
-  } %}
+  {# ── GRILLE THÈMES ──────────────────────────────────────────────── #}
   <div class="grid grid-cols-3 gap-1.5">
-    {% for titre in THEMES_ORDRE %}
-    {% set theme_list = structure.themes | selectattr('titre', 'equalto', titre) | list %}
-    {% set theme = theme_list[0] if theme_list else none %}
-    {% set nb = theme.deliberations | length if theme else 0 %}
+    {% for theme in structure.themes %}
     {% set i = loop.index0 %}
-    {% set is_first = (i == ns_fi.first_i) %}
-    {% if theme %}
+    {% set nb = theme.deliberations | length %}
+    {% set is_first = loop.first %}
     <button onclick="showTheme({{ i }}, this)"
             id="theme-btn-{{ i }}"
             class="theme-btn {% if is_first %}active{% endif %} rounded-xl border-2 {% if is_first %}border-emerald-500 bg-emerald-600 text-white{% else %}border-gray-200 bg-white text-gray-600 hover:border-gray-300{% endif %} px-2 py-1.5 text-center transition">
-      <div class="text-base leading-none"><i class="{{ THEMES_ICON[titre] }}"></i></div>
-      <div class="text-xs font-semibold leading-tight mt-0.5">{{ THEMES_COURT[titre] }}</div>
+      <div class="text-base leading-none"><i class="{{ theme_icon(theme.titre) | trim }}"></i></div>
+      <div class="text-xs font-semibold leading-tight mt-0.5 truncate">{{ theme.titre | replace('Soin des ', '') | replace('Soin de la ', '') | replace('Soin du ', '') | replace('Soin de ', '') | truncate(12, false, '') }}</div>
       <div class="theme-count text-xs font-bold mt-0.5 {% if is_first %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-500{% endif %} rounded-full px-1.5 inline-block">{{ nb }}</div>
     </button>
-    {% else %}
-    <div class="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-2 py-1.5 text-center opacity-40">
-      <div class="text-base leading-none"><i class="{{ THEMES_ICON[titre] }}"></i></div>
-      <div class="text-xs font-semibold leading-tight mt-0.5 text-gray-400">{{ THEMES_COURT[titre] }}</div>
-      <div class="text-xs mt-0.5 text-gray-300">—</div>
-    </div>
-    {% endif %}
     {% endfor %}
   </div>
 
   {# ── CONTENU PAR THÈME ───────────────────────────────────────────── #}
-  {% for titre in THEMES_ORDRE %}
-  {% set theme_list = structure.themes | selectattr('titre', 'equalto', titre) | list %}
-  {% set theme = theme_list[0] if theme_list else none %}
-  {% if theme %}
+  {% for theme in structure.themes %}
   {% set i = loop.index0 %}
-  <div id="theme-content-{{ i }}" class="theme-section {% if i == ns_fi.first_i %}active{% endif %} space-y-4">
-
-    <p class="text-xs text-gray-500 italic px-1">{{ THEMES_DESC[titre] }}</p>
+  <div id="theme-content-{{ i }}" class="theme-section {% if loop.first %}active{% endif %} space-y-3">
 
     {# Table subventions si ≥ 2 #}
     {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
     {% if subventions | length > 1 %}
     <div class="rounded-xl p-3 border border-emerald-200 text-xs" style="background:#f0fdf4">
-      <p class="font-bold text-emerald-700 mb-1.5">💰 Subventions du thème</p>
+      <p class="font-bold text-emerald-700 mb-1.5 flex items-center gap-1"><i class="ri-money-euro-circle-line"></i> Subventions du thème</p>
       <div class="space-y-0.5">
         {% for s in subventions %}
         <div class="flex justify-between">
@@ -179,22 +148,37 @@
     </div>
     {% endif %}
 
-    {# Délibérations #}
+    {# Délibérations — card individuelle #}
     {% for delib in theme.deliberations %}
     {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
       {% set adopte = delib.vote.pour > delib.vote.contre %}
-      {% set delib_class = "delib-adopte" if adopte else "delib-rejete" %}
+      {% set delib_class = "delib-adopte" %}
     {% else %}
       {% set adopte = none %}
       {% set delib_class = "delib-info" %}
     {% endif %}
-    <div class="{{ delib_class }} rounded-xl p-5">
-      <div class="flex items-start justify-between gap-3">
+    {% if adopte == false %}{% set delib_class = "delib-rejete" %}{% endif %}
+    <div class="{{ delib_class }} rounded-xl">
+      {# Vue compacte mobile / vue complète desktop #}
+      <div class="flex items-start gap-3 p-4">
+        {# Badge vote #}
+        <div class="flex-shrink-0 mt-0.5">
+          {% if adopte is not none %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm
+            {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-600' }}">
+            <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
+          </span>
+          {% else %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-sm">
+            <i class="ri-information-line"></i>
+          </span>
+          {% endif %}
+        </div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm {% if adopte is none %}font-medium text-gray-600{% else %}font-semibold text-gray-900{% endif %}">{{ delib.titre }}</p>
+          <p class="text-sm {% if adopte is none %}font-medium text-gray-600{% else %}font-semibold text-gray-900{% endif %} leading-snug">{{ delib.titre }}</p>
           {% if delib.beneficiaire %}
           <p class="text-xs font-medium mt-0.5 {{ 'text-red-700' if adopte == false else 'text-emerald-700' }}">
-            → {{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}
+            {{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}
           </p>
           {% elif delib.montant %}
             {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}
@@ -204,20 +188,14 @@
             {% endif %}
           {% endif %}
           {% if delib.description %}
-          <div class="text-xs text-gray-600 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
+          <div class="text-xs text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
           {% endif %}
-        </div>
-        <div class="flex-shrink-0 text-right">
           {% if adopte is not none %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
-            <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
-            {{ 'Adopté' if adopte else 'Rejeté' }}
-          </span>
-          <p class="text-xs text-gray-400 mt-0.5">
-            <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }} · <i class="ri-close-circle-line text-red-400"></i> {{ delib.vote.contre }}{% if delib.vote.abstentions %} · <i class="ri-subtract-line"></i> {{ delib.vote.abstentions }}{% endif %}
+          <p class="text-xs text-gray-400 mt-1.5">
+            <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }}
+            · <i class="ri-close-circle-line text-red-400"></i> {{ delib.vote.contre }}
+            {% if delib.vote.abstentions %} · <i class="ri-subtract-line"></i> {{ delib.vote.abstentions }}{% endif %}
           </p>
-          {% else %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500"><i class="ri-information-line"></i> Info</span>
           {% endif %}
         </div>
       </div>
@@ -225,7 +203,6 @@
     {% endfor %}
 
   </div>
-  {% endif %}
   {% endfor %}
 
   {% if conseil.fichier_pdf %}
