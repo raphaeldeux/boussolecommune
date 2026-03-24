@@ -363,23 +363,29 @@
 
   <!-- Footer -->
   <footer class="bg-white border-t border-sand-200 mt-8">
-    <div class="max-w-6xl mx-auto px-4 pt-5 pb-4">
-      {% if ville is defined and ville %}
-      <p class="text-xs text-sand-400 leading-relaxed mb-3">
+    <div class="max-w-6xl mx-auto px-4 pt-6 pb-5 space-y-4">
+
+      <!-- Tagline -->
+      <p class="text-xs text-sand-400 leading-relaxed">
         Derrière chaque chiffre, il y a une école, une cantine, un parc, des voisins.
-        BoussoleCommune traduit les données publiques de {{ ville.nom }} en quelque chose de lisible
+        BoussoleCommune traduit les données publiques{% if ville is defined and ville %} de {{ ville.nom }}{% endif %} en quelque chose de lisible
         et de vivant pour mieux connaître l'endroit où vous habitez.
       </p>
-      {% endif %}
-      <div class="flex flex-col sm:flex-row justify-between gap-2 text-xs text-sand-400">
-        <span><span class="font-semibold text-gray-600">BoussoleCommune</span><span class="text-gray-400"> · </span><span class="font-semibold text-gray-600">Observatoire citoyen indépendant</span></span>
-        <div class="flex flex-wrap gap-4">
-          <a href="{{ url_for('public.methodologie') }}" class="hover:text-forest-700 transition">Note méthodologique</a>
-          <a href="{{ url_for('public.mentions_legales') }}" class="hover:text-forest-700 transition">Mentions légales</a>
-          <a href="{{ url_for('public.accessibilite') }}" class="hover:text-forest-700 transition">Accessibilité numérique : non conforme</a>
-          <a href="mailto:contact@sautronautrement.fr" class="hover:text-forest-700 transition">Contact</a>
-        </div>
+
+      <!-- Liens -->
+      <nav class="flex flex-wrap gap-x-5 gap-y-2 text-xs text-sand-400">
+        <a href="{{ url_for('public.methodologie') }}" class="hover:text-forest-700 transition">Note méthodologique</a>
+        <a href="{{ url_for('public.mentions_legales') }}" class="hover:text-forest-700 transition">Mentions légales</a>
+        <a href="{{ url_for('public.accessibilite') }}" class="hover:text-forest-700 transition">Accessibilité numérique : non conforme</a>
+        <a href="mailto:contact@sautronautrement.fr" class="hover:text-forest-700 transition">Contact</a>
+      </nav>
+
+      <!-- Copyright -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-sand-300 pt-2 border-t border-sand-100">
+        <span><span class="font-semibold text-gray-500">BoussoleCommune</span> · Observatoire citoyen indépendant</span>
+        <span>© {{ current_year() }} Sautron Autrement — Tous droits réservés</span>
       </div>
+
     </div>
   </footer>
 

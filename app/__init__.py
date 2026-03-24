@@ -39,6 +39,9 @@ def create_app():
 
     app.jinja_env.globals["csrf_token"] = _csrf_token
 
+    import datetime as _dt
+    app.jinja_env.globals["current_year"] = lambda: _dt.datetime.now().year
+
     @app.template_filter("format_delib_desc")
     def format_delib_desc(text):
         """Transforme une description IA en HTML lisible.
