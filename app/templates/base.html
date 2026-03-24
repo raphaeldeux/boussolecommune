@@ -267,7 +267,7 @@
 
         <!-- Ma ville — lien direct -->
         <a href="{{ url_for('public.dashboard', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mb-0.5 {% if request.endpoint == 'public.dashboard' %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mb-0.5 {% if request.endpoint == 'public.dashboard' %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
           <i class="ri-home-line text-base text-forest-400 flex-shrink-0"></i> Ma ville
         </a>
 
@@ -299,7 +299,7 @@
         <!-- Vie municipale — lien direct -->
         {% set vie_mob_active = request.endpoint in ('public.vie_municipale','public.conseils','public.conseil_detail','public.documents') %}
         <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mt-1 {% if vie_mob_active %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mt-1 {% if vie_mob_active %}bg-forest-700 text-white font-semibold{% else %}text-forest-200 hover:bg-forest-800{% endif %}">
           <i class="ri-calendar-event-line text-base {% if vie_mob_active %}text-forest-200{% else %}text-forest-400{% endif %} flex-shrink-0"></i> Vie municipale
         </a>
 
