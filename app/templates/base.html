@@ -95,7 +95,7 @@
     <div class="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center gap-2 sm:gap-3 relative">
 
       <!-- Logo : toujours "BoussoleCommune" -->
-      <a href="{{ url_for('public.index') }}"
+      <a id="header-logo" href="{{ url_for('public.index') }}"
          class="flex items-center gap-2 text-white hover:text-forest-100 transition flex-shrink-0">
         <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
@@ -192,14 +192,14 @@
       {% endif %}
 
       <!-- Spacer mobile (flex-1 uniquement sur mobile, le desktop nav remplit l'espace) -->
-      <div class="flex-1 md:hidden"></div>
+      <div id="header-spacer-mob" class="flex-1 md:hidden"></div>
 
       <!-- Droite : barre de recherche + loupe + admin + hamburger ──────── -->
       <div class="flex items-center gap-1.5 flex-shrink-0 md:ml-0">
         {% if ville is defined and ville %}
 
         <!-- Barre de recherche -->
-        <div id="search-panel" class="hidden items-center gap-2 bg-white rounded-lg px-3 h-9 border border-gray-200 shadow-sm" style="min-width:320px">
+        <div id="search-panel" class="hidden items-center gap-2 bg-white rounded-lg px-3 h-9 border border-gray-200 shadow-sm md:min-w-[320px]">
           <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
           </svg>
@@ -225,14 +225,14 @@
 
         <!-- Bouton connexion/admin -->
         {% if session.get('user_id') %}
-        <a href="{{ url_for('admin.dashboard') }}"
+        <a id="header-login-btn" href="{{ url_for('admin.dashboard') }}"
            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-forest-900 hover:bg-forest-950 text-forest-200 hover:text-white text-xs font-medium transition"
            title="Espace admin">
           <i class="ri-settings-3-line text-base"></i>
           <span class="hidden sm:inline">Admin</span>
         </a>
         {% else %}
-        <a href="{{ url_for('admin.login') }}"
+        <a id="header-login-btn" href="{{ url_for('admin.login') }}"
            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-forest-900 hover:bg-forest-950 text-forest-200 hover:text-white text-xs font-medium transition"
            title="Connexion">
           <i class="ri-user-line text-base"></i>
@@ -468,23 +468,43 @@
     var panel   = document.getElementById('search-panel');
     var toggle  = document.getElementById('search-toggle');
     var results = document.getElementById('search-results');
+    var isMobile = window.innerWidth < 768;
+    var logo    = document.getElementById('header-logo');
+    var spacer  = document.getElementById('header-spacer-mob');
+    var loginBtn= document.getElementById('header-login-btn');
+    var mobBtn  = document.getElementById('mob-menu-btn');
+
     if (_searchOpen) {
       if (panel)  { panel.classList.remove('hidden'); panel.style.display = 'flex'; }
       if (toggle) toggle.classList.add('hidden');
       var inp = document.getElementById('search-input');
       if (inp) { inp.value = ''; inp.focus(); }
       if (results) results.classList.add('hidden');
+      if (isMobile) {
+        if (logo)     logo.classList.add('hidden');
+        if (spacer)   spacer.classList.add('hidden');
+        if (loginBtn) loginBtn.classList.add('hidden');
+        if (mobBtn)   mobBtn.classList.add('hidden');
+        if (panel)    panel.classList.add('flex-1');
+      }
     } else {
-      if (panel)  { panel.classList.add('hidden'); panel.style.display = ''; }
+      if (panel)  { panel.classList.add('hidden'); panel.style.display = ''; panel.classList.remove('flex-1'); }
       if (toggle) toggle.classList.remove('hidden');
       if (results) results.classList.add('hidden');
+      if (isMobile) {
+        if (logo)     logo.classList.remove('hidden');
+        if (spacer)   spacer.classList.remove('hidden');
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        if (mobBtn)   mobBtn.classList.remove('hidden');
+      }
     }
   }
 
   function doSearch(q) {
     if (_searchTimer) clearTimeout(_searchTimer);
     if (!_rechercheUrl || q.trim().length < 2) {
-      document.getElementById('search-results').classList.add('hidden');
+      var sr = document.getElementById('search-results');
+      if (sr) sr.classList.add('hidden');
       return;
     }
     _searchTimer = setTimeout(function() {
