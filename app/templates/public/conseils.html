@@ -38,18 +38,18 @@
             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ year }}</span>
             <div class="flex-1 border-t border-gray-200"></div>
           </div>
-          <div class="space-y-2">
+          <div class="space-y-3">
       {% endif %}
       <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=c.id) }}"
-         class="flex items-start gap-3 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-sm transition p-4 group">
+         class="flex items-start gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition p-5 group">
         <div class="flex-shrink-0 w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-lg">🏛️</div>
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm text-gray-900 group-hover:text-emerald-700 transition truncate">{{ c.titre }}</div>
+          <div class="font-semibold text-sm text-gray-900 group-hover:text-emerald-700 transition">{{ c.titre }}</div>
           <div class="text-xs text-gray-400 mt-0.5">{{ c.date_conseil | date_fr }}</div>
           {% if c.resume_citoyen %}
-          <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{ c.resume_citoyen }}</p>
+          <p class="text-xs text-gray-500 mt-2 line-clamp-2">{{ c.resume_citoyen }}</p>
           {% else %}
-          <p class="text-xs text-gray-400 mt-1.5 italic">Résumé en cours de rédaction.</p>
+          <p class="text-xs text-gray-400 mt-2 italic">Résumé en cours de rédaction.</p>
           {% endif %}
         </div>
         <span class="text-emerald-400 flex-shrink-0 mt-1 group-hover:translate-x-0.5 transition-transform text-sm">→</span>
@@ -83,18 +83,18 @@
             <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ year }}</span>
             <div class="flex-1 border-t border-gray-200"></div>
           </div>
-          <div class="space-y-2">
+          <div class="space-y-3">
       {% endif %}
       <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=c.id) }}"
-         class="flex items-start gap-3 bg-white rounded-xl border border-gray-200 hover:border-amber-300 hover:shadow-sm transition p-4 group">
+         class="flex items-start gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-amber-200 transition p-5 group">
         <div class="flex-shrink-0 w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center text-lg">🏙️</div>
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm text-gray-900 group-hover:text-amber-700 transition truncate">{{ c.titre }}</div>
+          <div class="font-semibold text-sm text-gray-900 group-hover:text-amber-700 transition">{{ c.titre }}</div>
           <div class="text-xs text-gray-400 mt-0.5">{{ c.date_conseil | date_fr }}</div>
           {% if c.resume_citoyen %}
-          <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{ c.resume_citoyen }}</p>
+          <p class="text-xs text-gray-500 mt-2 line-clamp-2">{{ c.resume_citoyen }}</p>
           {% else %}
-          <p class="text-xs text-gray-400 mt-1.5 italic">Résumé en cours de rédaction.</p>
+          <p class="text-xs text-gray-400 mt-2 italic">Résumé en cours de rédaction.</p>
           {% endif %}
         </div>
         <span class="text-amber-400 flex-shrink-0 mt-1 group-hover:translate-x-0.5 transition-transform text-sm">→</span>

@@ -41,7 +41,7 @@
 <div class="max-w-3xl mx-auto space-y-3">
 
   {# ── HEADER ──────────────────────────────────────────────────────── #}
-  <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+  <div class="px-1 pt-4 pb-5">
 
     <div class="flex items-start gap-3">
       <div class="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center text-lg flex-shrink-0 text-emerald-700"><i class="ri-government-line"></i></div>
@@ -149,7 +149,7 @@
   {% set theme = theme_list[0] if theme_list else none %}
   {% if theme %}
   {% set i = loop.index0 %}
-  <div id="theme-content-{{ i }}" class="theme-section {% if i == ns_fi.first_i %}active{% endif %} space-y-3">
+  <div id="theme-content-{{ i }}" class="theme-section {% if i == ns_fi.first_i %}active{% endif %} space-y-4">
 
     <p class="text-xs text-gray-500 italic px-1">{{ THEMES_DESC[titre] }}</p>
 
