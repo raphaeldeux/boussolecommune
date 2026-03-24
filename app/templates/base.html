@@ -197,30 +197,13 @@
       <!-- Droite : barre de recherche + loupe + admin + hamburger ──────── -->
       <div class="flex items-center gap-1.5 flex-shrink-0 md:ml-0">
         {% if ville is defined and ville %}
-
-        <!-- Barre de recherche -->
-        <div id="search-panel" class="hidden items-center gap-2 bg-white rounded-lg px-3 h-9 border border-gray-200 shadow-sm md:min-w-[320px]">
-          <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
-          </svg>
-          <input id="search-input" type="text" placeholder="Rechercher…"
-                 class="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
-                 autocomplete="off" oninput="doSearch(this.value)">
-          <button onclick="toggleSearch()" class="text-gray-400 hover:text-gray-700 transition flex-shrink-0">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
-
-        <!-- Bouton loupe (caché quand recherche ouverte) -->
+        <!-- Bouton loupe → ouvre l'overlay de recherche -->
         <button id="search-toggle" onclick="toggleSearch()" aria-label="Rechercher"
                 class="p-2 rounded-lg hover:bg-forest-700 transition text-forest-200 hover:text-white">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
           </svg>
         </button>
-
         {% endif %}
 
         <!-- Bouton connexion/admin -->
@@ -250,12 +233,6 @@
       </div><!-- fin droite -->
     </div>
 
-    <!-- Résultats de recherche (dropdown sous le header) -->
-    {% if ville is defined and ville %}
-    <div id="search-results"
-         class="hidden absolute left-0 right-0 top-full bg-forest-900 border-t border-forest-700 shadow-xl px-4 py-3 z-50 text-sm max-h-80 overflow-y-auto">
-    </div>
-    {% endif %}
   </header>
 
   <!-- ── Menu mobile (drawer accordion) ───────────────────────────── -->
@@ -465,40 +442,27 @@
 
   function toggleSearch() {
     _searchOpen = !_searchOpen;
-    var panel   = document.getElementById('search-panel');
-    var toggle  = document.getElementById('search-toggle');
+    var overlay = document.getElementById('search-overlay');
     var results = document.getElementById('search-results');
-    var isMobile = window.innerWidth < 768;
-    var logo    = document.getElementById('header-logo');
-    var spacer  = document.getElementById('header-spacer-mob');
-    var loginBtn= document.getElementById('header-login-btn');
-    var mobBtn  = document.getElementById('mob-menu-btn');
-
+    var hint    = document.getElementById('search-hint');
+    if (!overlay) return;
     if (_searchOpen) {
-      if (panel)  { panel.classList.remove('hidden'); panel.style.display = 'flex'; }
-      if (toggle) toggle.classList.add('hidden');
+      overlay.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
       var inp = document.getElementById('search-input');
-      if (inp) { inp.value = ''; inp.focus(); }
-      if (results) results.classList.add('hidden');
-      if (isMobile) {
-        if (logo)     logo.classList.add('hidden');
-        if (spacer)   spacer.classList.add('hidden');
-        if (loginBtn) loginBtn.classList.add('hidden');
-        if (mobBtn)   mobBtn.classList.add('hidden');
-        if (panel)    panel.classList.add('flex-1');
-      }
+      if (inp) { inp.value = ''; setTimeout(function(){ inp.focus(); }, 50); }
+      if (results) { results.classList.add('hidden'); results.innerHTML = ''; }
+      if (hint) hint.classList.remove('hidden');
     } else {
-      if (panel)  { panel.classList.add('hidden'); panel.style.display = ''; panel.classList.remove('flex-1'); }
-      if (toggle) toggle.classList.remove('hidden');
-      if (results) results.classList.add('hidden');
-      if (isMobile) {
-        if (logo)     logo.classList.remove('hidden');
-        if (spacer)   spacer.classList.remove('hidden');
-        if (loginBtn) loginBtn.classList.remove('hidden');
-        if (mobBtn)   mobBtn.classList.remove('hidden');
-      }
+      overlay.classList.add('hidden');
+      document.body.style.overflow = '';
+      if (results) { results.classList.add('hidden'); results.innerHTML = ''; }
     }
   }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && _searchOpen) toggleSearch();
+  });
 
   function doSearch(q) {
     if (_searchTimer) clearTimeout(_searchTimer);
@@ -515,62 +479,65 @@
   }
 
   function renderSearchResults(data, q) {
-    var el = document.getElementById('search-results');
+    var el   = document.getElementById('search-results');
+    var hint = document.getElementById('search-hint');
+    if (!el) return;
     var html = '';
     var hasResults = false;
 
     if (data.indicateurs && data.indicateurs.length) {
       hasResults = true;
-      html += '<p class="text-forest-300 text-xs font-semibold uppercase tracking-wide mb-1 px-1">Indicateurs</p>';
+      html += '<p class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1 px-2">Indicateurs</p>';
       data.indicateurs.forEach(function(i) {
         {% if ville is defined and ville %}
         var url = '{{ url_for("public.thematique", ville_slug=ville.slug, slug="__SLUG__") }}'.replace('__SLUG__', i.slug);
         {% else %}
         var url = '#';
         {% endif %}
-        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-700 transition group">'
-              + '<span class="text-forest-300 text-xs">' + escHtml(i.thematique) + '</span>'
-              + '<span class="text-white text-sm flex-1">' + escHtml(i.libelle) + '</span>'
+        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-50 transition">'
+              + '<span class="text-gray-400 text-xs w-28 flex-shrink-0 truncate">' + escHtml(i.thematique) + '</span>'
+              + '<span class="text-gray-800 text-sm flex-1">' + escHtml(i.libelle) + '</span>'
               + '</a>';
       });
     }
 
     if (data.conseils && data.conseils.length) {
       hasResults = true;
-      html += '<p class="text-forest-300 text-xs font-semibold uppercase tracking-wide mb-1 px-1 mt-2">Conseils</p>';
+      html += '<p class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1 px-2 mt-2">Conseils</p>';
       data.conseils.forEach(function(c) {
         {% if ville is defined and ville %}
         var url = '{{ url_for("public.conseil_detail", ville_slug=ville.slug, conseil_id=0) }}'.replace('/0', '/' + c.id);
         {% else %}
         var url = '#';
         {% endif %}
-        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-700 transition">'
-              + '<span class="text-white text-sm flex-1">' + escHtml(c.titre) + '</span>'
-              + '<span class="text-forest-300 text-xs">' + escHtml(c.date) + '</span>'
+        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-50 transition">'
+              + '<span class="text-gray-800 text-sm flex-1">' + escHtml(c.titre) + '</span>'
+              + '<span class="text-gray-400 text-xs flex-shrink-0">' + escHtml(c.date) + '</span>'
               + '</a>';
       });
     }
 
     if (data.documents && data.documents.length) {
       hasResults = true;
-      html += '<p class="text-forest-300 text-xs font-semibold uppercase tracking-wide mb-1 px-1 mt-2">Documents</p>';
+      html += '<p class="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-1 px-2 mt-2">Documents</p>';
       data.documents.forEach(function(d) {
         {% if ville is defined and ville %}
         var url = '{{ url_for("public.documents", ville_slug=ville.slug) }}';
         {% else %}
         var url = '#';
         {% endif %}
-        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-700 transition">'
-              + '<span class="text-white text-sm flex-1">' + escHtml(d.titre) + '</span>'
-              + '<span class="text-forest-300 text-xs">' + escHtml(d.categorie) + '</span>'
+        html += '<a href="' + url + '" onclick="toggleSearch()" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-forest-50 transition">'
+              + '<span class="text-gray-800 text-sm flex-1">' + escHtml(d.titre) + '</span>'
+              + '<span class="text-gray-400 text-xs flex-shrink-0">' + escHtml(d.categorie) + '</span>'
               + '</a>';
       });
     }
 
     if (!hasResults) {
-      html = '<p class="text-forest-300 text-sm px-3 py-2">Aucun résultat pour « ' + escHtml(q) + ' »</p>';
+      html = '<p class="text-gray-400 text-sm px-3 py-3">Aucun résultat pour « ' + escHtml(q) + ' »</p>';
     }
 
+    if (hint) hint.classList.add('hidden');
     el.innerHTML = html;
     el.classList.remove('hidden');
   }
@@ -604,14 +571,42 @@
     var a    = document.getElementById('apropos-dropdown');
     if (btnA && a && !btnA.contains(e.target) && !a.contains(e.target)) a.classList.add('hidden');
 
-    var searchBtn = document.getElementById('search-toggle');
-    var panel = document.getElementById('search-panel');
-    if (_searchOpen && panel && searchBtn
-        && !panel.contains(e.target) && !searchBtn.contains(e.target)) {
-      toggleSearch();
-    }
   });
   </script>
+
+  <!-- ── Search overlay ────────────────────────────────────────────── -->
+  {% if ville is defined and ville %}
+  <div id="search-overlay" class="hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Recherche">
+    <!-- Backdrop -->
+    <div onclick="toggleSearch()" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+    <!-- Card centrée -->
+    <div class="relative z-10 mx-auto mt-[15vh] w-full max-w-xl px-4">
+      <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <!-- Champ de saisie -->
+        <div class="flex items-center gap-3 px-4 py-3.5 border-b border-gray-100">
+          <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="M21 21l-4.35-4.35"/>
+          </svg>
+          <input id="search-input" type="text" placeholder="Rechercher un indicateur, un conseil…"
+                 class="flex-1 text-gray-800 text-sm placeholder-gray-400 outline-none bg-transparent"
+                 autocomplete="off" oninput="doSearch(this.value)">
+          <button onclick="toggleSearch()" aria-label="Fermer"
+                  class="text-gray-400 hover:text-gray-600 transition p-1 rounded-lg hover:bg-gray-100 flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <!-- Résultats -->
+        <div id="search-results" class="hidden max-h-96 overflow-y-auto py-2 px-2"></div>
+        <!-- Hint quand vide -->
+        <div id="search-hint" class="px-5 py-4 text-xs text-gray-400">
+          Tapez au moins 2 caractères pour rechercher…
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 </body>
 </html>
