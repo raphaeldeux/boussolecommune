@@ -277,8 +277,8 @@ def generer_interpretation_indicateur(
     valeur_reference=None,
 ) -> dict | None:
     """
-    Génère phrase_courte et phrase_longue pour un indicateur via Mistral.
-    Retourne {"phrase_courte": str, "phrase_longue": str} ou None si échec.
+    Génère une analyse (phrase_longue) pour un indicateur via Mistral.
+    Retourne {"phrase_longue": str} ou None si échec.
     """
     if not MISTRAL_API_KEY:
         return None
@@ -324,18 +324,16 @@ Libellé technique : {libelle_tech}
 Valeur actuelle ({annee}) : {valeur} {unite}
 Sens de l'indicateur : {sens_explication}{contexte_tendance}{contexte_ref}
 
-Génère une interprétation de cet indicateur pour un public citoyen non expert.
+Génère une analyse de cet indicateur pour un public citoyen non expert.
 Réponds UNIQUEMENT avec du JSON valide :
 {{
-  "phrase_courte": "1 phrase max (80 caractères idéalement), résumé neutre et factuel de la situation",
-  "phrase_longue": "2-4 phrases, contexte, tendance et comparaison si disponible. Langage accessible, sans jargon."
+  "phrase_longue": "3-5 phrases : situation actuelle, tendance si connue, comparaison si disponible, lecture citoyenne. Langage accessible, sans jargon."
 }}"""
 
     try:
         raw = _appel_mistral(prompt)
         parsed = _parse_json(raw)
         return {
-            "phrase_courte": parsed.get("phrase_courte", "").strip(),
             "phrase_longue": parsed.get("phrase_longue", "").strip(),
         }
     except Exception as e:
@@ -343,6 +341,6 @@ Réponds UNIQUEMENT avec du JSON valide :
         return None
 
 
-def is_ollama_ready() -> bool:
+def is_ai_ready() -> bool:
     """Vérifie si Mistral AI est configuré."""
     return bool(MISTRAL_API_KEY)

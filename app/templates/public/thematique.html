@@ -206,9 +206,6 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
-        {% if ind.interpretation and ind.interpretation.phrase_courte %}
-        <div class="text-xs text-gray-400 mt-0.5 truncate">{{ ind.interpretation.phrase_courte }}</div>
-        {% endif %}
       </div>
       <div class="flex-shrink-0 text-right min-w-[60px]">
         <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
@@ -235,9 +232,6 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
-        {% if ind.interpretation and ind.interpretation.phrase_courte %}
-        <div class="text-xs text-gray-400 mt-0.5 truncate">{{ ind.interpretation.phrase_courte }}</div>
-        {% endif %}
       </div>
       <div class="flex-shrink-0 text-right min-w-[60px]">
         <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
@@ -264,9 +258,6 @@
       </div>
       <div class="flex-1 min-w-0">
         <div class="text-sm font-medium text-gray-800 leading-snug">{{ ind.libelle_citoyen }}</div>
-        {% if ind.interpretation and ind.interpretation.phrase_courte %}
-        <div class="text-xs text-gray-400 mt-0.5 truncate">{{ ind.interpretation.phrase_courte }}</div>
-        {% endif %}
       </div>
       <div class="flex-shrink-0 text-right min-w-[60px]">
         <div class="text-sm font-bold text-gray-700">{{ ind.donnee.valeur | format_valeur }}<span class="text-xs text-gray-400 ml-0.5">{{ ind.unite }}</span></div>
@@ -362,7 +353,7 @@
     {% endif %}
   </div>
 
-  {# Analyse IA + description (en premier) #}
+  {# Analyse IA (en premier) #}
   {% if ind.interpretation and ind.interpretation.phrase_longue %}
   <div class="mb-4 p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
     <div class="flex items-center gap-1.5 mb-2">
@@ -370,12 +361,18 @@
       <span class="text-xs text-emerald-700 font-medium">Analyse BoussoleCommune</span>
     </div>
     <p class="text-sm text-gray-700 leading-relaxed">{{ ind.interpretation.phrase_longue }}</p>
-    {% if ind.description %}
-    <div class="mt-2 p-2 bg-white rounded-lg text-xs text-gray-500 leading-relaxed border border-emerald-100">{{ ind.description }}</div>
-    {% endif %}
   </div>
-  {% elif ind.description %}
-  <div class="mb-4 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
+  {% endif %}
+
+  {# Définition de l'indicateur #}
+  {% if ind.description %}
+  <div class="mb-4">
+    <div class="flex items-center gap-1.5 mb-1.5">
+      <i class="ri-book-2-line text-xs text-gray-400"></i>
+      <span class="text-xs text-gray-400 font-medium uppercase tracking-wide">Définition</span>
+    </div>
+    <div class="text-xs text-gray-600 leading-relaxed">{{ ind.description }}</div>
+  </div>
   {% endif %}
 
   {# Comparaison communes similaires #}

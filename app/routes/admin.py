@@ -171,14 +171,14 @@ def dashboard():
                     score = interp["score"]
                 if score:
                     scores.append(score)
-                if interp and interp.get("phrase_courte"):
+                if interp and interp.get("phrase_longue"):
                     nb_interp_ok += 1
             rows.append({
                 **ind,
                 "donnee": donnee,
                 "score": score,
                 "score_couleur": SCORE_COULEURS.get(score),
-                "interp_statut": "ok" if (interp and interp.get("phrase_courte")) else (
+                "interp_statut": "ok" if (interp and interp.get("phrase_longue")) else (
                     "en_attente" if donnee else "absent"
                 ),
             })
@@ -384,14 +384,11 @@ def interpretation(indicateur_id, annee):
 
     if request.method == "POST":
         score = request.form.get("score", "").strip()
-        phrase_courte = request.form.get("phrase_courte", "").strip()
         phrase_longue = request.form.get("phrase_longue", "").strip()
 
         erreurs = []
         if score and score not in ("A", "B", "C", "D", "E"):
             erreurs.append("Le score doit être A, B, C, D ou E.")
-        if len(phrase_courte) > LIMITE_PHRASE_COURTE:
-            erreurs.append(f"La phrase courte dépasse {LIMITE_PHRASE_COURTE} caractères.")
         if len(phrase_longue) > LIMITE_PHRASE_LONGUE:
             erreurs.append(f"L'interprétation dépasse {LIMITE_PHRASE_LONGUE} caractères.")
 
@@ -399,11 +396,11 @@ def interpretation(indicateur_id, annee):
             for e in erreurs:
                 flash(e, "danger")
         else:
-            if phrase_courte or phrase_longue or score:
+            if phrase_longue or score:
                 interp_model.upsert(
                     indicateur_id, annee,
                     score or None,
-                    phrase_courte or None,
+                    None,
                     phrase_longue or None,
                     ville["id"]
                 )
@@ -429,7 +426,7 @@ def interpretation(indicateur_id, annee):
 @login_required
 def interpretation_generer_ia(indicateur_id, annee):
     """Génère phrase_courte + phrase_longue via Mistral, retourne JSON."""
-    from app.services.ollama_service import generer_interpretation_indicateur, MISTRAL_API_KEY
+    from app.services.ai_service import generer_interpretation_indicateur, MISTRAL_API_KEY
     from flask import jsonify
 
     if not MISTRAL_API_KEY:
@@ -1891,7 +1888,7 @@ def conseil_generer_resume(conseil_id):
     conseil_model.set_statut_resume(conseil_id, "en_cours", progres=0)
 
     def _run():
-        from app.services.ollama_service import generer_resume
+        from app.services.ai_service import generer_resume
 
         def on_progress(pct, message=None):
             conseil_model.set_statut_resume(conseil_id, "en_cours", progres=pct, message=message)
@@ -1957,9 +1954,9 @@ def conseil_resume(conseil_id):
             conn.commit()
         flash("Résumé enregistré.", "success")
         return redirect(url_for("admin.conseils"))
-    from app.services.ollama_service import is_ollama_ready
+    from app.services.ai_service import is_ai_ready
     import json as _json
-    ollama_ok = is_ollama_ready()
+    ollama_ok = is_ai_ready()
     structure = None
     nb_points_odj = 0
     nb_deliberations = 0
@@ -2080,7 +2077,7 @@ def synthese_thematique_generer():
 
     from app.models import indicateur as ind_model
     from app.routes.public import _enrichir_indicateur
-    from app.services.ollama_service import generer_synthese_thematique, MISTRAL_API_KEY
+    from app.services.ai_service import generer_synthese_thematique, MISTRAL_API_KEY
 
     if not MISTRAL_API_KEY:
         flash("Clé API Mistral non configurée.", "error")

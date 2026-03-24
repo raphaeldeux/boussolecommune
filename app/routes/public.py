@@ -432,7 +432,7 @@ def thematique(ville_slug, slug):
         derniere_annee = max(e["donnee"]["annee"] for e in renseignes)
         interps = interp_model.get_all_for_thematique(slug, derniere_annee, ville["id"])
         if interps:
-            phrases = [i["phrase_courte"] for i in interps if i.get("phrase_courte")]
+            phrases = [i["phrase_longue"] for i in interps if i.get("phrase_longue")]
             interpretation_them = phrases[0] if phrases else None
 
     subventions_years = []
