@@ -303,14 +303,6 @@
 
 </div>
 
-<!-- ─── Scroll to top (mobile) ───────────────────────────────────────── -->
-<button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})"
-        class="md:hidden fixed bottom-6 right-4 z-30 w-11 h-11 bg-emerald-600 text-white rounded-full shadow-lg
-               flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300"
-        aria-label="Retour en haut">
-  <i class="ri-arrow-up-line text-lg"></i>
-</button>
-
 <!-- ─── Bottom Sheet mobile (délibérations) ──────────────────────────── -->
 <div id="delib-overlay"
      class="md:hidden fixed inset-0 bg-black/40 z-40 opacity-0 pointer-events-none transition-opacity duration-300"
@@ -400,21 +392,6 @@
       document.body.style.overflow = '';
     }, 300);
   };
-  // Scroll-to-top button
-  (function() {
-    var btn = document.getElementById('scroll-top-btn');
-    if (!btn) return;
-    window.addEventListener('scroll', function() {
-      if (window.scrollY > 300) {
-        btn.classList.remove('opacity-0', 'pointer-events-none');
-        btn.classList.add('opacity-100');
-      } else {
-        btn.classList.add('opacity-0', 'pointer-events-none');
-        btn.classList.remove('opacity-100');
-      }
-    }, { passive: true });
-  })();
-
   // Drag-to-close
   (function() {
     var panel = document.getElementById('delib-panel');

@@ -297,9 +297,10 @@
         </div>
 
         <!-- Vie municipale — lien direct -->
+        {% set vie_mob_active = request.endpoint in ('public.vie_municipale','public.conseils','public.conseil_detail','public.documents') %}
         <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}" onclick="toggleMobMenu()"
-           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mt-1 {% if request.endpoint in ('public.vie_municipale','public.conseils','public.conseil_detail','public.documents') %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
-          <i class="ri-calendar-event-line text-base text-forest-400 flex-shrink-0"></i> Vie municipale
+           class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm mt-1 {% if vie_mob_active %}bg-forest-700 text-white font-semibold{% else %}text-forest-100 hover:bg-forest-800{% endif %}">
+          <i class="ri-calendar-event-line text-base {% if vie_mob_active %}text-forest-200{% else %}text-forest-400{% endif %} flex-shrink-0"></i> Vie municipale
         </a>
 
         <!-- À propos — section accordion -->
@@ -405,9 +406,32 @@
   </footer>
 
 
+  <!-- ── Scroll to top (global) ───────────────────────────────────── -->
+  <button id="scroll-top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})"
+          class="fixed bottom-6 right-4 z-30 w-11 h-11 bg-emerald-600 text-white rounded-full shadow-lg
+                 flex items-center justify-center opacity-0 pointer-events-none transition-all duration-300"
+          aria-label="Retour en haut">
+    <i class="ri-arrow-up-line text-lg"></i>
+  </button>
+
   {% block scripts %}{% endblock %}
 
   <script>
+  // ── Scroll to top ─────────────────────────────────────────────────────
+  (function() {
+    var btn = document.getElementById('scroll-top-btn');
+    if (!btn) return;
+    window.addEventListener('scroll', function() {
+      if (window.scrollY > 300) {
+        btn.classList.remove('opacity-0', 'pointer-events-none');
+        btn.classList.add('opacity-100');
+      } else {
+        btn.classList.add('opacity-0', 'pointer-events-none');
+        btn.classList.remove('opacity-100');
+      }
+    }, { passive: true });
+  })();
+
   // ── Menu mobile ──────────────────────────────────────────────────────
   var _mobMenuOpen = false;
   function toggleMobMenu() {
