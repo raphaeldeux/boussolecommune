@@ -14,12 +14,13 @@ L'objectif : rendre les données publiques lisibles par tous, pas seulement par 
 
 - **Dashboard public** avec scores A–E par thématique et score global pondéré
 - **Pages thématiques par tendance** — indicateurs groupés en "En amélioration / À surveiller / Stable / Manque d'historique"
-- **43 indicateurs** répartis sur 6 thématiques (dont 2 indicateurs ZAN loi Climat & Résilience)
+- **41 indicateurs** répartis sur 6 thématiques (dont 2 indicateurs ZAN loi Climat & Résilience)
 - **Synthèses thématiques** — bloc "Ce qu'il faut retenir" généré par Mistral AI, éditable par l'admin
 - **Comparaison intercommunale** — jusqu'à 4 communes côte à côte (`/comparer`)
 - **Subventions** — tableau public des subventions aux associations, par domaine et thématique
 - **Portrait démographique** — pyramide des âges par commune
-- **Conseils municipaux** — PV uploadés, résumés citoyens générés par Mistral AI
+- **Vie municipale** — PV de conseils uploadés en PDF, résumés citoyens générés par Mistral AI, délibérations structurées par thématique avec résultat des votes
+- **Documents publics** — espace de publication de documents administratifs (arrêtés, délibérations, comptes-rendus) avec catégorisation
 - **Interprétations manuelles** — phrases courte et longue rédigées par les administrateurs
 - **Page Méthodologie** publique expliquant le calcul des scores
 - **Interface d'administration** : saisie, import CSV (OFGL, générique, Cerema ENAF), gestion des références
@@ -61,6 +62,9 @@ docker compose up -d
 
 # 4. Initialiser les indicateurs
 docker compose exec web python seed.py
+
+# 5. (Optionnel) Charger les données de référence communes INSEE (~35k communes)
+docker compose exec web python seed_communes.py
 ```
 
 L'application est accessible sur **http://localhost:5001**
@@ -75,8 +79,9 @@ Un serveur PostgreSQL doit être disponible localement.
 pip install -r requirements.txt
 cp .env.example .env  # puis éditer (DATABASE_URL vers votre PostgreSQL local)
 
-python seed.py        # initialiser les indicateurs
-python wsgi.py        # lancer le serveur
+python seed.py           # initialiser les indicateurs
+python seed_communes.py  # référentiel communes INSEE (optionnel)
+python wsgi.py           # lancer le serveur
 ```
 
 ---
@@ -147,6 +152,14 @@ Aller sur `/admin/references` → sélectionner un indicateur → saisir une val
 
 Aller sur `/admin/subventions` → saisie ligne par ligne ou import CSV. Les subventions sont affichées publiquement avec un classement par domaine (sport, culture, social, environnement, éducation, santé).
 
+### Conseils municipaux
+
+Aller sur `/admin/conseils` → créer un conseil → uploader le PDF du procès-verbal → générer le résumé citoyen via Mistral AI. Le résumé est structuré en thématiques avec les délibérations et résultats de votes.
+
+### Documents publics
+
+Aller sur `/admin/documents` → publier un document (arrêté, compte-rendu, délibération, etc.) avec titre, catégorie et fichier PDF. Les documents sont accessibles publiquement sur la page Vie municipale.
+
 ---
 
 ## Scoring A–E
@@ -209,12 +222,13 @@ boussolecommune/
 │   │   ├── synthese_thematique.py  # Synthèses "Ce qu'il faut retenir"
 │   │   ├── subvention.py
 │   │   ├── conseil.py
+│   │   ├── document.py
 │   │   └── pyramide.py
 │   ├── services/
 │   │   ├── scoring.py           # Calcul scores A–E
 │   │   ├── parser_csv.py        # Parser format générique
 │   │   ├── parser_ofgl.py       # Parser format OFGL (finances)
-│   │   ├── ollama_service.py    # Génération IA via Mistral (PV + synthèses)
+│   │   ├── ai_service.py        # Génération IA via Mistral (PV + synthèses)
 │   │   └── fetchers/
 │   │       ├── macantine.py     # Récupération données EGAlim
 │   │       └── zan.py           # Récupération données ENAF (Cerema, ZAN)
@@ -223,10 +237,11 @@ boussolecommune/
 │   │   └── admin.py             # Routes admin (protégées)
 │   └── templates/
 │       ├── base.html
-│       ├── public/              # dashboard, thematique, comparer, methodologie
-│       └── admin/               # login, dashboard, saisie, upload, subventions
-├── uploads/                     # CSV uploadés temporairement
+│       ├── public/              # dashboard, thematique, comparer, conseils, documents
+│       └── admin/               # login, dashboard, saisie, upload, subventions, conseils
+├── uploads/                     # Fichiers uploadés (PDF, CSV)
 ├── seed.py                      # Initialisation des 41 indicateurs
+├── seed_communes.py             # Référentiel communes INSEE (~35k communes)
 ├── wsgi.py                      # Point d'entrée Flask
 ├── Dockerfile
 ├── docker-compose.yml
