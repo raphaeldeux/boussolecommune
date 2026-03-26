@@ -755,19 +755,20 @@ def comparer():
 
 @bp.route("/methodologie")
 def methodologie():
-    retour_slug = request.args.get("retour")
-    ville_retour = ville_model.get_by_slug(retour_slug) if retour_slug else None
-    return render_template("public/methodologie.html", ville=ville_retour)
+    ville = _get_ville_or_404()
+    return render_template("public/methodologie.html", ville=ville)
 
 
 @bp.route("/mentions-legales")
 def mentions_legales():
-    return render_template("public/mentions_legales.html")
+    ville = _get_ville_or_404()
+    return render_template("public/mentions_legales.html", ville=ville)
 
 
 @bp.route("/accessibilite")
 def accessibilite():
-    return render_template("public/accessibilite.html")
+    ville = _get_ville_or_404()
+    return render_template("public/accessibilite.html", ville=ville)
 
 
 @bp.route("/v/<ville_slug>/conseils")
