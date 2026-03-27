@@ -72,34 +72,33 @@
 
 {# ── Feed ──────────────────────────────────────────────────────────── #}
 
-{# Prochain conseil (si date renseignée) #}
-{% if ville.prochain_conseil %}
-<div class="rounded-2xl mb-4 px-5 py-4 flex items-center gap-4" style="background:#edf5f0; border:1.5px solid #a8d5be;">
-  <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background:#d4e9df; border:1px solid #a8d5be;">
-    <i class="ri-calendar-event-line text-lg" style="color:#285a44;"></i>
-  </div>
-  <div class="flex-1 min-w-0">
-    <p class="text-xs font-semibold uppercase tracking-wide" style="color:#285a44;">Prochain conseil municipal</p>
-    <p class="text-sm font-bold mt-0.5" style="color:#0d2b1e;">{{ ville.prochain_conseil | date_fr_long }}</p>
-  </div>
-  <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
-     class="flex-shrink-0 text-xs font-semibold whitespace-nowrap transition" style="color:#285a44;">
-    Voir les conseils →
-  </a>
-</div>
-{% endif %}
-
-{# Dernier conseil publié (actu principale) #}
-{% if derniers_conseils %}
-{% set dc = derniers_conseils[0] %}
+{# Bloc conseils fusionné : prochain + dernière séance #}
+{% if ville.prochain_conseil or derniers_conseils %}
 <div class="bg-white rounded-2xl mb-4 overflow-hidden" style="border: 1.5px solid #dbd4c8;">
+
+  {# En-tête #}
   <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:#ede8df; background:#faf8f5;">
-    <span class="text-xs font-semibold tracking-widest uppercase" style="color:#9d8c7a;">Dernière séance</span>
+    <span class="text-xs font-semibold tracking-widest uppercase" style="color:#9d8c7a;">Conseils municipaux</span>
     <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
        class="text-xs font-semibold transition" style="color:#9d6e33; text-decoration:underline; text-underline-offset:3px;">
       Voir tout →
     </a>
   </div>
+
+  {# Prochain conseil #}
+  {% if ville.prochain_conseil %}
+  <div class="flex items-center gap-3 px-5 py-3 border-b" style="background:#edf5f0; border-color:#c8e6d6;">
+    <i class="ri-calendar-event-line flex-shrink-0" style="color:#285a44;"></i>
+    <div class="flex-1 min-w-0">
+      <span class="text-xs font-semibold uppercase tracking-wide" style="color:#285a44;">Prochain — </span>
+      <span class="text-xs font-bold" style="color:#0d2b1e;">{{ ville.prochain_conseil | date_fr_long }}</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Dernière séance #}
+  {% if derniers_conseils %}
+  {% set dc = derniers_conseils[0] %}
   <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=dc.id) }}"
      class="flex items-start gap-4 px-5 py-4 group hover:bg-sand-50 transition">
     <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
@@ -108,9 +107,11 @@
       <div class="font-semibold text-sm leading-snug group-hover:text-forest-700 transition" style="color:#1a1a16;">
         {{ dc.titre }}
       </div>
+      {% if dc.nb_delib %}
       <div class="text-xs mt-0.5" style="color:#9d6e33;">
-        {% if dc.nb_delib %}{{ dc.nb_delib }} délibération{{ 's' if dc.nb_delib > 1 }}{% endif %}
+        {{ dc.nb_delib }} délibération{{ 's' if dc.nb_delib > 1 }}
       </div>
+      {% endif %}
       {% if dc.resume_citoyen %}
       <p class="text-xs mt-1.5 leading-relaxed" style="color:#5c5448;
          display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
@@ -127,6 +128,9 @@
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
     </svg>
   </a>
+  {% endif %}
+
+  {# WhatsApp #}
   {% if ville.whatsapp_url %}
   <div class="px-5 pb-4">
     <a href="{{ ville.whatsapp_url }}" target="_blank" rel="noopener noreferrer"
@@ -139,6 +143,7 @@
     </a>
   </div>
   {% endif %}
+
 </div>
 {% endif %}
 
