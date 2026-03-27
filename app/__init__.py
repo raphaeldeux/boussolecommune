@@ -118,6 +118,25 @@ def create_app():
             return value.strftime("%d/%m/%Y")
         return str(value)
 
+    @app.template_filter("date_fr_long")
+    def date_fr_long(value):
+        """Formate une date en 'Jeudi 12 mars 2026'."""
+        if not value:
+            return ""
+        import datetime, locale as _locale
+        MOIS = ["janvier","février","mars","avril","mai","juin",
+                "juillet","août","septembre","octobre","novembre","décembre"]
+        JOURS = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
+        if isinstance(value, str):
+            try:
+                value = datetime.date.fromisoformat(value)
+            except ValueError:
+                return value
+        if isinstance(value, (datetime.date, datetime.datetime)):
+            jour = JOURS[value.weekday()]
+            return f"{jour.capitalize()} {value.day} {MOIS[value.month - 1]} {value.year}"
+        return str(value)
+
     # Vérification CSRF sur tous les POST admin (sauf login)
     @app.before_request
     def _check_csrf():

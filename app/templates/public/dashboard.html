@@ -72,30 +72,29 @@
 
 {# ── Feed ──────────────────────────────────────────────────────────── #}
 
-{# Prochain conseil (si date future) #}
+{# Prochain conseil (si date renseignée) #}
 {% if ville.prochain_conseil %}
-{% set today = now() if now is defined else none %}
 <div class="rounded-2xl mb-4 px-5 py-4 flex items-center gap-4" style="background:#edf5f0; border:1.5px solid #a8d5be;">
   <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background:#d4e9df; border:1px solid #a8d5be;">
-    <i class="ri-calendar-event-line text-forest-700 text-lg"></i>
+    <i class="ri-calendar-event-line text-lg" style="color:#285a44;"></i>
   </div>
   <div class="flex-1 min-w-0">
     <p class="text-xs font-semibold uppercase tracking-wide" style="color:#285a44;">Prochain conseil municipal</p>
-    <p class="text-sm font-bold mt-0.5" style="color:#0d2b1e;">{{ ville.prochain_conseil | date_fr }}</p>
+    <p class="text-sm font-bold mt-0.5" style="color:#0d2b1e;">{{ ville.prochain_conseil | date_fr_long }}</p>
   </div>
   <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
-     class="flex-shrink-0 text-xs font-semibold transition" style="color:#285a44;">
+     class="flex-shrink-0 text-xs font-semibold whitespace-nowrap transition" style="color:#285a44;">
     Voir les conseils →
   </a>
 </div>
 {% endif %}
 
-{# Dernier conseil (actu principale) #}
+{# Dernier conseil publié (actu principale) #}
 {% if derniers_conseils %}
 {% set dc = derniers_conseils[0] %}
 <div class="bg-white rounded-2xl mb-4 overflow-hidden" style="border: 1.5px solid #dbd4c8;">
   <div class="px-5 py-3 border-b flex items-center justify-between" style="border-color:#ede8df; background:#faf8f5;">
-    <span class="text-xs font-semibold tracking-widest uppercase" style="color:#9d8c7a;">Dernière actualité</span>
+    <span class="text-xs font-semibold tracking-widest uppercase" style="color:#9d8c7a;">Dernière séance</span>
     <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
        class="text-xs font-semibold transition" style="color:#9d6e33; text-decoration:underline; text-underline-offset:3px;">
       Voir tout →
@@ -106,12 +105,11 @@
     <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
          style="background:#edf5f0; border:1px solid #d4e9df;">🏛️</div>
     <div class="flex-1 min-w-0">
-      <div class="text-xs font-medium mb-0.5" style="color:#9d6e33;">
-        Conseil du {{ dc.date_conseil | date_fr }}
-        {% if dc.nb_delib %} · {{ dc.nb_delib }} délibération{{ 's' if dc.nb_delib > 1 }}{% endif %}
-      </div>
       <div class="font-semibold text-sm leading-snug group-hover:text-forest-700 transition" style="color:#1a1a16;">
         {{ dc.titre }}
+      </div>
+      <div class="text-xs mt-0.5" style="color:#9d6e33;">
+        {% if dc.nb_delib %}{{ dc.nb_delib }} délibération{{ 's' if dc.nb_delib > 1 }}{% endif %}
       </div>
       {% if dc.resume_citoyen %}
       <p class="text-xs mt-1.5 leading-relaxed" style="color:#5c5448;
