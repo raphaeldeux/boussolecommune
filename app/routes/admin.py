@@ -1853,18 +1853,11 @@ def conseil_nouveau():
     if request.method == "POST":
         titre = request.form.get("titre", "").strip()
         date_conseil = request.form.get("date_conseil", "").strip()
-        fichier = request.files.get("fichier_pdf")
         if not titre or not date_conseil:
             flash("Titre et date sont obligatoires.", "danger")
             return render_template("admin/conseil_form.html", ville=ville, conseil=None)
         type_conseil = request.form.get("type_conseil", "municipal")
-        fichier_pdf = None
-        if fichier and fichier.filename:
-            if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
-                flash("Seuls les fichiers PDF valides sont acceptés.", "danger")
-                return render_template("admin/conseil_form.html", ville=ville, conseil=None)
-            fichier_pdf = _save_pdf(fichier)
-        conseil_model.create(ville["id"], titre, date_conseil, fichier_pdf, type_conseil)
+        conseil_model.create(ville["id"], titre, date_conseil, None, type_conseil)
         flash("Conseil ajouté avec succès.", "success")
         return redirect(url_for("admin.conseils"))
     return render_template("admin/conseil_form.html", ville=ville, conseil=None)
