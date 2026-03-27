@@ -1787,6 +1787,32 @@ def _save_pdf(fichier):
     return filename
 
 
+def _conseil_statut(conseil):
+    """Retourne le statut global d'un conseil : nouveau, odj_publie, pv_depose, publie."""
+    if conseil.get("publie"):
+        return "publie"
+    if conseil.get("fichier_pdf"):
+        return "pv_depose"
+    if conseil.get("odj_publie"):
+        return "odj_publie"
+    return "nouveau"
+
+
+def _conseil_prochaine_action(conseil):
+    """Retourne le texte de la prochaine action requise, ou None si publié."""
+    if conseil.get("publie"):
+        return None
+    if conseil.get("fichier_pdf"):
+        if not conseil.get("resume_citoyen"):
+            return "Générer le résumé citoyen"
+        return "Publier le compte-rendu"
+    if conseil.get("odj_publie"):
+        return "Déposer le PV après séance"
+    if not conseil.get("note_synthese_pdf"):
+        return "Déposer la note de synthèse"
+    return "Publier l'ordre du jour"
+
+
 @bp.route("/conseils")
 @login_required
 def conseils():
