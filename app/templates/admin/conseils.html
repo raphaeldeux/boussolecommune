@@ -22,7 +22,7 @@
            value="{{ ville.prochain_conseil | string | truncate(10, true, '') if ville.prochain_conseil else '' }}"
            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
     <input type="time" name="prochain_conseil_heure"
-           value="{{ ville.prochain_conseil_heure | string | truncate(5, true, '') if ville.prochain_conseil_heure else '' }}"
+           value="{{ ville.prochain_conseil_heure | heure_fr if ville.prochain_conseil_heure else '' }}"
            placeholder="HH:MM"
            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-28">
     <button type="submit"

@@ -86,7 +86,7 @@
       {{ ville.prochain_conseil | date_fr_long }}
       {% if ville.prochain_conseil_heure %}
       <span class="font-normal text-xs ml-1" style="color:#285a44;">
-        à {{ ville.prochain_conseil_heure | string | truncate(5, true, '') }}
+        à {{ ville.prochain_conseil_heure | heure_fr }}
       </span>
       {% endif %}
     </p>

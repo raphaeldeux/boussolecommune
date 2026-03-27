@@ -118,6 +118,16 @@ def create_app():
             return value.strftime("%d/%m/%Y")
         return str(value)
 
+    @app.template_filter("heure_fr")
+    def heure_fr(value):
+        """Formate une heure en HH:MM (sans secondes)."""
+        if not value:
+            return ""
+        import datetime
+        if isinstance(value, (datetime.time, datetime.datetime)):
+            return value.strftime("%H:%M")
+        return str(value)[:5]
+
     @app.template_filter("date_fr_long")
     def date_fr_long(value):
         """Formate une date en 'Jeudi 12 mars 2026'."""
