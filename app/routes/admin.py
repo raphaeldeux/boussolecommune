@@ -1805,13 +1805,14 @@ def conseil_prochain_update():
     if not ville:
         return redirect(url_for("admin.dashboard"))
     prochain = request.form.get("prochain_conseil", "").strip() or None
+    prochain_heure = request.form.get("prochain_conseil_heure", "").strip() or None
     # Partial update: keep all other fields intact
     ville_model.update(
         ville["id"], ville["nom"], ville["slug"],
         ville.get("population"), ville.get("actif", 1),
         ville.get("code_insee"), ville.get("nb_conseillers"),
         ville.get("whatsapp_url"), ville.get("indicateurs_vedettes"),
-        prochain
+        prochain, prochain_heure
     )
     flash("Date du prochain conseil mise à jour.", "success")
     return redirect(url_for("admin.conseils"))

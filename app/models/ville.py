@@ -34,14 +34,16 @@ def create(nom, slug, population=None):
 
 
 def update(ville_id, nom, slug, population=None, actif=1, code_insee=None, nb_conseillers=None,
-           whatsapp_url=None, indicateurs_vedettes=None, prochain_conseil=None):
+           whatsapp_url=None, indicateurs_vedettes=None, prochain_conseil=None,
+           prochain_conseil_heure=None):
     with get_db() as conn:
         conn.execute(
             "UPDATE villes SET nom=%s, slug=%s, population=%s, actif=%s, "
             "code_insee=%s, nb_conseillers=%s, whatsapp_url=%s, indicateurs_vedettes=%s, "
-            "prochain_conseil=%s WHERE id=%s",
+            "prochain_conseil=%s, prochain_conseil_heure=%s WHERE id=%s",
             (nom, slug, population, actif, code_insee or None, nb_conseillers,
-             whatsapp_url or None, indicateurs_vedettes or None, prochain_conseil or None, ville_id)
+             whatsapp_url or None, indicateurs_vedettes or None, prochain_conseil or None,
+             prochain_conseil_heure or None, ville_id)
         )
         conn.commit()
 

@@ -72,24 +72,26 @@
 
 {# ── Feed ──────────────────────────────────────────────────────────── #}
 
-{# Prochain conseil — encart événement #}
+{# Prochain conseil — encart informatif #}
 {% if ville.prochain_conseil %}
-<a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
-   class="flex items-center gap-4 rounded-2xl mb-4 px-5 py-4 group transition"
-   style="background:#edf5f0; border:1.5px solid #a8d5be;">
+<div class="flex items-center gap-4 rounded-2xl mb-4 px-5 py-4"
+     style="background:#edf5f0; border:1.5px solid #a8d5be;">
   <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
        style="background:#d4e9df; border:1px solid #a8d5be;">
     <i class="ri-calendar-event-line" style="color:#285a44; font-size:1.125rem;"></i>
   </div>
   <div class="flex-1 min-w-0">
     <p class="text-xs font-semibold uppercase tracking-wide mb-0.5" style="color:#285a44;">Prochain conseil municipal</p>
-    <p class="text-sm font-bold" style="color:#0d2b1e;">{{ ville.prochain_conseil | date_fr_long }}</p>
+    <p class="text-sm font-bold" style="color:#0d2b1e;">
+      {{ ville.prochain_conseil | date_fr_long }}
+      {% if ville.prochain_conseil_heure %}
+      <span class="font-normal text-xs ml-1" style="color:#285a44;">
+        à {{ ville.prochain_conseil_heure | string | truncate(5, true, '') }}
+      </span>
+      {% endif %}
+    </p>
   </div>
-  <svg class="w-4 h-4 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none"
-       viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="color:#285a44;">
-    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-  </svg>
-</a>
+</div>
 {% endif %}
 
 {# Dernière séance — compte-rendu #}

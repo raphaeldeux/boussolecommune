@@ -287,6 +287,11 @@ def init_db():  # noqa: C901
         conn.execute("ALTER TABLE villes ADD COLUMN prochain_conseil DATE DEFAULT NULL")
         conn.commit()
 
+    # Migration: ajouter prochain_conseil_heure à villes
+    if not _column_exists(conn, 'villes', 'prochain_conseil_heure'):
+        conn.execute("ALTER TABLE villes ADD COLUMN prochain_conseil_heure TIME DEFAULT NULL")
+        conn.commit()
+
     # Migration: ajouter nb_conseillers à villes
     if not _column_exists(conn, 'villes', 'nb_conseillers'):
         conn.execute("ALTER TABLE villes ADD COLUMN nb_conseillers INTEGER DEFAULT NULL")
