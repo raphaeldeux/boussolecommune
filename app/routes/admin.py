@@ -1889,9 +1889,13 @@ def conseil_supprimer(conseil_id):
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
-    fichier_pdf = conseil_model.delete(conseil_id)
+    fichier_pdf, note_synthese_pdf = conseil_model.delete(conseil_id)
     if fichier_pdf:
         path = os.path.join(CONSEILS_UPLOAD_DIR, fichier_pdf)
+        if os.path.exists(path):
+            os.remove(path)
+    if note_synthese_pdf:
+        path = os.path.join(NOTES_SYNTHESE_DIR, note_synthese_pdf)
         if os.path.exists(path):
             os.remove(path)
     flash("Conseil supprimé.", "success")

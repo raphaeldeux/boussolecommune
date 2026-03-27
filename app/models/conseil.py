@@ -66,11 +66,14 @@ def set_publie(conseil_id, publie):
 def delete(conseil_id):
     with get_db() as conn:
         row = conn.execute(
-            "SELECT fichier_pdf FROM conseils WHERE id=%s", (conseil_id,)
+            "SELECT fichier_pdf, note_synthese_pdf FROM conseils WHERE id=%s",
+            (conseil_id,)
         ).fetchone()
         conn.execute("DELETE FROM conseils WHERE id=%s", (conseil_id,))
         conn.commit()
-    return dict(row)["fichier_pdf"] if row else None
+    if not row:
+        return None, None
+    return dict(row).get("fichier_pdf"), dict(row).get("note_synthese_pdf")
 
 
 def set_note_synthese(conseil_id, filename):
