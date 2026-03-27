@@ -1798,6 +1798,25 @@ def conseils():
     return render_template("admin/conseils.html", ville=ville, conseils=items)
 
 
+@bp.route("/conseils/prochain", methods=["POST"])
+@login_required
+def conseil_prochain_update():
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        return redirect(url_for("admin.dashboard"))
+    prochain = request.form.get("prochain_conseil", "").strip() or None
+    # Partial update: keep all other fields intact
+    ville_model.update(
+        ville["id"], ville["nom"], ville["slug"],
+        ville.get("population"), ville.get("actif", 1),
+        ville.get("code_insee"), ville.get("nb_conseillers"),
+        ville.get("whatsapp_url"), ville.get("indicateurs_vedettes"),
+        prochain
+    )
+    flash("Date du prochain conseil mise à jour.", "success")
+    return redirect(url_for("admin.conseils"))
+
+
 @bp.route("/conseils/nouveau", methods=["GET", "POST"])
 @login_required
 def conseil_nouveau():
