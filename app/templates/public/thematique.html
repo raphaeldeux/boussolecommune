@@ -76,24 +76,26 @@
 
 {# ── Synthèse pleine largeur ──────────────────────────────────────────── #}
 {% if synthese %}
-{% set lignes_pos = synthese.texte.split('\n') | select('match', '.*↗.*') | list %}
-{% set lignes_neg = synthese.texte.split('\n') | select('match', '.*[↘⚠].*') | list %}
-{% set lignes_neu = synthese.texte.split('\n') | reject('match', '.*[↗↘⚠].*') | select('string') | list %}
-{% set lignes_neu = lignes_neu | select('ne', '') | list %}
+{% set ns = namespace(pos=[], neg=[], neu=[]) %}
+{% for ligne in synthese.texte.split('\n') if ligne.strip() %}
+  {% if '↗' in ligne %}{% set ns.pos = ns.pos + [ligne] %}
+  {% elif '↘' in ligne or '⚠' in ligne %}{% set ns.neg = ns.neg + [ligne] %}
+  {% else %}{% set ns.neu = ns.neu + [ligne] %}{% endif %}
+{% endfor %}
 <div class="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 mb-5">
   <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-3">
     <i class="ri-pushpin-2-line mr-1"></i>Ce qu'il faut retenir
   </p>
-  <div class="grid grid-cols-2 gap-x-8 gap-y-0">
-    {# Colonne gauche : points positifs #}
+  <div class="grid grid-cols-2 gap-x-8">
+    {# Colonne gauche : points positifs + neutres #}
     <ul class="space-y-2">
-      {% for ligne in lignes_pos %}
+      {% for ligne in ns.pos %}
       <li class="text-sm text-gray-700 flex items-start gap-2">
         <span class="shrink-0 mt-0.5 font-semibold text-emerald-600">↗</span>
         <span>{{ ligne.lstrip('↗↘⚠•- ') }}</span>
       </li>
       {% endfor %}
-      {% for ligne in lignes_neu %}
+      {% for ligne in ns.neu %}
       <li class="text-sm text-gray-700 flex items-start gap-2">
         <span class="shrink-0 mt-0.5 text-gray-400">•</span>
         <span>{{ ligne.lstrip('↗↘⚠•- ') }}</span>
@@ -102,7 +104,7 @@
     </ul>
     {# Colonne droite : points d'attention #}
     <ul class="space-y-2">
-      {% for ligne in lignes_neg %}
+      {% for ligne in ns.neg %}
       <li class="text-sm text-gray-700 flex items-start gap-2">
         <span class="shrink-0 mt-0.5 font-semibold text-red-500">⚠</span>
         <span>{{ ligne.lstrip('↗↘⚠•- ') }}</span>
