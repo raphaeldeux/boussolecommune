@@ -1364,6 +1364,7 @@ def modifier_ville(ville_id):
         nb_conseillers = int(nb_conseillers_str) if nb_conseillers_str.isdigit() else None
 
         whatsapp_url = request.form.get("whatsapp_url", "").strip() or None
+        prochain_conseil = request.form.get("prochain_conseil", "").strip() or None
         vedettes = [
             request.form.get("vedette_1", "").strip(),
             request.form.get("vedette_2", "").strip(),
@@ -1375,7 +1376,7 @@ def modifier_ville(ville_id):
             flash("Le nom et le slug sont requis.", "danger")
         else:
             ville_model.update(ville_id, nom, slug, population, actif, code_insee, nb_conseillers,
-                               whatsapp_url, indicateurs_vedettes)
+                               whatsapp_url, indicateurs_vedettes, prochain_conseil)
             flash(f"Ville « {nom} » mise à jour.", "success")
             return redirect(url_for("admin.villes"))
 

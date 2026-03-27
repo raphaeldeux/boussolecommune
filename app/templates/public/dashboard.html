@@ -72,6 +72,24 @@
 
 {# ── Feed ──────────────────────────────────────────────────────────── #}
 
+{# Prochain conseil (si date future) #}
+{% if ville.prochain_conseil %}
+{% set today = now() if now is defined else none %}
+<div class="rounded-2xl mb-4 px-5 py-4 flex items-center gap-4" style="background:#edf5f0; border:1.5px solid #a8d5be;">
+  <div class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center" style="background:#d4e9df; border:1px solid #a8d5be;">
+    <i class="ri-calendar-event-line text-forest-700 text-lg"></i>
+  </div>
+  <div class="flex-1 min-w-0">
+    <p class="text-xs font-semibold uppercase tracking-wide" style="color:#285a44;">Prochain conseil municipal</p>
+    <p class="text-sm font-bold mt-0.5" style="color:#0d2b1e;">{{ ville.prochain_conseil | date_fr }}</p>
+  </div>
+  <a href="{{ url_for('public.vie_municipale', ville_slug=ville.slug) }}"
+     class="flex-shrink-0 text-xs font-semibold transition" style="color:#285a44;">
+    Voir les conseils →
+  </a>
+</div>
+{% endif %}
+
 {# Dernier conseil (actu principale) #}
 {% if derniers_conseils %}
 {% set dc = derniers_conseils[0] %}
