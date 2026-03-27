@@ -2015,6 +2015,155 @@ def conseil_resume(conseil_id):
     )
 
 
+# ── Note de synthèse / ODJ ───────────────────────────────────────────────
+
+NOTES_SYNTHESE_DIR = "/app/uploads/notes_synthese"
+
+
+def _save_note_synthese(fichier):
+    os.makedirs(NOTES_SYNTHESE_DIR, exist_ok=True)
+    filename = werkzeug.utils.secure_filename(fichier.filename)
+    ts = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    filename = f"{ts}_{filename}"
+    fichier.save(os.path.join(NOTES_SYNTHESE_DIR, filename))
+    return filename
+
+
+@bp.route("/conseils/<int:conseil_id>/note-synthese", methods=["POST"])
+@login_required
+def conseil_upload_note(conseil_id):
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    fichier = request.files.get("note_synthese_pdf")
+    if not fichier or not fichier.filename:
+        flash("Aucun fichier fourni.", "danger")
+        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
+        flash("Seuls les PDFs valides sont acceptés.", "danger")
+        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    # Supprimer l'ancien fichier si présent
+    if conseil.get("note_synthese_pdf"):
+        old = os.path.join(NOTES_SYNTHESE_DIR, conseil["note_synthese_pdf"])
+        if os.path.exists(old):
+            os.remove(old)
+    filename = _save_note_synthese(fichier)
+    conseil_model.set_note_synthese(conseil_id, filename)
+    flash("Note de synthèse déposée.", "success")
+    return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+
+
+@bp.route("/conseils/<int:conseil_id>/analyser-odj", methods=["POST"])
+@login_required
+def conseil_analyser_odj(conseil_id):
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    if not conseil.get("note_synthese_pdf"):
+        flash("Déposez d'abord la note de synthèse.", "danger")
+        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    if conseil.get("statut_odj") == "en_cours":
+        flash("Une analyse est déjà en cours.", "warning")
+        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+
+    pdf_path = os.path.join(NOTES_SYNTHESE_DIR, conseil["note_synthese_pdf"])
+    if not os.path.exists(pdf_path):
+        flash("Fichier PDF introuvable.", "danger")
+        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+
+    conseil_model.set_statut_odj(conseil_id, "en_cours", progres=0)
+
+    def _run():
+        from app.services.ai_service import analyser_note_synthese
+
+        def on_progress(pct, message=None):
+            conseil_model.set_statut_odj(conseil_id, "en_cours", progres=pct)
+
+        try:
+            odj_texte, resume = analyser_note_synthese(pdf_path, progress_callback=on_progress)
+            conseil_model.set_statut_odj(
+                conseil_id, "termine",
+                odj_texte=odj_texte,
+                resume_avant_seance=resume,
+                progres=100,
+            )
+        except Exception as e:
+            import traceback
+            print(f"[ERROR] Analyse ODJ échouée : {e}", flush=True)
+            traceback.print_exc()
+            conseil_model.set_statut_odj(conseil_id, "erreur", progres=None)
+
+    threading.Thread(target=_run, daemon=True).start()
+    return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+
+
+@bp.route("/conseils/<int:conseil_id>/statut-odj", methods=["GET"])
+@login_required
+def conseil_statut_odj(conseil_id):
+    import json as _json
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    odj = None
+    raw = conseil.get("odj_texte")
+    if raw:
+        try:
+            odj = _json.loads(raw)
+        except Exception:
+            odj = None
+    return jsonify({
+        "statut": conseil.get("statut_odj", "idle"),
+        "progres": conseil.get("progres_odj", 0),
+        "odj": odj,
+        "resume": conseil.get("resume_avant_seance"),
+    })
+
+
+@bp.route("/conseils/<int:conseil_id>/preparation", methods=["GET", "POST"])
+@login_required
+def conseil_preparation(conseil_id):
+    import json as _json
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    if request.method == "POST":
+        odj_texte = request.form.get("odj_texte", "").strip() or None
+        resume = request.form.get("resume_avant_seance", "").strip() or None
+        conseil_model.set_statut_odj(conseil_id, "termine", odj_texte=odj_texte, resume_avant_seance=resume)
+        flash("Ordre du jour enregistré.", "success")
+        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    from app.services.ai_service import is_ai_ready
+    odj = None
+    raw = conseil.get("odj_texte")
+    if raw:
+        try:
+            odj = _json.loads(raw)
+        except Exception:
+            odj = None
+    return render_template(
+        "admin/conseil_preparation.html",
+        ville=ville,
+        conseil=conseil,
+        odj=odj,
+        ai_ready=is_ai_ready(),
+    )
+
+
+@bp.route("/conseils/<int:conseil_id>/publier-odj", methods=["POST"])
+@login_required
+def conseil_publier_odj(conseil_id):
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    conseil_model.set_odj_publie(conseil_id, not conseil.get("odj_publie", False))
+    return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+
+
 # ── Documents publics ─────────────────────────────────────────────────────
 
 import app.models.document as document_model

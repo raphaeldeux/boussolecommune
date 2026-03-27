@@ -500,6 +500,26 @@ def init_db():  # noqa: C901
         )
         conn.commit()
 
+    # Migration: note de synthèse (US-NS)
+    if not _column_exists(conn, "conseils", "note_synthese_pdf"):
+        conn.execute("ALTER TABLE conseils ADD COLUMN note_synthese_pdf TEXT DEFAULT NULL")
+        conn.commit()
+    if not _column_exists(conn, "conseils", "odj_texte"):
+        conn.execute("ALTER TABLE conseils ADD COLUMN odj_texte TEXT DEFAULT NULL")
+        conn.commit()
+    if not _column_exists(conn, "conseils", "resume_avant_seance"):
+        conn.execute("ALTER TABLE conseils ADD COLUMN resume_avant_seance TEXT DEFAULT NULL")
+        conn.commit()
+    if not _column_exists(conn, "conseils", "odj_publie"):
+        conn.execute("ALTER TABLE conseils ADD COLUMN odj_publie BOOLEAN NOT NULL DEFAULT FALSE")
+        conn.commit()
+    if not _column_exists(conn, "conseils", "statut_odj"):
+        conn.execute("ALTER TABLE conseils ADD COLUMN statut_odj TEXT NOT NULL DEFAULT 'idle'")
+        conn.commit()
+    if not _column_exists(conn, "conseils", "progres_odj"):
+        conn.execute("ALTER TABLE conseils ADD COLUMN progres_odj INTEGER DEFAULT 0")
+        conn.commit()
+
     # Table documents publics (US-T7)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS documents (

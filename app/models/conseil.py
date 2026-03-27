@@ -73,6 +73,33 @@ def delete(conseil_id):
     return dict(row)["fichier_pdf"] if row else None
 
 
+def set_note_synthese(conseil_id, filename):
+    with get_db() as conn:
+        conn.execute("UPDATE conseils SET note_synthese_pdf=%s WHERE id=%s", (filename, conseil_id))
+        conn.commit()
+
+
+def set_statut_odj(conseil_id, statut, odj_texte=None, resume_avant_seance=None, progres=None):
+    champs = [("statut_odj", statut)]
+    if odj_texte is not None:
+        champs.append(("odj_texte", odj_texte))
+    if resume_avant_seance is not None:
+        champs.append(("resume_avant_seance", resume_avant_seance))
+    if progres is not None:
+        champs.append(("progres_odj", progres))
+    set_clause = ", ".join(f"{col}=%s" for col, _ in champs)
+    valeurs = [val for _, val in champs] + [conseil_id]
+    with get_db() as conn:
+        conn.execute(f"UPDATE conseils SET {set_clause} WHERE id=%s", valeurs)
+        conn.commit()
+
+
+def set_odj_publie(conseil_id, publie):
+    with get_db() as conn:
+        conn.execute("UPDATE conseils SET odj_publie=%s WHERE id=%s", (publie, conseil_id))
+        conn.commit()
+
+
 def set_statut_resume(conseil_id, statut, resume_citoyen=None, resume_structure=None, progres=None, message=None):
     """Met à jour statut_resume et optionnellement resume_citoyen, resume_structure, progres_resume, message_resume."""
     champs = [("statut_resume", statut)]

@@ -344,3 +344,63 @@ Réponds UNIQUEMENT avec du JSON valide :
 def is_ai_ready() -> bool:
     """Vérifie si Mistral AI est configuré."""
     return bool(MISTRAL_API_KEY)
+
+
+def analyser_note_synthese(pdf_path: str, progress_callback=None):
+    """
+    Extrait l'ordre du jour et génère un résumé citoyen depuis une note de synthèse PDF.
+    Retourne (odj_texte: str, resume_avant_seance: str).
+    odj_texte est un JSON string : {"points": [{"numero": N, "titre": str, "description": str}]}
+    """
+    def _progress(pct, message=None):
+        if progress_callback:
+            try:
+                progress_callback(pct, message)
+            except Exception:
+                pass
+
+    _progress(5, "Lecture du document…")
+    texte = extract_text_from_pdf(pdf_path)
+    if not texte.strip():
+        raise ValueError("Le PDF ne contient pas de texte extractible.")
+
+    _progress(15, "Envoi au modèle IA…")
+    prompt = f"""Tu es un assistant chargé d'analyser une note de synthèse de conseil municipal français.
+
+Voici le contenu de la note de synthèse :
+
+{texte}
+
+---
+
+Génère une réponse JSON avec ces deux champs :
+
+1. "points" : liste exhaustive des points à l'ordre du jour, dans l'ordre du document.
+   Chaque point contient :
+   - "numero" : numéro du point (1, 2, 3…)
+   - "titre" : intitulé exact du point tel qu'il apparaît dans le document
+   - "description" : 2-3 phrases en langage citoyen expliquant l'enjeu du point
+
+2. "resume_citoyen" : 3-4 phrases synthétisant l'ordre du jour en langage accessible. Commence par "Le prochain conseil municipal portera sur…"
+
+Réponds UNIQUEMENT avec du JSON valide :
+{{
+  "points": [
+    {{"numero": 1, "titre": "Intitulé exact", "description": "Contexte et enjeu."}}
+  ],
+  "resume_citoyen": "Le prochain conseil municipal portera sur…"
+}}"""
+
+    raw = _appel_mistral(prompt)
+    _progress(80, "Traitement de la réponse…")
+
+    try:
+        parsed = _parse_json(raw)
+        points = parsed.get("points", [])
+        resume = parsed.get("resume_citoyen", "").strip()
+        odj_texte = _json.dumps({"points": points}, ensure_ascii=False)
+        _progress(95, "Finalisation…")
+        return odj_texte, resume
+    except Exception as e:
+        print(f"[WARN] analyser_note_synthese parse échoué : {e}", flush=True)
+        return _json.dumps({"points": []}, ensure_ascii=False), raw[:500]

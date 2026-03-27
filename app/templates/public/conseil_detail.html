@@ -103,6 +103,37 @@
     </div>
   </div>
 
+  {# ── ODJ avant séance (si PV pas encore publié) ──────────────────── #}
+  {% if odj and odj.points and not conseil.publie %}
+  <div class="px-1 mb-6">
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+      <div class="px-5 py-3 border-b border-amber-200 flex items-center gap-2" style="background:#fffbeb;">
+        <i class="ri-calendar-event-line text-amber-600"></i>
+        <span class="text-sm font-semibold text-amber-800">Ordre du jour — avant séance</span>
+        <span class="ml-auto text-xs text-amber-500">{{ odj.points | length }} point{{ 's' if odj.points | length > 1 }}</span>
+      </div>
+      {% if conseil.resume_avant_seance %}
+      <div class="px-5 py-4 border-b border-amber-100">
+        <p class="text-sm text-gray-700 leading-relaxed">{{ conseil.resume_avant_seance }}</p>
+      </div>
+      {% endif %}
+      <ol class="divide-y divide-amber-100">
+        {% for point in odj.points %}
+        <li class="px-5 py-3.5 flex items-start gap-3">
+          <span class="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center justify-center mt-0.5">{{ point.numero }}</span>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-900">{{ point.titre }}</p>
+            {% if point.description %}
+            <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ point.description }}</p>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </div>
+  {% endif %}
+
   {% if structure and structure.themes %}
 
   {# ══ DESKTOP : sidebar gauche + contenu principal ══════════════════ #}

@@ -442,6 +442,15 @@ def dashboard(ville_slug):
         ))
         indicateurs_vedettes.append(enrichi)
 
+    # Conseil à venir avec ODJ publié
+    from app.models.conseil import get_all as conseils_get_all
+    import datetime as _dt
+    conseil_a_venir = None
+    for c in conseils_get_all(ville["id"]):
+        if c.get("odj_publie") and not c.get("publie"):
+            conseil_a_venir = c
+            break
+
     from app.models.document import get_publies as docs_get_publies
     return render_template(
         "public/dashboard.html",
@@ -458,6 +467,7 @@ def dashboard(ville_slug):
         derniers_conseils=derniers_conseils,
         indicateurs_vedettes=indicateurs_vedettes,
         documents_recents=docs_get_publies(ville["id"], limit=3),
+        conseil_a_venir=conseil_a_venir,
     )
 
 
@@ -817,8 +827,18 @@ def conseil_detail(ville_slug, conseil_id):
     if not ville:
         abort(404)
     conseil = conseil_model.get_by_id(conseil_id)
-    if not conseil or conseil["ville_id"] != ville["id"] or not conseil["publie"]:
+    if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
+    if not conseil.get("publie") and not conseil.get("odj_publie"):
+        abort(404)
+    # Parse ODJ si disponible
+    odj = None
+    raw_odj = conseil.get("odj_texte")
+    if raw_odj and conseil.get("odj_publie"):
+        try:
+            odj = _json.loads(raw_odj)
+        except Exception:
+            odj = None
     structure = None
     raw = conseil.get("resume_structure")
     if raw:
@@ -847,7 +867,7 @@ def conseil_detail(ville_slug, conseil_id):
                 structure = parsed
         except Exception:
             structure = None
-    return render_template("public/conseil_detail.html", ville=ville, conseil=conseil, structure=structure)
+    return render_template("public/conseil_detail.html", ville=ville, conseil=conseil, structure=structure, odj=odj)
 
 
 @bp.route("/v/<ville_slug>/documents")

@@ -1,0 +1,17 @@
+services:
+  web-dev:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5002:5000"
+    volumes:
+      - ./uploads:/app/uploads
+    env_file: .env
+    environment:
+      - FLASK_ENV=development
+    networks:
+      - boussolecommune_default
+
+networks:
+  boussolecommune_default:
+    external: true

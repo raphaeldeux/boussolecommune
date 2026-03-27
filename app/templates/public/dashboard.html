@@ -90,6 +90,13 @@
       </span>
       {% endif %}
     </p>
+    {% if conseil_a_venir %}
+    <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=conseil_a_venir.id) }}"
+       class="inline-flex items-center gap-1 text-xs font-medium mt-1"
+       style="color:#285a44;">
+      Voir l'ordre du jour <i class="ri-arrow-right-line"></i>
+    </a>
+    {% endif %}
   </div>
 </div>
 {% endif %}
