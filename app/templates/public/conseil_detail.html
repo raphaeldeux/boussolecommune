@@ -39,14 +39,14 @@
   {% endfor %}
 {% endif %}
 
-<div class="max-w-3xl mx-auto space-y-3">
+<div class="max-w-5xl mx-auto space-y-6">
 
   {# ── HEADER ──────────────────────────────────────────────────────── #}
-  <div class="px-1 pt-5 pb-6">
-    <div class="lg:grid lg:grid-cols-3 lg:gap-6">
+  <div class="px-1 pt-5 pb-2">
+    <div class="lg:grid lg:grid-cols-2 lg:gap-8">
 
-      {# 2/3 : icône + titre + méta + stats #}
-      <div class="lg:col-span-2 flex items-start gap-4 mb-4 lg:mb-0">
+      {# 1/2 : icône + titre + méta + stats #}
+      <div class="flex items-start gap-4 mb-4 lg:mb-0">
         <span class="text-4xl sm:text-5xl flex-shrink-0 mt-0.5 text-emerald-600"><i class="ri-government-line"></i></span>
         <div class="flex-1 min-w-0">
 
@@ -54,7 +54,7 @@
             Conseil {{ 'métropolitain' if conseil.type_conseil == 'metropolitain' else 'municipal' }}
           </h1>
 
-          {# Métadonnées avec Remixicons #}
+          {# Métadonnées #}
           <div class="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-400">
             <span class="flex items-center gap-1"><i class="ri-calendar-line"></i> {{ conseil.date_conseil | date_fr }}</span>
             {% if structure and structure.nb_presents %}
@@ -92,12 +92,11 @@
         </div>
       </div>
 
-      {# 1/3 : Ce qu'il faut retenir (résumé IA) #}
+      {# 1/3 : Ce qu'il faut retenir #}
       {% if conseil.resume_citoyen %}
       <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col">
         <p class="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2"><i class="ri-pushpin-2-line mr-1"></i>Ce qu'il faut retenir</p>
-        <p id="resume-text" class="text-sm text-gray-700 leading-relaxed resume-clamped">{{ conseil.resume_citoyen }}</p>
-        <button id="resume-btn" onclick="toggleResume()" class="hidden text-xs text-emerald-600 font-medium mt-2 hover:underline text-left">Lire plus</button>
+        <p class="text-sm text-gray-700 leading-relaxed">{{ conseil.resume_citoyen }}</p>
       </div>
       {% endif %}
 
@@ -106,95 +105,122 @@
 
   {% if structure and structure.themes %}
 
-  {# ══ DESKTOP : grille thèmes + délibérations ══════════════════════════ #}
-  <div class="hidden md:contents">
+  {# ══ DESKTOP : sidebar gauche + contenu principal ══════════════════ #}
+  <div class="hidden md:grid md:grid-cols-[200px_1fr] md:gap-6 md:items-start">
 
-  {# ── GRILLE THÈMES ──────────────────────────────────────────────── #}
-  <div class="grid grid-cols-3 gap-1.5">
-    {% for theme in structure.themes %}
-    {% set i = loop.index0 %}
-    {% set nb = theme.deliberations | length %}
-    {% set is_first = loop.first %}
-    <button onclick="showTheme({{ i }}, this)"
-            id="theme-btn-{{ i }}"
-            class="theme-btn {% if is_first %}active{% endif %} rounded-xl border-2 {% if is_first %}border-emerald-500 bg-emerald-600 text-white{% else %}border-gray-200 bg-white text-gray-600 hover:border-gray-300{% endif %} px-2 py-1.5 text-center transition">
-      <div class="text-base leading-none"><i class="{{ theme_icon(theme.titre) | trim }}"></i></div>
-      <div class="text-xs font-semibold leading-tight mt-0.5 truncate">{{ theme.titre | replace('Soin des ', '') | replace('Soin de la ', '') | replace('Soin du ', '') | replace('Soin de ', '') | truncate(12, false, '') }}</div>
-      <div class="theme-count text-xs font-bold mt-0.5 {% if is_first %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-500{% endif %} rounded-full px-1.5 inline-block">{{ nb }}</div>
-    </button>
-    {% endfor %}
-  </div>
+    {# ── Sidebar thèmes ──────────────────────────────────────────────── #}
+    <aside class="sticky top-16 space-y-1">
+      {% for theme in structure.themes %}
+      {% set i = loop.index0 %}
+      {% set short = theme.titre | replace('Soin des ', '') | replace('Soin de la ', '') | replace('Soin du ', '') | replace('Soin de ', '') %}
+      <button onclick="showTheme({{ i }}, this)"
+              id="theme-btn-{{ i }}"
+              class="theme-btn {% if loop.first %}active{% endif %} w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition text-sm">
+        <i class="{{ theme_icon(theme.titre) | trim }} text-base flex-shrink-0 w-4 text-center"></i>
+        <span class="flex-1 font-medium leading-tight">{{ short }}</span>
+        <span class="theme-count flex-shrink-0 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">{{ theme.deliberations | length }}</span>
+      </button>
+      {% endfor %}
 
-  {# ── CONTENU PAR THÈME ───────────────────────────────────────────── #}
-  {% for theme in structure.themes %}
-  {% set i = loop.index0 %}
-  <div id="theme-content-{{ i }}" class="theme-section {% if loop.first %}active{% endif %} space-y-3">
-    {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
-    {% if subventions | length > 1 %}
-    <div class="rounded-xl p-3 border border-emerald-200 text-xs" style="background:#f0fdf4">
-      <p class="font-bold text-emerald-700 mb-1.5 flex items-center gap-1"><i class="ri-money-euro-circle-line"></i> Subventions du thème</p>
-      <div class="space-y-0.5">
-        {% for s in subventions %}
-        <div class="flex justify-between">
-          <span class="text-gray-700">{{ s.beneficiaire }}</span>
-          <span class="font-bold text-emerald-700">{{ s.montant }}</span>
+      {% if conseil.fichier_pdf %}
+      <div class="pt-3 mt-1 border-t border-gray-100">
+        <a href="{{ url_for('public.conseil_pdf', ville_slug=ville.slug, conseil_id=conseil.id) }}"
+           class="flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition font-medium">
+          <i class="ri-file-pdf-line text-base text-red-400"></i> Procès-verbal PDF
+        </a>
+      </div>
+      {% endif %}
+    </aside>
+
+    {# ── Contenu par thème ────────────────────────────────────────────── #}
+    <div>
+      {% for theme in structure.themes %}
+      {% set i = loop.index0 %}
+      <div id="theme-content-{{ i }}" class="theme-section {% if loop.first %}active{% endif %} space-y-3">
+
+        {# En-tête du thème #}
+        <div class="flex items-center gap-2 mb-1 pb-3 border-b border-gray-100">
+          <i class="{{ theme_icon(theme.titre) | trim }} text-emerald-600 text-base"></i>
+          <h2 class="text-sm font-semibold text-gray-700">{{ theme.titre }}</h2>
+          <span class="ml-auto text-xs text-gray-400">{{ theme.deliberations | length }} délibération{{ 's' if theme.deliberations | length > 1 }}</span>
         </div>
-        {% endfor %}
-        {% if theme.total_subventions %}
-        <div class="flex justify-between pt-1 mt-1 border-t border-emerald-200 font-bold text-emerald-800">
-          <span>Total</span><span>{{ theme.total_subventions }}</span>
+
+        {# Tableau subventions si plusieurs #}
+        {% set subventions = theme.deliberations | selectattr('montant') | selectattr('beneficiaire') | list %}
+        {% if subventions | length > 1 %}
+        <div class="rounded-xl p-3 border border-emerald-200 text-xs" style="background:#f0fdf4">
+          <p class="font-bold text-emerald-700 mb-1.5 flex items-center gap-1"><i class="ri-money-euro-circle-line"></i> Subventions du thème</p>
+          <div class="space-y-0.5">
+            {% for s in subventions %}
+            <div class="flex justify-between">
+              <span class="text-gray-700">{{ s.beneficiaire }}</span>
+              <span class="font-bold text-emerald-700">{{ s.montant }}</span>
+            </div>
+            {% endfor %}
+            {% if theme.total_subventions %}
+            <div class="flex justify-between pt-1 mt-1 border-t border-emerald-200 font-bold text-emerald-800">
+              <span>Total</span><span>{{ theme.total_subventions }}</span>
+            </div>
+            {% endif %}
+          </div>
         </div>
         {% endif %}
-      </div>
-    </div>
-    {% endif %}
-    {% for delib in theme.deliberations %}
-    {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
-      {% set adopte = delib.vote.pour > delib.vote.contre %}
-      {% set delib_class = "delib-adopte" if adopte else "delib-rejete" %}
-    {% else %}
-      {% set adopte = none %}{% set delib_class = "delib-info" %}
-    {% endif %}
-    <div class="{{ delib_class }} rounded-xl">
-      <div class="flex items-start gap-3 p-4">
-        <div class="flex-shrink-0 mt-0.5">
-          {% if adopte is not none %}
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-600' }}">
-            <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
-          </span>
-          {% else %}
-          <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-sm"><i class="ri-information-line"></i></span>
-          {% endif %}
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm {% if adopte is none %}font-medium text-gray-600{% else %}font-semibold text-gray-900{% endif %} leading-snug">{{ delib.titre }}</p>
-          {% if delib.beneficiaire %}
-          <p class="text-xs font-medium mt-0.5 {{ 'text-red-700' if adopte == false else 'text-emerald-700' }}">{{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}</p>
-          {% elif delib.montant %}
-            {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}<div class="text-xs mt-1">{{ delib.montant | format_delib_desc | safe }}</div>
-            {% else %}<p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>{% endif %}
-          {% endif %}
-          {% if delib.description %}<div class="text-xs text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>{% endif %}
-          {% if adopte is not none %}
-          <p class="text-xs text-gray-400 mt-1.5">
-            <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }}
-            · <i class="ri-close-circle-line text-red-400"></i> {{ delib.vote.contre }}
-            {% if delib.vote.abstentions %} · <i class="ri-subtract-line"></i> {{ delib.vote.abstentions }}{% endif %}
-          </p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-  {% endfor %}
 
-  </div>{# end hidden md:contents #}
+        {# Délibérations #}
+        {% for delib in theme.deliberations %}
+        {% if delib.vote and delib.vote.pour is not none and delib.vote.contre is not none %}
+          {% set adopte = delib.vote.pour > delib.vote.contre %}
+          {% set delib_class = "delib-adopte" if adopte else "delib-rejete" %}
+        {% else %}
+          {% set adopte = none %}{% set delib_class = "delib-info" %}
+        {% endif %}
+        <div class="{{ delib_class }} rounded-xl">
+          <div class="flex items-start gap-3 p-4">
+            <div class="flex-shrink-0 mt-0.5">
+              {% if adopte is not none %}
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-sm {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-600' }}">
+                <i class="{{ 'ri-checkbox-circle-line' if adopte else 'ri-close-circle-line' }}"></i>
+              </span>
+              {% else %}
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 text-gray-400 text-sm"><i class="ri-information-line"></i></span>
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm {% if adopte is none %}font-medium text-gray-600{% else %}font-semibold text-gray-900{% endif %} leading-snug">{{ delib.titre }}</p>
+              {% if delib.beneficiaire %}
+              <p class="text-xs font-medium mt-0.5 {{ 'text-red-700' if adopte == false else 'text-emerald-700' }}">{{ delib.beneficiaire }}{% if delib.montant %} · <strong>{{ delib.montant }}</strong>{% endif %}</p>
+              {% elif delib.montant %}
+                {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}<div class="text-xs mt-1">{{ delib.montant | format_delib_desc | safe }}</div>
+                {% else %}<p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>{% endif %}
+              {% endif %}
+              {% if delib.description %}<div class="text-xs text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>{% endif %}
+              {# Vote visuel #}
+              {% if adopte is not none %}
+              {% set total_votes = delib.vote.pour + delib.vote.contre %}
+              {% set pct_pour = ((delib.vote.pour / total_votes) * 100) | round(0) | int if total_votes > 0 else 0 %}
+              <div class="mt-2.5 flex items-center gap-2">
+                <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div class="h-full rounded-full {{ 'bg-emerald-400' if adopte else 'bg-red-400' }}" style="width:{{ pct_pour }}%"></div>
+                </div>
+                <span class="text-xs text-gray-400 flex-shrink-0">
+                  <i class="ri-checkbox-circle-line text-emerald-400"></i> {{ delib.vote.pour }}
+                  · <i class="ri-close-circle-line text-red-400"></i> {{ delib.vote.contre }}
+                  {% if delib.vote.abstentions %} · <i class="ri-subtract-line"></i> {{ delib.vote.abstentions }}{% endif %}
+                </span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
 
-  {# ══ MOBILE : sections par thème + scroll-to-top ═════════════════════ #}
+  </div>{# end desktop grid #}
+
+  {# ══ MOBILE : sections par thème ═════════════════════════════════════ #}
   <div class="md:hidden">
-
-    {# Sections par thème — toujours visibles #}
     <div class="space-y-5">
       {% for theme in structure.themes %}
       {% set ti = loop.index0 %}
@@ -236,6 +262,14 @@
       {% endfor %}
     </div>
 
+    {% if conseil.fichier_pdf %}
+    <div class="mt-6">
+      <a href="{{ url_for('public.conseil_pdf', ville_slug=ville.slug, conseil_id=conseil.id) }}"
+         class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-3 rounded-xl transition">
+        <i class="ri-file-pdf-line"></i> Télécharger le procès-verbal complet
+      </a>
+    </div>
+    {% endif %}
   </div>
 
   {# ── Templates bottom sheet délibérations ─────────────────────────── #}
@@ -249,7 +283,6 @@
     {% set adopte = none %}
   {% endif %}
   <template id="delib-tpl-{{ ti }}-{{ di }}" data-label="{{ delib.titre | e }}">
-    {# Vote result #}
     {% if adopte is not none %}
     <div class="flex items-center gap-2 mb-4">
       <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold {{ 'bg-emerald-100 text-emerald-700' if adopte else 'bg-red-100 text-red-700' }}">
@@ -269,27 +302,18 @@
       </span>
     </div>
     {% endif %}
-    {# Beneficiaire + montant #}
     {% if delib.beneficiaire or delib.montant %}
     <div class="mb-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm">
       {% if delib.beneficiaire %}<p class="font-semibold text-emerald-800">{{ delib.beneficiaire }}</p>{% endif %}
       {% if delib.montant %}<p class="text-emerald-700 font-bold mt-0.5">{{ delib.montant }}</p>{% endif %}
     </div>
     {% endif %}
-    {# Description #}
     {% if delib.description %}
     <div class="text-sm text-gray-700 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>
     {% endif %}
   </template>
   {% endfor %}
   {% endfor %}
-
-  {% if conseil.fichier_pdf %}
-  <a href="{{ url_for('public.conseil_pdf', ville_slug=ville.slug, conseil_id=conseil.id) }}"
-     class="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm py-3 rounded-xl transition">
-    <i class="ri-file-pdf-line"></i> Télécharger le procès-verbal complet
-  </a>
-  {% endif %}
 
   {% elif conseil.resume_citoyen %}
   <div class="bg-white rounded-xl border border-gray-200 p-6 text-sm text-gray-600 leading-relaxed">
@@ -334,35 +358,22 @@
   .delib-adopte { border-left: 3px solid #86efac; background: #ffffff; }
   .delib-rejete { border-left: 3px solid #dc2626; background: #fff5f5; }
   .delib-info   { border-left: 3px solid #e5e7eb; background: #ffffff; }
-  .resume-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .resume-clamped.expanded { display: block; }
-  [id^="theme-mob-"] { scroll-margin-top: 4rem; }
+  /* Sidebar theme buttons */
+  .theme-btn { color: #6b7280; }
+  .theme-btn:hover { background: #f9fafb; color: #374151; }
+  .theme-btn .theme-count { background: #f3f4f6; color: #9ca3af; }
+  .theme-btn.active { background: #f0fdf4; color: #059669; font-weight: 600; }
+  .theme-btn.active .theme-count { background: #d1fae5; color: #059669; }
 </style>
 <script>
 (function() {
-  var resumeEl = document.getElementById('resume-text');
-  var resumeBtn = document.getElementById('resume-btn');
-  if (resumeEl && resumeBtn && resumeEl.scrollHeight > resumeEl.clientHeight + 2) {
-    resumeBtn.classList.remove('hidden');
-  }
-  window.toggleResume = function() {
-    resumeEl.classList.toggle('expanded');
-    resumeBtn.textContent = resumeEl.classList.contains('expanded') ? 'Réduire' : 'Lire plus';
-  };
+
   window.showTheme = function(idx, btn) {
     document.querySelectorAll('.theme-section').forEach(function(s) { s.classList.remove('active'); });
-    document.querySelectorAll('.theme-btn').forEach(function(b) {
-      b.classList.remove('active', 'border-emerald-500', 'bg-emerald-600', 'text-white');
-      b.classList.add('border-gray-200', 'bg-white', 'text-gray-600');
-      var c = b.querySelector('.theme-count');
-      if (c) c.className = 'theme-count text-xs font-bold mt-0.5 bg-gray-100 text-gray-500 rounded-full px-1.5 inline-block';
-    });
+    document.querySelectorAll('.theme-btn').forEach(function(b) { b.classList.remove('active'); });
     var content = document.getElementById('theme-content-' + idx);
     if (content) content.classList.add('active');
-    btn.classList.add('active', 'border-emerald-500', 'bg-emerald-600', 'text-white');
-    btn.classList.remove('border-gray-200', 'bg-white', 'text-gray-600');
-    var c = btn.querySelector('.theme-count');
-    if (c) c.className = 'theme-count text-xs font-bold mt-0.5 bg-white/20 text-white rounded-full px-1.5 inline-block';
+    if (btn) btn.classList.add('active');
   };
 
   // ── Bottom Sheet délibérations (mobile) ─────────────────────────────
