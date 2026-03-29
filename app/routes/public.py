@@ -748,10 +748,12 @@ def comparer():
                 "scores_thematiques": scores_them,
             })
 
-    # Contexte de retour : si on vient d'une page ville, on passe la ville
-    # pour que base.html affiche le header ville + les tabs de navigation
+    # Contexte de navigation : depuis le slug retour, sinon depuis la session
     retour_slug = request.args.get("retour")
-    ville_retour = ville_model.get_by_slug(retour_slug) if retour_slug else None
+    if retour_slug:
+        ville_nav = ville_model.get_by_slug(retour_slug)
+    else:
+        ville_nav = _get_ville_or_404()  # ville en session ou première ville active
 
     return render_template(
         "public/comparer.html",
@@ -761,7 +763,7 @@ def comparer():
         thematiques=ind_model.get_thematiques(),
         thematique_labels=ind_model.THEMATIQUE_LABELS,
         thematique_icons=ind_model.THEMATIQUE_ICONS,
-        ville=ville_retour,
+        ville=ville_nav,
     )
 
 
