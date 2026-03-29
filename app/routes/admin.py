@@ -1821,6 +1821,9 @@ def conseils():
         flash("Aucune ville sélectionnée.", "danger")
         return redirect(url_for("admin.dashboard"))
     items = conseil_model.get_all(ville["id"])
+    for c in items:
+        c["_statut"] = _conseil_statut(c)
+        c["_prochaine_action"] = _conseil_prochaine_action(c)
     return render_template("admin/conseils.html", ville=ville, conseils=items)
 
 

@@ -6,7 +6,7 @@
   <h1 class="text-2xl font-bold text-gray-900">Conseils</h1>
   <a href="{{ url_for('admin.conseil_nouveau') }}"
      class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-    + Ajouter un PV
+    + Ajouter un conseil
   </a>
 </div>
 
@@ -35,6 +35,18 @@
 {% set municipaux = conseils | selectattr('type_conseil', 'equalto', 'municipal') | list %}
 {% set metropolitains = conseils | selectattr('type_conseil', 'equalto', 'metropolitain') | list %}
 
+{% macro statut_badge(c) %}
+{% if c._statut == 'publie' %}
+  <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Publié</span>
+{% elif c._statut == 'pv_depose' %}
+  <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">PV déposé</span>
+{% elif c._statut == 'odj_publie' %}
+  <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">ODJ publié</span>
+{% else %}
+  <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Nouveau</span>
+{% endif %}
+{% endmacro %}
+
 {% macro conseil_table(items) %}
 {% if items %}
 <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -43,8 +55,8 @@
       <tr>
         <th class="px-4 py-3 text-left">Date</th>
         <th class="px-4 py-3 text-left">Titre</th>
-        <th class="px-4 py-3 text-center">PDF</th>
-        <th class="px-4 py-3 text-center">Statut</th>
+        <th class="px-4 py-3 text-left">Statut</th>
+        <th class="px-4 py-3 text-left text-gray-400 font-normal">Prochaine action</th>
         <th class="px-4 py-3 text-right">Actions</th>
       </tr>
     </thead>
@@ -53,35 +65,18 @@
       <tr class="hover:bg-gray-50">
         <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.date_conseil | date_fr }}</td>
         <td class="px-4 py-3 font-medium text-gray-900">{{ c.titre }}</td>
-        <td class="px-4 py-3 text-center">
-          {% if c.fichier_pdf %}<span class="text-emerald-600">✓</span>
-          {% else %}<span class="text-gray-300">—</span>{% endif %}
-        </td>
-        <td class="px-4 py-3 text-center">
-          <form method="POST" action="{{ url_for('admin.conseil_publier', conseil_id=c.id) }}" class="inline">
-            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-            <button type="submit"
-                    class="px-2 py-1 rounded text-xs font-medium transition
-                      {% if c.publie %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
-                      {% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %}">
-              {{ 'Publié' if c.publie else 'Brouillon' }}
-            </button>
-          </form>
-        </td>
+        <td class="px-4 py-3">{{ statut_badge(c) }}</td>
+        <td class="px-4 py-3 text-xs text-gray-400 italic">{{ c._prochaine_action or '—' }}</td>
         <td class="px-4 py-3 text-right">
-          <div class="flex items-center justify-end gap-2">
-            <a href="{{ url_for('admin.conseil_preparation', conseil_id=c.id) }}"
-               class="text-emerald-600 hover:text-emerald-800 text-xs font-medium flex items-center gap-1">
-              <i class="ri-sparkling-line"></i>ODJ{% if c.odj_publie %} ●{% endif %}
+          <div class="flex items-center justify-end gap-3">
+            <a href="{{ url_for('admin.conseil_fiche', conseil_id=c.id) }}"
+               class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">
+              Gérer →
             </a>
-            <a href="{{ url_for('admin.conseil_resume', conseil_id=c.id) }}"
-               class="text-purple-600 hover:text-purple-800 text-xs font-medium">Résumé</a>
-            <a href="{{ url_for('admin.conseil_modifier', conseil_id=c.id) }}"
-               class="text-blue-600 hover:text-blue-800 text-xs font-medium">Modifier</a>
             <form method="POST" action="{{ url_for('admin.conseil_supprimer', conseil_id=c.id) }}"
                   onsubmit="return confirm('Supprimer ce conseil ?')">
               <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-              <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Supprimer</button>
+              <button type="submit" class="text-red-400 hover:text-red-600 text-xs">Supprimer</button>
             </form>
           </div>
         </td>
