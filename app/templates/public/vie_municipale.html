@@ -115,9 +115,6 @@
             {% if c.nb_delib %}
             <span class="text-xs text-sand-400">· {{ c.nb_delib }} délibération{{ 's' if c.nb_delib > 1 }}</span>
             {% endif %}
-            {% if c.theme_dominant %}
-            <span class="text-xs bg-forest-50 text-forest-700 px-1.5 py-0.5 rounded-md">{{ c.theme_dominant }}</span>
-            {% endif %}
           </div>
           {% if c.resume_citoyen %}
           <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{ c.resume_citoyen }}</p>
