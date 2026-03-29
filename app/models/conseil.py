@@ -10,6 +10,17 @@ def get_all(ville_id):
     return [dict(r) for r in rows]
 
 
+def get_avec_odj_publie(ville_id):
+    """Conseils avec ODJ publié mais pas encore publiés (avant séance)."""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM conseils WHERE ville_id = %s AND odj_publie = TRUE AND publie = FALSE "
+            "ORDER BY date_conseil ASC",
+            (ville_id,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def get_publies(ville_id, limit=3):
     with get_db() as conn:
         rows = conn.execute(

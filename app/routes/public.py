@@ -499,6 +499,7 @@ def vie_municipale(ville_slug):
         abort(404)
 
     conseils_raw = conseil_model.get_publies(ville["id"], limit=20)
+    conseils_a_venir = conseil_model.get_avec_odj_publie(ville["id"])
 
     def _enrich(c):
         nb_delib, theme_dominant = 0, None
@@ -521,6 +522,7 @@ def vie_municipale(ville_slug):
         "public/vie_municipale.html",
         ville=ville,
         conseils=conseils,
+        conseils_a_venir=conseils_a_venir,
         documents=documents,
     )
 
