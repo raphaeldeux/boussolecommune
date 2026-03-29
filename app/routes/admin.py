@@ -1787,6 +1787,20 @@ def _save_pdf(fichier):
     return filename
 
 
+_MOIS_FR = ['janvier','février','mars','avril','mai','juin',
+            'juillet','août','septembre','octobre','novembre','décembre']
+
+def _titre_conseil_auto(type_conseil, date_str):
+    """Génère un titre automatique : 'Conseil municipal du 15 mars 2026'."""
+    import datetime as _dt
+    try:
+        d = _dt.date.fromisoformat(date_str)
+        label = 'métropolitain' if type_conseil == 'metropolitain' else 'municipal'
+        return f"Conseil {label} du {d.day} {_MOIS_FR[d.month - 1]} {d.year}"
+    except Exception:
+        return f"Conseil {type_conseil}"
+
+
 def _conseil_statut(conseil):
     """Retourne le statut global d'un conseil : nouveau, odj_publie, pv_depose, publie."""
     if conseil.get("publie"):
@@ -1854,12 +1868,12 @@ def conseil_nouveau():
     if not ville:
         abort(403)
     if request.method == "POST":
-        titre = request.form.get("titre", "").strip()
         date_conseil = request.form.get("date_conseil", "").strip()
-        if not titre or not date_conseil:
-            flash("Titre et date sont obligatoires.", "danger")
+        if not date_conseil:
+            flash("La date est obligatoire.", "danger")
             return render_template("admin/conseil_form.html", ville=ville, conseil=None)
         type_conseil = request.form.get("type_conseil", "municipal")
+        titre = _titre_conseil_auto(type_conseil, date_conseil)
         conseil_model.create(ville["id"], titre, date_conseil, None, type_conseil)
         flash("Conseil ajouté avec succès.", "success")
         return redirect(url_for("admin.conseils"))
