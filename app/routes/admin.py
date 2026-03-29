@@ -2195,6 +2195,8 @@ def conseil_fiche(conseil_id):
     from app.services.ai_service import is_ai_ready
 
     ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        abort(404)
     conseil = conseil_model.get_by_id(conseil_id)
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
@@ -2227,7 +2229,7 @@ def conseil_fiche(conseil_id):
             resume_avant = request.form.get("resume_avant_seance", "").strip() or None
             conseil_model.update(conseil_id, titre, date_conseil, None, type_conseil)
             conseil_model.set_statut_odj(
-                conseil_id, conseil.get("statut_odj", "idle"),
+                conseil_id, conseil.get("statut_odj", "idle"),  # conserver le statut IA existant
                 odj_texte=odj_texte, resume_avant_seance=resume_avant
             )
             flash("Informations enregistrées.", "success")
