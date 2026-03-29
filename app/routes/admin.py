@@ -1869,28 +1869,7 @@ def conseil_nouveau():
 @bp.route("/conseils/<int:conseil_id>/modifier", methods=["GET", "POST"])
 @login_required
 def conseil_modifier(conseil_id):
-    ville = ville_model.get_by_id(session.get("admin_ville_id"))
-    conseil = conseil_model.get_by_id(conseil_id)
-    if not conseil or conseil["ville_id"] != ville["id"]:
-        abort(404)
-    if request.method == "POST":
-        titre = request.form.get("titre", "").strip()
-        date_conseil = request.form.get("date_conseil", "").strip()
-        fichier = request.files.get("fichier_pdf")
-        if not titre or not date_conseil:
-            flash("Titre et date sont obligatoires.", "danger")
-            return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
-        type_conseil = request.form.get("type_conseil", "municipal")
-        fichier_pdf = None
-        if fichier and fichier.filename:
-            if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
-                flash("Seuls les fichiers PDF valides sont acceptés.", "danger")
-                return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
-            fichier_pdf = _save_pdf(fichier)
-        conseil_model.update(conseil_id, titre, date_conseil, fichier_pdf, type_conseil)
-        flash("Conseil mis à jour.", "success")
-        return redirect(url_for("admin.conseils"))
-    return render_template("admin/conseil_form.html", ville=ville, conseil=conseil)
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>/publier", methods=["POST"])
@@ -1901,7 +1880,7 @@ def conseil_publier(conseil_id):
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
     conseil_model.set_publie(conseil_id, not conseil["publie"])
-    return redirect(url_for("admin.conseils"))
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>/supprimer", methods=["POST"])
@@ -1935,15 +1914,15 @@ def conseil_generer_resume(conseil_id):
         abort(404)
     if not conseil.get("fichier_pdf"):
         flash("Aucun PDF associé à ce conseil.", "danger")
-        return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
     if conseil.get("statut_resume") == "en_cours":
         flash("Une génération est déjà en cours.", "warning")
-        return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
     pdf_path = os.path.join(CONSEILS_UPLOAD_DIR, conseil["fichier_pdf"])
     if not os.path.exists(pdf_path):
         flash("Fichier PDF introuvable.", "danger")
-        return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
     conseil_model.set_statut_resume(conseil_id, "en_cours", progres=0)
 
@@ -1968,7 +1947,7 @@ def conseil_generer_resume(conseil_id):
             conseil_model.set_statut_resume(conseil_id, "erreur", progres=None)
 
     threading.Thread(target=_run, daemon=True).start()
-    return redirect(url_for("admin.conseil_resume", conseil_id=conseil_id))
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>/statut-resume", methods=["GET"])
@@ -2000,45 +1979,7 @@ def conseil_statut_resume(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/resume", methods=["GET", "POST"])
 @login_required
 def conseil_resume(conseil_id):
-    ville = ville_model.get_by_id(session.get("admin_ville_id"))
-    conseil = conseil_model.get_by_id(conseil_id)
-    if not conseil or conseil["ville_id"] != ville["id"]:
-        abort(404)
-    if request.method == "POST":
-        resume = request.form.get("resume_citoyen", "").strip()
-        with get_db() as conn:
-            conn.execute(
-                "UPDATE conseils SET resume_citoyen=%s WHERE id=%s",
-                (resume, conseil_id)
-            )
-            conn.commit()
-        flash("Résumé enregistré.", "success")
-        return redirect(url_for("admin.conseils"))
-    from app.services.ai_service import is_ai_ready
-    import json as _json
-    ollama_ok = is_ai_ready()
-    structure = None
-    nb_points_odj = 0
-    nb_deliberations = 0
-    raw = conseil.get("resume_structure")
-    if raw:
-        try:
-            parsed = _json.loads(raw)
-            if isinstance(parsed, dict) and "themes" in parsed:
-                structure = parsed
-                nb_points_odj = parsed.get("nb_points_odj", 0)
-                nb_deliberations = sum(len(t.get("deliberations", [])) for t in parsed["themes"])
-        except Exception:
-            structure = None
-    return render_template(
-        "admin/conseil_resume.html",
-        ville=ville,
-        conseil=conseil,
-        ollama_ok=ollama_ok,
-        structure=structure,
-        nb_points_odj=nb_points_odj,
-        nb_deliberations=nb_deliberations,
-    )
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 # ── Note de synthèse / ODJ ───────────────────────────────────────────────
@@ -2065,10 +2006,10 @@ def conseil_upload_note(conseil_id):
     fichier = request.files.get("note_synthese_pdf")
     if not fichier or not fichier.filename:
         flash("Aucun fichier fourni.", "danger")
-        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
     if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
         flash("Seuls les PDFs valides sont acceptés.", "danger")
-        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
     # Supprimer l'ancien fichier si présent
     if conseil.get("note_synthese_pdf"):
         old = os.path.join(NOTES_SYNTHESE_DIR, conseil["note_synthese_pdf"])
@@ -2077,7 +2018,7 @@ def conseil_upload_note(conseil_id):
     filename = _save_note_synthese(fichier)
     conseil_model.set_note_synthese(conseil_id, filename)
     flash("Note de synthèse déposée.", "success")
-    return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>/analyser-odj", methods=["POST"])
@@ -2089,15 +2030,15 @@ def conseil_analyser_odj(conseil_id):
         abort(404)
     if not conseil.get("note_synthese_pdf"):
         flash("Déposez d'abord la note de synthèse.", "danger")
-        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
     if conseil.get("statut_odj") == "en_cours":
         flash("Une analyse est déjà en cours.", "warning")
-        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
     pdf_path = os.path.join(NOTES_SYNTHESE_DIR, conseil["note_synthese_pdf"])
     if not os.path.exists(pdf_path):
         flash("Fichier PDF introuvable.", "danger")
-        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
     conseil_model.set_statut_odj(conseil_id, "en_cours", progres=0)
 
@@ -2122,7 +2063,7 @@ def conseil_analyser_odj(conseil_id):
             conseil_model.set_statut_odj(conseil_id, "erreur", progres=None)
 
     threading.Thread(target=_run, daemon=True).start()
-    return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>/statut-odj", methods=["GET"])
@@ -2151,32 +2092,7 @@ def conseil_statut_odj(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/preparation", methods=["GET", "POST"])
 @login_required
 def conseil_preparation(conseil_id):
-    import json as _json
-    ville = ville_model.get_by_id(session.get("admin_ville_id"))
-    conseil = conseil_model.get_by_id(conseil_id)
-    if not conseil or conseil["ville_id"] != ville["id"]:
-        abort(404)
-    if request.method == "POST":
-        odj_texte = request.form.get("odj_texte", "").strip() or None
-        resume = request.form.get("resume_avant_seance", "").strip() or None
-        conseil_model.set_statut_odj(conseil_id, "termine", odj_texte=odj_texte, resume_avant_seance=resume)
-        flash("Ordre du jour enregistré.", "success")
-        return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
-    from app.services.ai_service import is_ai_ready
-    odj = None
-    raw = conseil.get("odj_texte")
-    if raw:
-        try:
-            odj = _json.loads(raw)
-        except Exception:
-            odj = None
-    return render_template(
-        "admin/conseil_preparation.html",
-        ville=ville,
-        conseil=conseil,
-        odj=odj,
-        ai_ready=is_ai_ready(),
-    )
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>/publier-odj", methods=["POST"])
@@ -2187,7 +2103,7 @@ def conseil_publier_odj(conseil_id):
     if not conseil or conseil["ville_id"] != ville["id"]:
         abort(404)
     conseil_model.set_odj_publie(conseil_id, not conseil.get("odj_publie", False))
-    return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 @bp.route("/conseils/<int:conseil_id>", methods=["GET", "POST"])
