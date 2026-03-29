@@ -50,9 +50,8 @@
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm text-gray-900 group-hover:text-amber-700 transition">{{ c.titre }}</div>
+          <div class="font-semibold text-sm text-gray-900 group-hover:text-amber-700 transition">{{ c.date_conseil | date_fr_long }}</div>
           <div class="flex items-center gap-3 mt-0.5">
-            <span class="text-xs text-sand-400">{{ c.date_conseil | date_fr }}</span>
             <span class="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md font-medium">Ordre du jour disponible</span>
           </div>
           {% if c.resume_avant_seance %}
@@ -109,11 +108,10 @@
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm text-gray-900 group-hover:text-forest-700 transition">{{ c.titre }}</div>
+          <div class="font-semibold text-sm text-gray-900 group-hover:text-forest-700 transition">{{ c.date_conseil | date_fr_long }}</div>
           <div class="flex items-center gap-3 mt-0.5">
-            <span class="text-xs text-sand-400">{{ c.date_conseil | date_fr }}</span>
             {% if c.nb_delib %}
-            <span class="text-xs text-sand-400">· {{ c.nb_delib }} délibération{{ 's' if c.nb_delib > 1 }}</span>
+            <span class="text-xs text-sand-400">{{ c.nb_delib }} délibération{{ 's' if c.nb_delib > 1 }}</span>
             {% endif %}
             {% if c.theme_dominant %}
             <span class="text-xs bg-forest-50 text-forest-700 px-1.5 py-0.5 rounded-md">{{ c.theme_dominant }}</span>
@@ -164,8 +162,7 @@
          class="flex items-start gap-3 bg-white rounded-xl border border-sand-200 hover:border-ocre-200 hover:shadow-sm transition p-4 group">
         <div class="flex-shrink-0 w-10 h-10 bg-ocre-50 rounded-xl flex items-center justify-center text-lg">🏙️</div>
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-sm text-gray-900 group-hover:text-ocre-700 transition">{{ c.titre }}</div>
-          <span class="text-xs text-sand-400">{{ c.date_conseil | date_fr }}</span>
+          <div class="font-semibold text-sm text-gray-900 group-hover:text-ocre-700 transition">{{ c.date_conseil | date_fr_long }}</div>
           {% if c.resume_citoyen %}
           <p class="text-xs text-gray-500 mt-1.5 line-clamp-2">{{ c.resume_citoyen }}</p>
           {% endif %}
