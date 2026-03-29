@@ -2187,6 +2187,96 @@ def conseil_publier_odj(conseil_id):
     return redirect(url_for("admin.conseil_preparation", conseil_id=conseil_id))
 
 
+@bp.route("/conseils/<int:conseil_id>", methods=["GET", "POST"])
+@login_required
+def conseil_fiche(conseil_id):
+    import json as _json
+    from datetime import date as _date
+    from app.services.ai_service import is_ai_ready
+
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+
+    if request.method == "POST":
+        bloc = request.form.get("bloc")
+
+        if bloc == "avant_seance":
+            titre = request.form.get("titre", "").strip()
+            date_conseil = request.form.get("date_conseil", "").strip()
+            type_conseil = request.form.get("type_conseil", "municipal")
+            if not titre or not date_conseil:
+                flash("Titre et date sont obligatoires.", "danger")
+                return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
+            # Reconstruire ODJ JSON depuis les champs point-by-point
+            points = []
+            i = 1
+            while True:
+                titre_point = request.form.get(f"odj_point_titre_{i}", "").strip()
+                if not titre_point:
+                    break
+                desc = request.form.get(f"odj_point_description_{i}", "").strip()
+                points.append({"numero": i, "titre": titre_point, "description": desc})
+                i += 1
+            if points:
+                odj_texte = _json.dumps({"points": points}, ensure_ascii=False)
+            else:
+                # Fallback : textarea libre (uniquement en mode sans points structurés)
+                odj_texte = request.form.get("odj_texte", "").strip() or None
+            resume_avant = request.form.get("resume_avant_seance", "").strip() or None
+            conseil_model.update(conseil_id, titre, date_conseil, None, type_conseil)
+            conseil_model.set_statut_odj(
+                conseil_id, conseil.get("statut_odj", "idle"),
+                odj_texte=odj_texte, resume_avant_seance=resume_avant
+            )
+            flash("Informations enregistrées.", "success")
+
+        elif bloc == "apres_seance":
+            resume_citoyen = request.form.get("resume_citoyen", "").strip() or None
+            with get_db() as conn:
+                conn.execute(
+                    "UPDATE conseils SET resume_citoyen=%s WHERE id=%s",
+                    (resume_citoyen, conseil_id)
+                )
+                conn.commit()
+            flash("Résumé citoyen enregistré.", "success")
+
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
+
+    # GET
+    conseil = conseil_model.get_by_id(conseil_id)
+    odj = None
+    odj_raw = conseil.get("odj_texte")
+    if odj_raw:
+        try:
+            odj = _json.loads(odj_raw)
+        except Exception:
+            odj = None
+
+    today = _date.today()
+    date_conseil = conseil.get("date_conseil")
+    after_seance_active = (date_conseil is None) or (date_conseil <= today)
+
+    return render_template(
+        "admin/conseil_fiche.html",
+        ville=ville,
+        conseil=conseil,
+        odj=odj,
+        ai_ready=is_ai_ready(),
+        statut=_conseil_statut(conseil),
+        prochaine_action=_conseil_prochaine_action(conseil),
+        after_seance_active=after_seance_active,
+    )
+
+
+@bp.route("/conseils/<int:conseil_id>/pv-pdf", methods=["POST"])
+@login_required
+def conseil_upload_pv(conseil_id):
+    # Placeholder — full implementation in next task
+    abort(404)
+
+
 # ── Documents publics ─────────────────────────────────────────────────────
 
 import app.models.document as document_model
