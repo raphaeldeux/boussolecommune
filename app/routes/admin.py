@@ -2275,8 +2275,27 @@ def conseil_fiche(conseil_id):
 @bp.route("/conseils/<int:conseil_id>/pv-pdf", methods=["POST"])
 @login_required
 def conseil_upload_pv(conseil_id):
-    # Placeholder — full implementation in next task
-    abort(404)
+    ville = ville_model.get_by_id(session.get("admin_ville_id"))
+    if not ville:
+        abort(404)
+    conseil = conseil_model.get_by_id(conseil_id)
+    if not conseil or conseil["ville_id"] != ville["id"]:
+        abort(404)
+    fichier = request.files.get("fichier_pdf")
+    if not fichier or not fichier.filename:
+        flash("Aucun fichier fourni.", "danger")
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
+    if not fichier.filename.lower().endswith(".pdf") or not _is_valid_pdf(fichier):
+        flash("Seuls les PDFs valides sont acceptés.", "danger")
+        return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
+    if conseil.get("fichier_pdf"):
+        old = os.path.join(CONSEILS_UPLOAD_DIR, conseil["fichier_pdf"])
+        if os.path.exists(old):
+            os.remove(old)
+    filename = _save_pdf(fichier)
+    conseil_model.update(conseil_id, conseil["titre"], str(conseil["date_conseil"]), filename, conseil["type_conseil"])
+    flash("PV déposé.", "success")
+    return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
 
 # ── Documents publics ─────────────────────────────────────────────────────
