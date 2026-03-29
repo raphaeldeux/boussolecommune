@@ -54,7 +54,6 @@
     <thead class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wide">
       <tr>
         <th class="px-4 py-3 text-left">Date</th>
-        <th class="px-4 py-3 text-left">Titre</th>
         <th class="px-4 py-3 text-left">Statut</th>
         <th class="px-4 py-3 text-left text-gray-400 font-normal">Prochaine action</th>
         <th class="px-4 py-3 text-right">Actions</th>
@@ -64,7 +63,6 @@
       {% for c in items %}
       <tr class="hover:bg-gray-50">
         <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ c.date_conseil | date_fr }}</td>
-        <td class="px-4 py-3 font-medium text-gray-900">{{ c.titre }}</td>
         <td class="px-4 py-3">{{ statut_badge(c) }}</td>
         <td class="px-4 py-3 text-xs text-gray-400 italic">{{ c._prochaine_action or '—' }}</td>
         <td class="px-4 py-3 text-right">
