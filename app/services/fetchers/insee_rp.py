@@ -6,7 +6,7 @@ Authentification : OAuth2 Bearer Token
 Variable d'env : INSEE_API_KEY = "consumer_key:consumer_secret"
 
 Pour obtenir une clé gratuite :
-  https://api.insee.fr/catalogue/ → Créer une application → Abonner à "Données locales"
+  https://portail-api.insee.fr/ → Créer une application → Abonner à "Données locales"
 """
 
 import os
@@ -42,7 +42,7 @@ def _get_bearer_token(api_key: str):
     if not api_key or ":" not in api_key:
         raise ValueError(
             "INSEE_API_KEY non configurée. Format attendu : 'consumer_key:consumer_secret'. "
-            "Inscription gratuite sur https://api.insee.fr/catalogue/"
+            "Inscription gratuite sur https://portail-api.insee.fr/"
         )
     credentials = base64.b64encode(api_key.encode()).decode()
     resp = requests.post(

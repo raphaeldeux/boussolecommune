@@ -21,7 +21,7 @@ def _get_bearer_token(api_key: str):
     if not api_key or ":" not in api_key:
         raise ValueError(
             "INSEE_API_KEY non configurée. Format : 'consumer_key:consumer_secret'. "
-            "Inscription gratuite sur https://api.insee.fr/catalogue/"
+            "Inscription gratuite sur https://portail-api.insee.fr/"
         )
     credentials = base64.b64encode(api_key.encode()).decode()
     resp = requests.post(
