@@ -73,16 +73,19 @@ def _parse_json(raw: str) -> dict:
     return _json.loads(clean)
 
 
-def _appel_mistral(prompt: str) -> str:
+def _appel_mistral(prompt: str, api_key: str = None, model: str = None) -> str:
     """Appel Mistral AI. Contexte 128k tokens."""
+    resolved_key = (api_key or "").strip() or MISTRAL_API_KEY
+    resolved_model = (model or "").strip() or MISTRAL_MODEL
+
     response = requests.post(
         MISTRAL_API_URL,
         headers={
-            "Authorization": f"Bearer {MISTRAL_API_KEY}",
+            "Authorization": f"Bearer {resolved_key}",
             "Content-Type": "application/json",
         },
         json={
-            "model": MISTRAL_MODEL,
+            "model": resolved_model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.3,
         },
@@ -92,7 +95,7 @@ def _appel_mistral(prompt: str) -> str:
     return response.json()["choices"][0]["message"]["content"].strip()
 
 
-def generer_resume(pdf_path: str, progress_callback=None):
+def generer_resume(pdf_path: str, progress_callback=None, api_key: str = None, model: str = None):
     """
     Extrait le texte du PDF et génère résumé + structure JSON via Mistral.
     Retourne un tuple (resume_texte: str, resume_structure: str | None).
@@ -163,7 +166,7 @@ Réponds UNIQUEMENT avec du JSON valide :
 }}"""
 
     _progress(20, "Envoi au modèle IA…")
-    raw = _appel_mistral(prompt)
+    raw = _appel_mistral(prompt, api_key=api_key, model=model)
     _progress(85, "Extraction des délibérations…")
 
     try:
@@ -196,18 +199,21 @@ Réponds UNIQUEMENT avec du JSON valide :
         return raw[:500], None
 
 
-def generer_synthese_thematique(thematique_label: str, indicateurs_enrichis: list) -> list[str] | None:
+def generer_synthese_thematique(thematique_label: str, indicateurs_enrichis: list, api_key: str = None, model: str = None) -> list[str] | None:
     """
     Génère 2-3 bullet points de synthèse pour une thématique à partir des indicateurs enrichis.
 
     Args:
         thematique_label: Label d'affichage, ex. "Soin de la maison" (pas le slug).
         indicateurs_enrichis: Liste de dicts enrichis (tendance, libelle_citoyen, donnee, pct_evolution).
+        api_key: Clé API Mistral (fallback sur MISTRAL_API_KEY si non fournie).
+        model: Modèle Mistral (fallback sur MISTRAL_MODEL si non fourni).
 
     Returns:
         list[str] avec 2-3 éléments, ou None si échec.
     """
-    if not MISTRAL_API_KEY:
+    resolved_key = (api_key or "").strip() or MISTRAL_API_KEY
+    if not resolved_key:
         return None
 
     # Sélection des évolutions les plus notables
@@ -256,7 +262,7 @@ Exemple de format attendu :
 ⚠ La dette par habitant reste au-dessus de la moyenne régionale."""
 
     try:
-        raw = _appel_mistral(prompt)
+        raw = _appel_mistral(prompt, api_key=api_key, model=model)
         bullets = [line.strip() for line in raw.strip().splitlines() if line.strip()]
         bullets = [b for b in bullets if b.startswith(("↗", "⚠", "↘", "•", "-"))]
         if not bullets:
@@ -275,12 +281,15 @@ def generer_interpretation_indicateur(
     annee_ancienne=None,
     pct_evolution=None,
     valeur_reference=None,
+    api_key: str = None,
+    model: str = None,
 ) -> dict | None:
     """
     Génère une analyse (phrase_longue) pour un indicateur via Mistral.
     Retourne {"phrase_longue": str} ou None si échec.
     """
-    if not MISTRAL_API_KEY:
+    resolved_key = (api_key or "").strip() or MISTRAL_API_KEY
+    if not resolved_key:
         return None
 
     libelle = ind.get("libelle_citoyen", ind.get("id", ""))
@@ -331,7 +340,7 @@ Réponds UNIQUEMENT avec du JSON valide :
 }}"""
 
     try:
-        raw = _appel_mistral(prompt)
+        raw = _appel_mistral(prompt, api_key=api_key, model=model)
         parsed = _parse_json(raw)
         return {
             "phrase_longue": parsed.get("phrase_longue", "").strip(),
@@ -341,12 +350,13 @@ Réponds UNIQUEMENT avec du JSON valide :
         return None
 
 
-def is_ai_ready() -> bool:
+def is_ai_ready(api_key: str = None) -> bool:
     """Vérifie si Mistral AI est configuré."""
-    return bool(MISTRAL_API_KEY)
+    resolved_key = (api_key or "").strip() or MISTRAL_API_KEY
+    return bool(resolved_key)
 
 
-def analyser_note_synthese(pdf_path: str, progress_callback=None):
+def analyser_note_synthese(pdf_path: str, progress_callback=None, api_key: str = None, model: str = None):
     """
     Extrait l'ordre du jour et génère un résumé citoyen depuis une note de synthèse PDF.
     Retourne (odj_texte: str, resume_avant_seance: str).
@@ -391,7 +401,7 @@ Réponds UNIQUEMENT avec du JSON valide :
   "resume_citoyen": "Le prochain conseil municipal portera sur…"
 }}"""
 
-    raw = _appel_mistral(prompt)
+    raw = _appel_mistral(prompt, api_key=api_key, model=model)
     _progress(80, "Traitement de la réponse…")
 
     try:
