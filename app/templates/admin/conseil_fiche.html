@@ -1,316 +1,509 @@
 {% extends "admin_base.html" %}
-{% block title %}{{ conseil.titre }} — Admin{% endblock %}
-{% block breadcrumb %} › <a href="{{ url_for('admin.conseils') }}" class="hover:text-gray-600">Conseils</a> › <span class="text-gray-800 font-medium truncate">{{ conseil.titre }}</span>{% endblock %}
+{% block title %}{{ conseil.date_conseil | date_fr_long }} — Admin{% endblock %}
+{% block breadcrumb %} › <a href="{{ url_for('admin.conseils') }}" class="hover:text-gray-600">Conseils</a> › <span class="text-gray-800 font-medium">{{ conseil.date_conseil | date_fr_long }}</span>{% endblock %}
 
 {% block content %}
 
-{# ── Stepper statut ── #}
-{% set etapes = [
-  ('nouveau',    'Créé'),
-  ('odj_publie', 'ODJ publié'),
-  ('pv_depose',  'PV déposé'),
-  ('publie',     'Publié'),
-] %}
 {% set ordre = ['nouveau', 'odj_publie', 'pv_depose', 'publie'] %}
 {% set statut_idx = ordre.index(statut) %}
 
-<div class="flex items-center gap-0 mb-8 bg-white border border-gray-200 rounded-xl px-6 py-4 overflow-x-auto">
-  {% for key, label in etapes %}
-  {% set idx = loop.index0 %}
-  <div class="flex items-center gap-2 flex-shrink-0">
-    <div class="flex items-center gap-2">
-      {% if idx < statut_idx %}
-        <span class="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-white text-xs">✓</span>
-        <span class="text-sm font-medium text-emerald-600">{{ label }}</span>
-      {% elif idx == statut_idx %}
-        <span class="w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">{{ idx + 1 }}</span>
-        <span class="text-sm font-semibold text-emerald-700">{{ label }}</span>
+
+<div class="max-w-3xl">
+
+{# ── En-tête ── #}
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-xl font-bold text-gray-900">{{ conseil.date_conseil | date_fr_long }}</h1>
+    <div class="flex items-center gap-2 mt-1.5">
+      <span class="text-sm text-gray-500">Conseil {{ 'métropolitain' if conseil.type_conseil == 'metropolitain' else 'municipal' }}</span>
+      {% if statut == 'publie' %}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">Publié</span>
+      {% elif statut == 'pv_depose' %}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">PV déposé</span>
+      {% elif statut == 'odj_publie' %}
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">ODJ publié</span>
       {% else %}
-        <span class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">{{ idx + 1 }}</span>
-        <span class="text-sm text-gray-400">{{ label }}</span>
+        <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Nouveau</span>
       {% endif %}
     </div>
-    {% if not loop.last %}
-    <span class="mx-3 text-gray-300">→</span>
-    {% endif %}
   </div>
-  {% endfor %}
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+{# ── Bannière état ── #}
+{% if statut == 'publie' %}
+<div class="mb-8 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+  <span class="text-emerald-500 text-xl flex-shrink-0">✅</span>
+  <p class="text-sm font-medium text-emerald-700 flex-1">Conseil publié et visible sur le site.</p>
+  <a href="{{ url_for('public.conseil_detail', ville_slug=ville.slug, conseil_id=conseil.id) }}"
+     target="_blank" class="text-xs text-emerald-600 hover:text-emerald-800 font-medium whitespace-nowrap">Voir →</a>
+</div>
+{% elif statut == 'odj_publie' and not after_seance_active %}
+<div class="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center gap-3">
+  <span class="text-2xl flex-shrink-0">🗓️</span>
+  <div>
+    <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-0.5">En attente</p>
+    <p class="text-sm text-gray-700">L'ordre du jour est publié. Le PV sera disponible après la date du conseil.</p>
+  </div>
+</div>
+{% else %}
+<div class="mb-8 bg-amber-50 border-2 border-amber-300 rounded-xl p-4 flex flex-wrap items-center gap-3">
+  <div class="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-amber-600 text-base font-bold">!</div>
+  <div class="flex-1 min-w-0">
+    <p class="text-xs font-bold uppercase tracking-wider text-amber-700 mb-0.5">Prochaine action</p>
+    <p class="text-sm font-semibold text-gray-800">{{ prochaine_action }}</p>
+  </div>
+  <a href="#step-{{ auto_open }}" onclick="ouvrirStep({{ auto_open }})"
+     class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition text-center">
+    Aller →
+  </a>
+</div>
+{% endif %}
 
-{# ══════════════════════════════════════════════ #}
-{# Bloc AVANT SÉANCE #}
-{# ══════════════════════════════════════════════ #}
-<div>
-  <h2 class="text-sm font-semibold text-amber-700 uppercase tracking-wide mb-3 flex items-center gap-2">
-    <span class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span> Avant séance
-  </h2>
+{# ── Stepper vertical ── #}
+<div id="stepper" class="relative">
+  <div class="absolute top-5 bottom-5 left-5 w-0.5 bg-gray-200" style="z-index:0"></div>
 
-  <form method="POST" action="{{ url_for('admin.conseil_fiche', conseil_id=conseil.id) }}"
-        class="space-y-4">
-    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-    <input type="hidden" name="bloc" value="avant_seance">
-
-    {# Infos de base #}
-    <div class="bg-white border border-amber-200 rounded-xl p-5 space-y-3">
-      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Informations</h3>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Titre *</label>
-        <input type="text" name="titre" value="{{ conseil.titre }}" required
-               class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
-      </div>
-      <div class="flex gap-3">
-        <div class="flex-1">
-          <label class="block text-xs font-medium text-gray-600 mb-1">Date *</label>
-          <input type="date" name="date_conseil"
-                 value="{{ conseil.date_conseil | string | truncate(10, true, '') }}" required
-                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
-        </div>
-        <div class="flex-1">
-          <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
-          <select name="type_conseil"
-                  class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400">
-            <option value="municipal" {% if conseil.type_conseil == 'municipal' %}selected{% endif %}>Municipal</option>
-            <option value="metropolitain" {% if conseil.type_conseil == 'metropolitain' %}selected{% endif %}>Métropolitain</option>
-          </select>
-        </div>
-      </div>
+  {# ─────────────────────────────── Étape 1 ─── #}
+  {% set s1_done = statut_idx >= 1 %}
+  <div class="relative flex gap-4 mb-1" id="step-1" style="z-index:1">
+    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+        {% if s1_done %}bg-emerald-500 text-white{% else %}bg-emerald-600 text-white{% endif %}">
+      {% if s1_done %}✓{% else %}1{% endif %}
     </div>
+    <div class="flex-1 pb-6">
+      <button type="button" onclick="toggleStep(1)"
+              class="w-full flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-left">
+        <span class="font-semibold text-gray-900 text-sm mr-auto">Préparer le conseil</span>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          {% if s1_done %}
+            <span class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+              {% if odj and odj.points %}{{ odj.points | length }} point(s){% elif conseil.odj_texte %}ODJ saisi{% else %}Complété{% endif %}
+            </span>
+          {% endif %}
+          <svg id="chevron-1" class="w-4 h-4 text-gray-400 transition-transform"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </button>
 
-    {# ODJ #}
-    <div class="bg-white border border-amber-200 rounded-xl p-5">
-      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Ordre du jour</h3>
+      {% if s1_done %}
+      <div id="step-1-summary" class="text-xs text-gray-400 pb-2">
+        {{ conseil.date_conseil | date_fr_long }}{% if conseil.note_synthese_pdf %} · <span class="text-emerald-600">Note déposée</span>{% endif %}{% if conseil.resume_avant_seance %} · Résumé avant séance rédigé{% endif %}
+      </div>
+      {% endif %}
 
-      {% if odj and odj.points %}
-      {# Mode structuré — PAS de hidden input odj_texte ici, le serveur reconstruit depuis odj_point_titre_N #}
-      <div id="odj-points" class="space-y-2 mb-3">
-        {% for point in odj.points %}
-        <div class="odj-point border border-gray-100 rounded-lg p-3 bg-gray-50" data-index="{{ loop.index }}">
-          <div class="flex items-start gap-2">
-            <span class="text-xs font-bold text-gray-400 mt-2 w-5 flex-shrink-0 odj-num">{{ loop.index }}</span>
-            <div class="flex-1 space-y-1">
-              <input type="text" name="odj_point_titre_{{ loop.index }}"
-                     value="{{ point.titre }}" placeholder="Titre du point"
-                     class="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-amber-400">
-              <input type="text" name="odj_point_description_{{ loop.index }}"
-                     value="{{ point.description or '' }}" placeholder="Description (optionnel)"
-                     class="w-full px-2 py-1.5 border border-gray-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-400">
+      <div id="step-1-content" class="hidden mt-2 space-y-4">
+
+        {# 1. Note de synthèse — EN PREMIER (IA-first) #}
+        <div class="bg-white border border-emerald-200 rounded-xl p-5">
+          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+            🔒 Note de synthèse <span class="font-normal text-gray-400">(confidentielle — sert à l'analyse IA)</span>
+          </h4>
+          {% if conseil.note_synthese_pdf %}
+          <p class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
+            ✓ Déposée — {{ conseil.note_synthese_pdf[-30:] }}
+          </p>
+          {% else %}
+          <p class="text-xs text-gray-400 mb-3">Déposez la note de synthèse pour générer automatiquement l'ODJ et le résumé citoyen via l'IA.</p>
+          {% endif %}
+          <form method="POST" enctype="multipart/form-data"
+                action="{{ url_for('admin.conseil_upload_note', conseil_id=conseil.id) }}"
+                class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <input type="file" name="note_synthese_pdf" accept=".pdf"
+                   class="flex-1 text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200">
+            <button type="submit"
+                    class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+              {% if conseil.note_synthese_pdf %}Remplacer{% else %}Déposer{% endif %}
+            </button>
+          </form>
+          <p class="text-xs text-gray-400 mt-2">Ce fichier ne sera jamais rendu public.</p>
+        </div>
+
+        {# 2. Analyse IA (visible si note déposée) #}
+        {% if conseil.note_synthese_pdf %}
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-5 space-y-3">
+          <h4 class="text-xs font-semibold text-emerald-700 uppercase tracking-wide flex items-center gap-2">
+            ✨ Analyse IA — génère l'ODJ et le résumé
+            {% if not ai_ready %}<span class="text-red-400 font-normal">(non configurée)</span>{% endif %}
+          </h4>
+          {% if conseil.statut_odj == 'en_cours' %}
+          <div id="odj-progress-wrap">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Analyse en cours…</span>
+              <span id="odj-pct">{{ conseil.progres_odj or 0 }}%</span>
             </div>
-            <button type="button" onclick="supprimerPoint(this)"
-                    class="text-red-400 hover:text-red-600 text-xs mt-2 flex-shrink-0">✕</button>
+            <div class="bg-white rounded-full h-2.5 border border-emerald-200">
+              <div id="odj-bar" class="bg-emerald-500 h-2.5 rounded-full transition-all"
+                   style="width: {{ conseil.progres_odj or 0 }}%"></div>
+            </div>
           </div>
+          {% elif conseil.statut_odj == 'erreur' %}
+          <p class="text-xs text-red-600">Erreur lors de l'analyse. Réessayez.</p>
+          {% elif conseil.statut_odj == 'termine' %}
+          <p class="text-xs text-emerald-700">✓ Analyse terminée — ODJ et résumé générés ci-dessous.</p>
+          {% else %}
+          <p class="text-xs text-gray-600">Lancez l'analyse pour remplir automatiquement l'ODJ et le résumé avant séance.</p>
+          {% endif %}
+          {% if ai_ready and conseil.statut_odj != 'en_cours' %}
+          <form method="POST" action="{{ url_for('admin.conseil_analyser_odj', conseil_id=conseil.id) }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition">
+              ✨ {% if conseil.statut_odj == 'termine' %}Relancer l'analyse IA{% else %}Analyser avec l'IA{% endif %}
+            </button>
+          </form>
+          {% endif %}
         </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      {# Mode fallback — textarea libre avec name=odj_texte #}
-      <textarea name="odj_texte" rows="6" id="odj-texte-fallback"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-400 resize-y"
-                placeholder='{"points": [{"numero": 1, "titre": "...", "description": "..."}]}'>{{ conseil.odj_texte or '' }}</textarea>
-      {% endif %}
+        {% endif %}
 
-      <button type="button" onclick="ajouterPoint()"
-              class="mt-2 text-xs text-amber-600 hover:text-amber-800 font-medium">+ Ajouter un point</button>
-    </div>
+        {# 3. ODJ + résumé + infos (formulaire principal) #}
+        <form method="POST" action="{{ url_for('admin.conseil_fiche', conseil_id=conseil.id) }}" class="space-y-4">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="bloc" value="avant_seance">
 
-    {# Résumé avant séance #}
-    <div class="bg-white border border-amber-200 rounded-xl p-5">
-      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Résumé citoyen — avant séance</h3>
-      <textarea name="resume_avant_seance" rows="4"
-                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-                placeholder="Le prochain conseil municipal portera sur…">{{ conseil.resume_avant_seance or '' }}</textarea>
-    </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+              Ordre du jour
+              {% if conseil.note_synthese_pdf %}<span class="ml-2 font-normal text-gray-400">(auto-rempli par l'IA, modifiable)</span>{% endif %}
+            </h4>
+            {% if odj and odj.points %}
+            <div id="odj-points" class="space-y-2 mb-3">
+              {% for point in odj.points %}
+              <div class="odj-point border border-gray-100 rounded-lg p-3 bg-gray-50" data-index="{{ loop.index }}">
+                <div class="flex items-start gap-2">
+                  <span class="text-xs font-bold text-gray-400 mt-2.5 w-5 flex-shrink-0 odj-num">{{ loop.index }}</span>
+                  <div class="flex-1 space-y-1.5">
+                    <input type="text" name="odj_point_titre_{{ loop.index }}"
+                           value="{{ point.titre }}" placeholder="Titre du point"
+                           class="w-full px-2 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                    <input type="text" name="odj_point_description_{{ loop.index }}"
+                           value="{{ point.description or '' }}" placeholder="Description (optionnel)"
+                           class="w-full px-2 py-2 border border-gray-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                  </div>
+                  <button type="button" onclick="supprimerPoint(this)"
+                          class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg mt-0.5">✕</button>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div id="odj-points" class="space-y-2 mb-2"></div>
+            <textarea name="odj_texte" rows="4" id="odj-texte-fallback"
+                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-y mb-2"
+                      placeholder="Saisissez les points ou utilisez le bouton ci-dessous.">{{ conseil.odj_texte or '' }}</textarea>
+            {% endif %}
+            <button type="button" onclick="ajouterPoint()"
+                    class="text-xs text-emerald-600 hover:text-emerald-800 font-medium">+ Ajouter un point</button>
+          </div>
 
-    <button type="submit"
-            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2.5 rounded-lg text-sm transition">
-      Enregistrer (avant séance)
-    </button>
-  </form>
+          <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Résumé citoyen — avant séance
+              {% if conseil.note_synthese_pdf %}<span class="ml-2 font-normal text-gray-400">(auto-rempli par l'IA)</span>{% endif %}
+            </h4>
+            <textarea name="resume_avant_seance" rows="3"
+                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-none"
+                      placeholder="Le prochain conseil municipal portera sur…">{{ conseil.resume_avant_seance or '' }}</textarea>
+          </div>
 
-  {# Note de synthèse — hors du formulaire principal #}
-  <div class="bg-white border border-amber-200 rounded-xl p-5 mt-4">
-    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-      <i class="ri-file-lock-line text-gray-400"></i> Note de synthèse (confidentielle)
-    </h3>
-    {% if conseil.note_synthese_pdf %}
-    <p class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
-      ✓ Déposée — {{ conseil.note_synthese_pdf[-30:] }}
-    </p>
-    {% endif %}
-    <form method="POST" enctype="multipart/form-data"
-          action="{{ url_for('admin.conseil_upload_note', conseil_id=conseil.id) }}"
-          class="flex items-center gap-2 flex-wrap">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="file" name="note_synthese_pdf" accept=".pdf"
-             class="text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200">
-      <button type="submit"
-              class="bg-gray-700 hover:bg-gray-800 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap">
-        {% if conseil.note_synthese_pdf %}Remplacer{% else %}Déposer{% endif %}
-      </button>
-    </form>
-    <p class="text-xs text-gray-400 mt-2">Ce fichier ne sera jamais rendu public.</p>
-  </div>
+          <div class="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Informations</h4>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                <input type="date" name="date_conseil"
+                       value="{{ conseil.date_conseil | string | truncate(10, true, '') }}" required
+                       class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+              </div>
+              <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                <select name="type_conseil"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                  <option value="municipal" {% if conseil.type_conseil == 'municipal' %}selected{% endif %}>🏛️ Municipal</option>
+                  <option value="metropolitain" {% if conseil.type_conseil == 'metropolitain' %}selected{% endif %}>🏙️ Métropolitain</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-  {# Analyse IA + publication ODJ #}
-  {% if conseil.note_synthese_pdf %}
-  <div class="bg-white border border-amber-200 rounded-xl p-5 mt-4 space-y-3">
-    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
-      <i class="ri-sparkling-line text-emerald-500"></i> Analyse IA
-      {% if not ai_ready %}<span class="text-red-400 font-normal">(API non configurée)</span>{% endif %}
-    </h3>
-    {% if conseil.statut_odj == 'en_cours' %}
-    <div id="odj-progress-wrap">
-      <div class="flex justify-between text-xs text-gray-500 mb-1">
-        <span>Analyse en cours…</span>
-        <span id="odj-pct">{{ conseil.progres_odj or 0 }}%</span>
-      </div>
-      <div class="bg-gray-100 rounded-full h-2">
-        <div id="odj-bar" class="bg-emerald-500 h-2 rounded-full transition-all"
-             style="width: {{ conseil.progres_odj or 0 }}%"></div>
-      </div>
-    </div>
-    {% elif conseil.statut_odj == 'erreur' %}
-    <p class="text-xs text-red-500">Erreur lors de l'analyse. Réessayez.</p>
-    {% elif conseil.statut_odj == 'termine' %}
-    <p class="text-xs text-emerald-600">✓ Analyse terminée. Vous pouvez relancer.</p>
-    {% endif %}
-    {% if ai_ready and conseil.statut_odj != 'en_cours' %}
-    <form method="POST" action="{{ url_for('admin.conseil_analyser_odj', conseil_id=conseil.id) }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <button type="submit"
-              class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-        <i class="ri-sparkling-line mr-1"></i>
-        {% if conseil.statut_odj == 'termine' %}Relancer l'analyse{% else %}Analyser avec l'IA{% endif %}
-      </button>
-    </form>
-    {% endif %}
-
-    {% if conseil.odj_texte or conseil.resume_avant_seance %}
-    <form method="POST" action="{{ url_for('admin.conseil_publier_odj', conseil_id=conseil.id) }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <button type="submit"
-              class="px-4 py-2 rounded-lg text-sm font-medium transition
-                {% if conseil.odj_publie %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200
-                {% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-        {% if conseil.odj_publie %}✓ ODJ publié{% else %}Publier l'ODJ{% endif %}
-      </button>
-    </form>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
-
-{# ══════════════════════════════════════════════ #}
-{# Bloc APRÈS SÉANCE #}
-{# ══════════════════════════════════════════════ #}
-<div>
-  <h2 class="text-sm font-semibold uppercase tracking-wide mb-3 flex items-center gap-2
-      {% if after_seance_active %}text-blue-700{% else %}text-gray-400{% endif %}">
-    <span class="w-2 h-2 rounded-full inline-block {% if after_seance_active %}bg-blue-400{% else %}bg-gray-300{% endif %}"></span>
-    Après séance
-    {% if not after_seance_active %}
-    <span class="text-xs font-normal text-gray-400">(disponible après la date du conseil)</span>
-    {% endif %}
-  </h2>
-
-  <div class="{% if not after_seance_active %}opacity-50 pointer-events-none select-none{% endif %} space-y-4">
-
-    {# Dépôt PV #}
-    <div class="bg-white border border-blue-200 rounded-xl p-5">
-      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Procès-verbal (PDF)</h3>
-      {% if conseil.fichier_pdf %}
-      <p class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
-        ✓ Déposé — {{ conseil.fichier_pdf[-30:] }}
-      </p>
-      {% endif %}
-      <form method="POST" enctype="multipart/form-data"
-            action="{{ url_for('admin.conseil_upload_pv', conseil_id=conseil.id) }}">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <div class="flex items-center gap-2">
-          <input type="file" name="fichier_pdf" accept=".pdf"
-                 class="text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200">
           <button type="submit"
-                  class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition whitespace-nowrap">
-            {% if conseil.fichier_pdf %}Remplacer{% else %}Déposer{% endif %}
+                  class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+            Enregistrer
           </button>
-        </div>
-      </form>
+        </form>
+
+      </div>{# fin step-1-content #}
     </div>
+  </div>
 
-    {# Génération résumé IA #}
-    {% if conseil.fichier_pdf %}
-    <div class="bg-white border border-blue-200 rounded-xl p-5">
-      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-        <i class="ri-sparkling-line text-purple-500"></i> Résumé citoyen — IA
-        {% if not ai_ready %}<span class="text-red-400 font-normal">(API non configurée)</span>{% endif %}
-      </h3>
-      {% if conseil.statut_resume == 'en_cours' %}
-      <div class="mb-3">
-        <div class="flex justify-between text-xs text-gray-500 mb-1">
-          <span>Génération en cours…</span>
-          <span id="resume-pct">{{ conseil.progres_resume or 0 }}%</span>
+  {# ─────────────────────────────── Étape 2 ─── #}
+  {% set s2_done = conseil.odj_publie %}
+  {% set s2_has_content = conseil.odj_texte or (odj and odj.points) or conseil.note_synthese_pdf %}
+  <div class="relative flex gap-4 mb-1" id="step-2" style="z-index:1">
+    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+        {% if s2_done %}bg-emerald-500 text-white
+        {% elif statut == 'nouveau' %}bg-amber-500 text-white
+        {% else %}bg-gray-200 text-gray-400{% endif %}">
+      {% if s2_done %}✓{% else %}2{% endif %}
+    </div>
+    <div class="flex-1 pb-6">
+      <button type="button" onclick="toggleStep(2)"
+              class="w-full flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-left">
+        <span class="text-sm mr-auto font-semibold {% if s2_done or statut == 'nouveau' %}text-gray-900{% else %}text-gray-400{% endif %}">
+          Publier l'ordre du jour
+        </span>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          {% if s2_done %}
+            <span class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Publié</span>
+          {% endif %}
+          <svg id="chevron-2" class="w-4 h-4 text-gray-400 transition-transform"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
         </div>
-        <div class="bg-gray-100 rounded-full h-2">
-          <div id="resume-bar" class="bg-purple-500 h-2 rounded-full transition-all"
-               style="width: {{ conseil.progres_resume or 0 }}%"></div>
-        </div>
+      </button>
+
+      <div id="step-2-content" class="hidden mt-2 space-y-3">
+
+        <form method="POST" action="{{ url_for('admin.conseil_publier_odj', conseil_id=conseil.id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="w-full py-3 rounded-xl text-sm font-bold transition
+                    {% if conseil.odj_publie %}
+                      bg-emerald-50 text-emerald-700 border-2 border-emerald-300 hover:bg-emerald-100
+                    {% else %}
+                      bg-emerald-600 text-white hover:bg-emerald-700
+                    {% endif %}">
+            {% if conseil.odj_publie %}✓ ODJ publié — Cliquer pour dépublier{% else %}📢 Publier l'ordre du jour{% endif %}
+          </button>
+        </form>
+        {% if not s2_has_content and not conseil.odj_publie %}
+        <p class="text-xs text-gray-400 text-center italic">Complétez d'abord l'ODJ à l'étape 1</p>
+        {% endif %}
+
       </div>
-      {% elif conseil.statut_resume == 'erreur' %}
-      <p class="text-xs text-red-500 mb-2">Erreur lors de la génération. Réessayez.</p>
-      {% elif conseil.statut_resume == 'termine' %}
-      <p class="text-xs text-emerald-600 mb-2">✓ Génération terminée.</p>
-      {% endif %}
-      {% if ai_ready and conseil.statut_resume != 'en_cours' %}
-      <form method="POST" action="{{ url_for('admin.conseil_generer_resume', conseil_id=conseil.id) }}">
-        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-        <button type="submit"
-                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-          <i class="ri-sparkling-line mr-1"></i>
-          {% if conseil.statut_resume == 'termine' %}Relancer{% else %}Générer le résumé{% endif %}
-        </button>
-      </form>
+    </div>
+  </div>
+
+  {# ─────────────────────────────── Étape 3 ─── #}
+  {% set s3_locked = not after_seance_active %}
+  {% set s3_done = conseil.fichier_pdf and conseil.resume_citoyen %}
+  {% set s3_partial = conseil.fichier_pdf and not conseil.resume_citoyen %}
+  <div class="relative flex gap-4 mb-1" id="step-3" style="z-index:1">
+    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+        {% if s3_done %}bg-emerald-500 text-white
+        {% elif s3_partial %}bg-blue-500 text-white
+        {% elif s3_locked %}bg-gray-200 text-gray-400
+        {% elif statut == 'odj_publie' %}bg-blue-600 text-white
+        {% else %}bg-gray-200 text-gray-400{% endif %}">
+      {% if s3_done %}✓{% else %}3{% endif %}
+    </div>
+    <div class="flex-1 pb-6">
+      <button type="button" onclick="{% if not s3_locked %}toggleStep(3){% endif %}"
+              class="w-full flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-left {% if s3_locked %}cursor-default{% endif %}">
+        <span class="text-sm mr-auto font-semibold {% if s3_locked %}text-gray-400{% else %}text-gray-900{% endif %}">
+          Procès-verbal et résumé citoyen
+        </span>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          {% if s3_locked %}
+            <span class="text-xs text-gray-400 italic">Après le conseil</span>
+          {% elif s3_done %}
+            <span class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Complet</span>
+          {% elif s3_partial %}
+            <span class="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">PV déposé</span>
+          {% endif %}
+          {% if not s3_locked %}
+          <svg id="chevron-3" class="w-4 h-4 text-gray-400 transition-transform"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+          {% endif %}
+        </div>
+      </button>
+
+      {% if not s3_locked %}
+      <div id="step-3-content" class="hidden mt-2 space-y-4">
+
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Procès-verbal (PDF)</h4>
+          {% if conseil.fichier_pdf %}
+          <p class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
+            ✓ Déposé — {{ conseil.fichier_pdf[-30:] }}
+          </p>
+          {% endif %}
+          <form method="POST" enctype="multipart/form-data"
+                action="{{ url_for('admin.conseil_upload_pv', conseil_id=conseil.id) }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input type="file" name="fichier_pdf" accept=".pdf"
+                     class="flex-1 text-sm text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-600 hover:file:bg-gray-200">
+              <button type="submit"
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+                {% if conseil.fichier_pdf %}Remplacer{% else %}Déposer{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {% if conseil.fichier_pdf %}
+        <div class="bg-white border border-gray-200 rounded-xl p-5">
+          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+            ✨ Résumé citoyen — IA
+            {% if not ai_ready %}<span class="text-red-400 font-normal text-xs">(non configurée)</span>{% endif %}
+          </h4>
+          {% if conseil.statut_resume == 'en_cours' %}
+          <div class="mb-3">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Génération en cours…</span>
+              <span id="resume-pct">{{ conseil.progres_resume or 0 }}%</span>
+            </div>
+            <div class="bg-gray-100 rounded-full h-2">
+              <div id="resume-bar" class="bg-purple-500 h-2 rounded-full transition-all"
+                   style="width: {{ conseil.progres_resume or 0 }}%"></div>
+            </div>
+          </div>
+          {% elif conseil.statut_resume == 'erreur' %}
+          <p class="text-xs text-red-500 mb-2">Erreur lors de la génération. Réessayez.</p>
+          {% elif conseil.statut_resume == 'termine' %}
+          <p class="text-xs text-emerald-600 mb-2">✓ Génération terminée.</p>
+          {% endif %}
+          {% if ai_ready and conseil.statut_resume != 'en_cours' %}
+          <form method="POST" action="{{ url_for('admin.conseil_generer_resume', conseil_id=conseil.id) }}">
+            <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+            <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+              ✨ {% if conseil.statut_resume == 'termine' %}Relancer{% else %}Générer le résumé{% endif %}
+            </button>
+          </form>
+          {% endif %}
+        </div>
+
+        <form method="POST" action="{{ url_for('admin.conseil_fiche', conseil_id=conseil.id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="bloc" value="apres_seance">
+          <div class="bg-white border border-gray-200 rounded-xl p-5">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Résumé citoyen (éditable)</h4>
+            <textarea name="resume_citoyen" rows="8" id="resume-citoyen"
+                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
+                      placeholder="Synthèse du conseil pour les citoyens…">{{ conseil.resume_citoyen or '' }}</textarea>
+          </div>
+          <button type="submit"
+                  class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+            Enregistrer le résumé
+          </button>
+        </form>
+        {% endif %}{# conseil.fichier_pdf #}
+
+      </div>{# fin step-3-content #}
+      {% endif %}{# not s3_locked #}
+    </div>
+  </div>
+
+  {# ─────────────────────────────── Étape 4 ─── #}
+  {% set s4_locked = statut_idx < 2 %}
+  <div class="relative flex gap-4" id="step-4" style="z-index:1">
+    <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm
+        {% if conseil.publie %}bg-emerald-500 text-white
+        {% elif not s4_locked %}bg-emerald-600 text-white
+        {% else %}bg-gray-200 text-gray-400{% endif %}">
+      {% if conseil.publie %}✓{% else %}4{% endif %}
+    </div>
+    <div class="flex-1 pb-2">
+      <button type="button" onclick="{% if not s4_locked %}toggleStep(4){% endif %}"
+              class="w-full flex flex-wrap items-center gap-x-2 gap-y-1 py-2 text-left {% if s4_locked %}cursor-default{% endif %}">
+        <span class="text-sm mr-auto font-semibold {% if s4_locked %}text-gray-400{% else %}text-gray-900{% endif %}">
+          Publier le compte-rendu
+        </span>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          {% if conseil.publie %}
+            <span class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">Publié</span>
+          {% elif s4_locked %}
+            <span class="text-xs text-gray-400 italic">Après dépôt du PV</span>
+          {% endif %}
+          {% if not s4_locked %}
+          <svg id="chevron-4" class="w-4 h-4 text-gray-400 transition-transform"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+          </svg>
+          {% endif %}
+        </div>
+      </button>
+
+      {% if not s4_locked %}
+      <div id="step-4-content" class="hidden mt-2">
+        <form method="POST" action="{{ url_for('admin.conseil_publier', conseil_id=conseil.id) }}">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="w-full py-3 rounded-xl text-sm font-bold transition
+                    {% if conseil.publie %}
+                      bg-emerald-50 text-emerald-700 border-2 border-emerald-300 hover:bg-emerald-100
+                    {% else %}
+                      bg-emerald-600 text-white hover:bg-emerald-700
+                    {% endif %}">
+            {% if conseil.publie %}✓ Conseil publié — Cliquer pour dépublier{% else %}🚀 Publier le compte-rendu public{% endif %}
+          </button>
+        </form>
+        {% if not conseil.resume_citoyen and not conseil.publie %}
+        <p class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+          ⚠️ Aucun résumé citoyen rédigé. Le compte-rendu sera publié sans synthèse.
+        </p>
+        {% endif %}
+      </div>
       {% endif %}
     </div>
-    {% endif %}
+  </div>
 
-    {# Résumé citoyen éditable #}
-    <form method="POST" action="{{ url_for('admin.conseil_fiche', conseil_id=conseil.id) }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <input type="hidden" name="bloc" value="apres_seance">
-      <div class="bg-white border border-blue-200 rounded-xl p-5">
-        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Résumé citoyen</h3>
-        <textarea name="resume_citoyen" rows="8" id="resume-citoyen"
-                  class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
-                  placeholder="Synthèse du conseil pour les citoyens…">{{ conseil.resume_citoyen or '' }}</textarea>
-      </div>
-      <button type="submit"
-              class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
-        Enregistrer (après séance)
-      </button>
-    </form>
-
-    {# Publication conseil #}
-    <form method="POST" action="{{ url_for('admin.conseil_publier', conseil_id=conseil.id) }}">
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
-      <button type="submit"
-              class="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition
-                {% if conseil.publie %}bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300
-                {% else %}bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300{% endif %}">
-        {% if conseil.publie %}✓ Conseil publié — Dépublier{% else %}Publier le compte-rendu{% endif %}
-      </button>
-    </form>
-
-  </div>{# fin opacity wrapper #}
-</div>
-
-</div>{# fin grid #}
+</div>{# fin stepper #}
+</div>{# fin max-w-3xl #}
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-// ── Compteur de points ODJ ──
+var AUTO_OPEN = {{ auto_open }};
+
+function toggleStep(n) {
+  var content = document.getElementById('step-' + n + '-content');
+  var chevron = document.getElementById('chevron-' + n);
+  var summary = document.getElementById('step-' + n + '-summary');
+  if (!content) return;
+  var isOpen = !content.classList.contains('hidden');
+  if (isOpen) {
+    content.classList.add('hidden');
+    if (chevron) chevron.style.transform = '';
+    if (summary) summary.classList.remove('hidden');
+  } else {
+    content.classList.remove('hidden');
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+    if (summary) summary.classList.add('hidden');
+  }
+}
+
+function ouvrirStep(n) {
+  var content = document.getElementById('step-' + n + '-content');
+  var chevron = document.getElementById('chevron-' + n);
+  var summary = document.getElementById('step-' + n + '-summary');
+  if (!content) return;
+  content.classList.remove('hidden');
+  if (chevron) chevron.style.transform = 'rotate(180deg)';
+  if (summary) summary.classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  ouvrirStep(AUTO_OPEN);
+  var hash = window.location.hash;
+  if (hash && hash.startsWith('#step-')) {
+    var n = parseInt(hash.replace('#step-', ''));
+    if (n && n !== AUTO_OPEN) ouvrirStep(n);
+    setTimeout(function() {
+      var el = document.getElementById('step-' + n);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }
+});
+
+// ── ODJ points ──
 var _pointCount = document.querySelectorAll('.odj-point').length;
 
 function ajouterPoint() {
@@ -318,15 +511,14 @@ function ajouterPoint() {
   var idx = _pointCount;
   var container = document.getElementById('odj-points');
   if (!container) {
-    // Mode fallback : créer le container et cacher la textarea
     var ta = document.getElementById('odj-texte-fallback');
     if (ta) {
       var div = document.createElement('div');
       div.id = 'odj-points';
-      div.className = 'space-y-2 mb-3';
+      div.className = 'space-y-2 mb-2';
       ta.parentNode.insertBefore(div, ta);
       ta.style.display = 'none';
-      ta.name = '';  // désactiver le champ fallback pour éviter conflit
+      ta.name = '';
       container = div;
       _pointCount = 1;
       idx = 1;
@@ -336,11 +528,11 @@ function ajouterPoint() {
   var html = '<div class="odj-point border border-gray-100 rounded-lg p-3 bg-gray-50" data-index="' + idx + '">' +
     '<div class="flex items-start gap-2">' +
     '<span class="text-xs font-bold text-gray-400 mt-2 w-5 flex-shrink-0 odj-num">' + idx + '</span>' +
-    '<div class="flex-1 space-y-1">' +
-    '<input type="text" name="odj_point_titre_' + idx + '" placeholder="Titre du point" class="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-amber-400">' +
-    '<input type="text" name="odj_point_description_' + idx + '" placeholder="Description (optionnel)" class="w-full px-2 py-1.5 border border-gray-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-1 focus:ring-amber-400">' +
+    '<div class="flex-1 space-y-1.5">' +
+    '<input type="text" name="odj_point_titre_' + idx + '" placeholder="Titre du point" class="w-full px-2 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">' +
+    '<input type="text" name="odj_point_description_' + idx + '" placeholder="Description (optionnel)" class="w-full px-2 py-2 border border-gray-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-400">' +
     '</div>' +
-    '<button type="button" onclick="supprimerPoint(this)" class="text-red-400 hover:text-red-600 text-xs mt-2 flex-shrink-0">✕</button>' +
+    '<button type="button" onclick="supprimerPoint(this)" class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg mt-0.5">✕</button>' +
     '</div></div>';
   container.insertAdjacentHTML('beforeend', html);
 }
@@ -364,7 +556,7 @@ function renumeroterPoints() {
   _pointCount = points.length;
 }
 
-// ── Polling statut IA — ODJ ──
+// ── Polling ODJ IA ──
 (function() {
   var statut = "{{ conseil.statut_odj }}";
   if (statut !== 'en_cours') return;
@@ -379,7 +571,7 @@ function renumeroterPoints() {
   }, 2000);
 })();
 
-// ── Polling statut IA — Résumé ──
+// ── Polling Résumé IA ──
 (function() {
   var statut = "{{ conseil.statut_resume }}";
   if (statut !== 'en_cours') return;

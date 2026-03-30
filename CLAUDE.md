@@ -45,34 +45,13 @@ No test framework or linter is configured in this project.
 A single instance serves multiple communes. Every data row carries a `ville_id` FK. The session stores `admin_ville_id` / `public_ville_id` to scope queries. Super-admins see all cities; gestionnaires see only their assigned cities.
 
 ### Scoring system (A–E)
-- **41 indicators** across 6 weighted thematic categories (Finances 25%, Cadre Vie 20%, Personnes 20%, Lien Social 15%, Démocratie 12%, Vivant 8%) plus 4 portrait indicators
-- Each indicator has `seuil_vert`/`seuil_orange`/`seuil_rouge` thresholds and a `sens` (haut/bas/neutre)
-- Raw score 1–5 is adjusted by trajectory (YoY change ±0.5–1.5) and benchmark comparison vs. similar communes (±0.5–1.5), clamped to [1, 5]
-- Scores can be overridden manually via the interpretation table
+- 41 indicators across 6 weighted thematic categories + 4 portrait indicators
+- Each indicator has thresholds and a `sens` (haut/bas/neutre); scores adjusted by trajectory and benchmark comparison
 - Logic lives in `app/services/scoring.py`
 
 ### Data ingestion channels
-1. **OFGL CSV** (`app/services/parser_ofgl.py`) — municipal finance data
-2. **Generic CSV** (`app/services/parser_csv.py`) — flexible format: `année, indicateur_id, valeur, source`
-3. **ma-cantine API** (`app/services/fetchers/macantine.py`) — EGAlim indicators (bio, sustainable, fish)
-4. **Manual entry** — admin saisie page
-5. **Ollama PDF→Summary** (`app/services/ollama_service.py`) — council meeting PDFs → citizen-friendly text via local LLM
-
-### Authentication & security
-- Session-based auth with CSRF tokens validated on all admin POSTs
-- Rate limiting: 5 failed login attempts per IP per 15 minutes
-- 8-hour session TTL; HTTPONLY + SAMESITE=Lax cookies
-- Production mode enforces non-default SECRET_KEY and ADMIN_PASSWORD at startup
-- Security headers set in app factory (X-Content-Type-Options, X-Frame-Options, Referrer-Policy)
+- OFGL CSV, generic CSV, ma-cantine API, manual entry, Ollama PDF→summary
+- See `app/services/` for parsers and fetchers
 
 ### Key environment variables (`.env`)
-```
-DATABASE_URL        postgresql://boussole:password@db:5432/boussolecommune
-POSTGRES_PASSWORD   password for the db container
-ADMIN_USERNAME      initial super-admin login
-ADMIN_PASSWORD      initial super-admin password (must differ from 'admin' in production)
-SECRET_KEY          Flask session secret (required in production)
-FLASK_ENV           development | production
-OLLAMA_URL          http://ollama:11434 (default)
-OLLAMA_MODEL        llama3.2:3b (default)
-```
+`DATABASE_URL`, `POSTGRES_PASSWORD`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `SECRET_KEY`, `FLASK_ENV`, `OLLAMA_URL`, `OLLAMA_MODEL`

@@ -2138,12 +2138,12 @@ def conseil_fiche(conseil_id):
         bloc = request.form.get("bloc")
 
         if bloc == "avant_seance":
-            titre = request.form.get("titre", "").strip()
             date_conseil = request.form.get("date_conseil", "").strip()
             type_conseil = request.form.get("type_conseil", "municipal")
-            if not titre or not date_conseil:
-                flash("Titre et date sont obligatoires.", "danger")
+            if not date_conseil:
+                flash("La date est obligatoire.", "danger")
                 return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
+            titre = _titre_conseil_auto(type_conseil, date_conseil)
             # Reconstruire ODJ JSON depuis les champs point-by-point
             points = []
             i = 1
@@ -2193,15 +2193,29 @@ def conseil_fiche(conseil_id):
     date_conseil = conseil.get("date_conseil")
     after_seance_active = (date_conseil is None) or (date_conseil <= today)
 
+    statut = _conseil_statut(conseil)
+    has_odj_content = bool(odj or conseil.get("odj_texte") or conseil.get("note_synthese_pdf"))
+    if statut in ("publie", "pv_depose"):
+        auto_open = 4
+    elif statut == "odj_publie" and after_seance_active:
+        auto_open = 3
+    elif statut == "odj_publie":
+        auto_open = 1
+    elif has_odj_content:
+        auto_open = 2
+    else:
+        auto_open = 1
+
     return render_template(
         "admin/conseil_fiche.html",
         ville=ville,
         conseil=conseil,
         odj=odj,
         ai_ready=is_ai_ready(),
-        statut=_conseil_statut(conseil),
+        statut=statut,
         prochaine_action=_conseil_prochaine_action(conseil),
         after_seance_active=after_seance_active,
+        auto_open=auto_open,
     )
 
 
