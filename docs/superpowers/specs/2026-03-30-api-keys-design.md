@@ -38,6 +38,41 @@ Les colonnes sont nullables. Si vides, les services tombent en fallback sur les 
 4. Passer la clé résolue au fetcher / ai_service
 ```
 
+La résolution et la vérification de présence se font **dans le fetcher/service** (pas dans la route), pour centraliser la logique :
+
+```python
+# Exemple dans fetch_insee_rp_data() :
+def fetch_insee_rp_data(code_insee: str, api_key: str = None) -> dict:
+    api_key = api_key or os.environ.get("INSEE_API_KEY", "")
+    if not api_key:
+        return {"ok": False, "error": "INSEE_API_KEY non configurée...", ...}
+```
+
+### Routes admin à modifier
+
+Les routes suivantes passent la clé résolue à chaque appel :
+
+| Route | Appel modifié |
+|-------|--------------|
+| `fetch_insee_rp()` | `fetch_insee_rp_data(code_insee, api_key=ville.get("insee_api_key"))` |
+| `fetch_sirene()` | `fetch_sirene_data(code_insee, api_key=ville.get("insee_api_key"))` |
+| `interpretation_generer_ia()` (~ligne 438) | `generer_interpretation_indicateur(..., api_key=..., model=...)` |
+| `conseil_generer_resume()` (~ligne 2199) | `generer_resume_pv(..., api_key=..., model=...)` |
+| `generer_synthese_thematique()` (~ligne 2623) | `generer_synthese_thematique(..., api_key=..., model=...)` |
+
+La suppression de la vérification `if not os.environ.get("INSEE_API_KEY")` existante dans `fetch_sirene()` est incluse dans cette tâche (remplacée par le check dans le fetcher).
+
+### Signature `ville.py update()` étendue
+
+```python
+def update(ville_id, nom, slug, population=None, actif=1, code_insee=None,
+           nb_conseillers=None, whatsapp_url=None, indicateurs_vedettes=None,
+           prochain_conseil=None, prochain_conseil_heure=None,
+           insee_api_key=None, mistral_api_key=None, mistral_model=None):
+```
+
+La valeur `None` conserve la valeur existante en base (UPDATE inclut toujours les 3 colonnes).
+
 ---
 
 ## User Stories
