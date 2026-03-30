@@ -48,6 +48,16 @@ def update(ville_id, nom, slug, population=None, actif=1, code_insee=None, nb_co
         conn.commit()
 
 
+def update_api_keys(ville_id, insee_api_key=None, mistral_api_key=None, mistral_model=None):
+    """Met à jour uniquement les clés API d'une ville (gestionnaire ou super_admin)."""
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE villes SET insee_api_key=%s, mistral_api_key=%s, mistral_model=%s WHERE id=%s",
+            (insee_api_key or None, mistral_api_key or None, mistral_model or None, ville_id)
+        )
+        conn.commit()
+
+
 def get_first_active():
     """Retourne la première ville active (défaut)."""
     with get_db() as conn:
