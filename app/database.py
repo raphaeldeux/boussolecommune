@@ -557,4 +557,15 @@ def init_db():  # noqa: C901
         conn.execute("ALTER TABLE villes ADD COLUMN indicateurs_vedettes TEXT DEFAULT NULL")
         conn.commit()
 
+    # Migration: clés API par ville
+    if not _column_exists(conn, 'villes', 'insee_api_key'):
+        conn.execute("ALTER TABLE villes ADD COLUMN insee_api_key TEXT DEFAULT NULL")
+        conn.commit()
+    if not _column_exists(conn, 'villes', 'mistral_api_key'):
+        conn.execute("ALTER TABLE villes ADD COLUMN mistral_api_key TEXT DEFAULT NULL")
+        conn.commit()
+    if not _column_exists(conn, 'villes', 'mistral_model'):
+        conn.execute("ALTER TABLE villes ADD COLUMN mistral_model TEXT DEFAULT NULL")
+        conn.commit()
+
     conn.close()
