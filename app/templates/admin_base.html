@@ -171,6 +171,11 @@
                {% if request.endpoint == 'admin.mes_propositions' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             📋 Mes propositions
           </a>
+          <a href="{{ url_for('admin.integrations') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.integrations' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            🔑 Intégrations
+          </a>
         </div>
 
         <!-- Super-admin -->

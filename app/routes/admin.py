@@ -2605,6 +2605,37 @@ def document_supprimer(doc_id):
     return redirect(url_for("admin.documents"))
 
 
+@bp.route("/integrations", methods=["GET", "POST"])
+@login_required
+def integrations():
+    """Page de configuration des clés API par gestionnaire."""
+    from app.services.ai_service import MISTRAL_API_KEY as ENV_MISTRAL
+
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune commune sélectionnée.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    if request.method == "POST":
+        insee_api_key = request.form.get("insee_api_key", "").strip() or None
+        mistral_api_key = request.form.get("mistral_api_key", "").strip() or None
+        mistral_model = request.form.get("mistral_model", "").strip() or None
+        ville_model.update_api_keys(ville["id"], insee_api_key=insee_api_key,
+                                     mistral_api_key=mistral_api_key, mistral_model=mistral_model)
+        flash("Intégrations enregistrées.", "success")
+        return redirect(url_for("admin.integrations"))
+
+    has_env_insee = bool(os.environ.get("INSEE_API_KEY"))
+    has_env_mistral = bool(ENV_MISTRAL)
+
+    return render_template(
+        "admin/integrations.html",
+        ville=ville,
+        has_env_insee=has_env_insee,
+        has_env_mistral=has_env_mistral,
+    )
+
+
 @bp.route("/synthese-thematique/generer", methods=["POST"])
 @login_required
 def synthese_thematique_generer():
