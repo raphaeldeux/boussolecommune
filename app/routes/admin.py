@@ -25,6 +25,9 @@ from app.services.fetchers.macantine import fetch_cantine_data, fetch_all_cantin
 from app.services.fetchers.ofgl import fetch_ofgl_data
 from app.services.fetchers.sru import fetch_sru_data
 from app.services.fetchers.zan import fetch_zan_data
+from app.services.fetchers.insee_rp import fetch_insee_rp_data
+from app.services.fetchers.sirene import fetch_sirene_data
+from app.services.fetchers.bpe import fetch_bpe_data
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -999,10 +1002,286 @@ def confirm_zan():
 @login_required
 def cancel_preview(source):
     """Supprime un preview de session (mc, ofgl, sru)."""
-    key_map = {"mc": "mc_preview", "ofgl": "ofgl_preview", "sru": "sru_preview", "zan": "zan_preview"}
+    key_map = {"mc": "mc_preview", "ofgl": "ofgl_preview", "sru": "sru_preview", "zan": "zan_preview", "insee_rp": "insee_rp_preview", "sirene": "sirene_preview", "bpe": "bpe_preview"}
     key = key_map.get(source)
     if key:
         session.pop(key, None)
+    return redirect(url_for("admin.upload"))
+
+
+# ── Fetch automatique : INSEE RP ──────────────────────────────────────────────
+
+@bp.route("/upload/fetch-insee-rp", methods=["POST"])
+@login_required
+def fetch_insee_rp():
+    """Fetch les données RP depuis l'API Données locales INSEE et stocke le preview en session."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune commune sélectionnée.", "danger")
+        return redirect(url_for("admin.upload"))
+    code_insee = ville.get("code_insee")
+    if not code_insee:
+        flash("Code INSEE non renseigné. Modifiez la fiche de la commune.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    result = fetch_insee_rp_data(code_insee)
+    if not result["ok"]:
+        flash(f"INSEE RP : {result['error']}", "danger")
+        return redirect(url_for("admin.upload"))
+
+    session["insee_rp_preview"] = _json.dumps({
+        "lignes": result["lignes"],
+        "annees": result["annees"],
+        "pyramide": result.get("pyramide", []),
+        "code_insee": code_insee,
+        "erreurs": result.get("erreurs", []),
+    })
+    if result.get("erreurs"):
+        flash(f"INSEE RP : {len(result['erreurs'])} donnée(s) non récupérée(s).", "warning")
+    flash(
+        f"{len(result['lignes'])} valeur(s) récupérée(s) depuis l'INSEE RP "
+        f"(millésime {result['annees'][0] if result['annees'] else '?'}). "
+        "Vérifiez et confirmez ci-dessous.",
+        "info"
+    )
+    return redirect(url_for("admin.upload"))
+
+
+@bp.route("/upload/confirm-insee-rp", methods=["POST"])
+@login_required
+def confirm_insee_rp():
+    """Confirme et importe les données INSEE RP prévisualisées."""
+    import json as _json
+    from app.models import pyramide as pyramide_model
+    ville = _get_current_ville()
+    if not ville:
+        abort(403)
+
+    preview_json = session.pop("insee_rp_preview", None)
+    if not preview_json:
+        flash("Session expirée. Relancez le fetch INSEE RP.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    preview = _json.loads(preview_json)
+    lignes = preview["lignes"]
+    pyramide_data = preview.get("pyramide", [])
+    force = bool(request.form.get("force"))
+
+    nb_importes = 0
+    nb_ignores = 0
+    with get_db() as conn:
+        for ligne in lignes:
+            if force:
+                conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO UPDATE
+                         SET valeur=EXCLUDED.valeur, source=EXCLUDED.source""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                nb_importes += 1
+            else:
+                cur = conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO NOTHING""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                if cur.rowcount:
+                    nb_importes += 1
+                else:
+                    nb_ignores += 1
+        conn.commit()
+
+    # Mettre à jour la pyramide des âges
+    for entry in pyramide_data:
+        pyramide_model.upsert_year(entry["annee"], entry["tranches"], ville["id"])
+
+    msg = f"{nb_importes} valeur(s) importée(s) depuis l'INSEE RP."
+    if nb_ignores:
+        msg += f" {nb_ignores} ignorée(s) (déjà présentes — cochez 'Forcer' pour écraser)."
+    if pyramide_data:
+        msg += " Pyramide des âges mise à jour."
+    flash(msg, "success" if nb_importes > 0 else "warning")
+    return redirect(url_for("admin.upload"))
+
+
+# ── Fetch automatique : SIRENE ────────────────────────────────────────────────
+
+@bp.route("/upload/fetch-sirene", methods=["POST"])
+@login_required
+def fetch_sirene():
+    """Fetch les données SIRENE (entreprises + associations) et stocke le preview en session."""
+    import json as _json
+    import os
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune commune sélectionnée.", "danger")
+        return redirect(url_for("admin.upload"))
+    code_insee = ville.get("code_insee")
+    if not code_insee:
+        flash("Code INSEE non renseigné.", "danger")
+        return redirect(url_for("admin.upload"))
+    if not os.environ.get("INSEE_API_KEY"):
+        flash("SIRENE : INSEE_API_KEY non configurée dans le .env.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    result = fetch_sirene_data(code_insee)
+    if not result["ok"]:
+        flash(f"SIRENE : {result['error']}", "danger")
+        return redirect(url_for("admin.upload"))
+
+    session["sirene_preview"] = _json.dumps({
+        "lignes": result["lignes"],
+        "annees": result["annees"],
+        "code_insee": code_insee,
+    })
+    flash(
+        f"{len(result['lignes'])} valeur(s) récupérée(s) depuis SIRENE. Vérifiez et confirmez ci-dessous.",
+        "info"
+    )
+    return redirect(url_for("admin.upload"))
+
+
+@bp.route("/upload/confirm-sirene", methods=["POST"])
+@login_required
+def confirm_sirene():
+    """Confirme et importe les données SIRENE prévisualisées."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        abort(403)
+
+    preview_json = session.pop("sirene_preview", None)
+    if not preview_json:
+        flash("Session expirée. Relancez le fetch SIRENE.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    preview = _json.loads(preview_json)
+    lignes = preview["lignes"]
+    force = bool(request.form.get("force"))
+
+    nb_importes = 0
+    nb_ignores = 0
+    with get_db() as conn:
+        for ligne in lignes:
+            if force:
+                conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO UPDATE
+                         SET valeur=EXCLUDED.valeur, source=EXCLUDED.source""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                nb_importes += 1
+            else:
+                cur = conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO NOTHING""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                if cur.rowcount:
+                    nb_importes += 1
+                else:
+                    nb_ignores += 1
+        conn.commit()
+
+    msg = f"{nb_importes} valeur(s) importée(s) depuis SIRENE."
+    if nb_ignores:
+        msg += f" {nb_ignores} ignorée(s) (déjà présentes)."
+    flash(msg, "success" if nb_importes > 0 else "warning")
+    return redirect(url_for("admin.upload"))
+
+
+# ── Fetch automatique : BPE ───────────────────────────────────────────────────
+
+@bp.route("/upload/fetch-bpe", methods=["POST"])
+@login_required
+def fetch_bpe():
+    """Fetch les données BPE (commerces et services) depuis data.gouv.fr."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        flash("Aucune commune sélectionnée.", "danger")
+        return redirect(url_for("admin.upload"))
+    code_insee = ville.get("code_insee")
+    if not code_insee:
+        flash("Code INSEE non renseigné.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    result = fetch_bpe_data(code_insee)
+    if not result["ok"]:
+        flash(f"BPE : {result['error']}", "danger")
+        return redirect(url_for("admin.upload"))
+
+    session["bpe_preview"] = _json.dumps({
+        "lignes": result["lignes"],
+        "annees": result["annees"],
+        "code_insee": code_insee,
+    })
+    flash(
+        f"{len(result['lignes'])} valeur(s) récupérée(s) depuis la BPE. Vérifiez et confirmez ci-dessous.",
+        "info"
+    )
+    return redirect(url_for("admin.upload"))
+
+
+@bp.route("/upload/confirm-bpe", methods=["POST"])
+@login_required
+def confirm_bpe():
+    """Confirme et importe les données BPE prévisualisées."""
+    import json as _json
+    ville = _get_current_ville()
+    if not ville:
+        abort(403)
+
+    preview_json = session.pop("bpe_preview", None)
+    if not preview_json:
+        flash("Session expirée. Relancez le fetch BPE.", "danger")
+        return redirect(url_for("admin.upload"))
+
+    preview = _json.loads(preview_json)
+    lignes = preview["lignes"]
+    force = bool(request.form.get("force"))
+
+    nb_importes = 0
+    nb_ignores = 0
+    with get_db() as conn:
+        for ligne in lignes:
+            if force:
+                conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO UPDATE
+                         SET valeur=EXCLUDED.valeur, source=EXCLUDED.source""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                nb_importes += 1
+            else:
+                cur = conn.execute(
+                    """INSERT INTO donnees (indicateur_id, ville_id, annee, valeur, source, mode_saisie)
+                       VALUES (%s, %s, %s, %s, %s, 'api')
+                       ON CONFLICT (indicateur_id, annee, ville_id) DO NOTHING""",
+                    (ligne["indicateur_id"], ville["id"], ligne["annee"],
+                     ligne["valeur"], ligne["source"])
+                )
+                if cur.rowcount:
+                    nb_importes += 1
+                else:
+                    nb_ignores += 1
+        conn.commit()
+
+    msg = f"{nb_importes} valeur(s) importée(s) depuis la BPE."
+    if nb_ignores:
+        msg += f" {nb_ignores} ignorée(s) (déjà présentes)."
+    flash(msg, "success" if nb_importes > 0 else "warning")
     return redirect(url_for("admin.upload"))
 
 

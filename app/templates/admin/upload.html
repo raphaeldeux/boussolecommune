@@ -88,21 +88,75 @@
       </form>
     </div>
 
+    <!-- INSEE RP -->
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">📊</span>
+        <div>
+          <p class="text-xs font-medium text-gray-800 leading-tight">INSEE RP</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Population, logements, âges</p>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('admin.fetch_insee_rp') }}" class="mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
+    </div>
+
+    <!-- SIRENE -->
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">🤝</span>
+        <div>
+          <p class="text-xs font-medium text-gray-800 leading-tight">SIRENE</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Entreprises + associations</p>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('admin.fetch_sirene') }}" class="mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
+    </div>
+
+    <!-- BPE -->
+    <div class="border border-gray-100 rounded-lg p-3 flex flex-col gap-2">
+      <div class="flex items-start gap-2">
+        <span class="text-xl shrink-0">🏥</span>
+        <div>
+          <p class="text-xs font-medium text-gray-800 leading-tight">BPE INSEE</p>
+          <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Commerces et services</p>
+        </div>
+      </div>
+      <form method="POST" action="{{ url_for('admin.fetch_bpe') }}" class="mt-auto">
+        <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+        <button type="submit"
+                {% if not ville or not ville.code_insee %}disabled title="Renseignez le code INSEE dans la fiche commune"{% endif %}
+                class="w-full px-2 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs rounded transition font-medium">
+          Récupérer
+        </button>
+      </form>
+    </div>
+
   </div>
 
   <!-- Placeholders sources en développement -->
   <p class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">En développement</p>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
     {% set sources_futures = [
-      ('📊', 'INSEE', 'Population, revenus, âge médian, chômage…', 'Portrait'),
       ('♿', 'AccesLibre', '% ERP communaux accessibles PMR (loi 2005)', 'Cadre de vie'),
       ('💧', 'Hub\'Eau', 'Conformité eau potable (microbiologique + chimique)', 'Vivant'),
       ('💼', 'France Travail', 'Taux de chômage localisé (trimestriel)', 'Personnes'),
       ('🏢', 'ADEME DPE', 'Note énergétique des logements — passoires thermiques', 'Vivant'),
       ('🌬️', 'ATMO', 'Indice qualité de l\'air annuel', 'Vivant'),
       ('🗳️', 'Intérieur', 'Taux de participation aux élections par commune', 'Démocratie'),
-      ('🤝', 'SIRENE / INSEE', 'Nb d\'associations actives dans la commune', 'Lien social'),
-      ('🏥', 'BPE INSEE', 'Médecins, pharmacies, écoles pour 1 000 hab.', 'Personnes'),
       ('🚌', 'Transport.data.gouv.fr', 'Couverture en transports en commun (GTFS)', 'Cadre de vie'),
     ] %}
     {% for icon, nom, desc, theme in sources_futures %}
@@ -327,6 +381,151 @@
     </button>
   </form>
   <form method="POST" action="{{ url_for('admin.cancel_preview', source='zan') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
+  </form>
+</div>
+{% endif %}
+
+{# ── Prévisualisation INSEE RP ─────────────────────────────────────────────── #}
+{% if session.get('insee_rp_preview') %}
+{% set rp_data = session['insee_rp_preview'] | from_json %}
+<div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-1">Prévisualisation INSEE RP</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ rp_data.lignes | length }} valeur(s) prêtes à importer
+    {% if rp_data.annees %}(millésime {{ rp_data.annees | first }}){% endif %}
+    {% if rp_data.get('pyramide') %} · pyramide des âges incluse{% endif %}
+  </p>
+  {% if rp_data.get('erreurs') %}
+  <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-700">
+    ⚠️ Données partielles — {{ rp_data.erreurs | length }} source(s) non récupérée(s) :
+    {{ rp_data.erreurs | join(', ') }}
+  </div>
+  {% endif %}
+  <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2 text-left">Indicateur</th>
+          <th class="px-3 py-2 text-center">Année</th>
+          <th class="px-3 py-2 text-right">Valeur</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in rp_data.lignes | sort(attribute='indicateur_id') %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-1.5 text-gray-700">{{ l.indicateur_id }}</td>
+          <td class="px-3 py-1.5 text-center text-gray-500">{{ l.annee }}</td>
+          <td class="px-3 py-1.5 text-right font-mono text-gray-800">{{ l.valeur }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('admin.confirm_insee_rp') }}" class="flex flex-wrap items-center gap-4">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <input type="checkbox" name="force" class="rounded">
+      Forcer la mise à jour (écraser les données existantes)
+    </label>
+    <button type="submit"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✅ Confirmer l'import
+    </button>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='insee_rp') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
+  </form>
+</div>
+{% endif %}
+
+{# ── Prévisualisation SIRENE ──────────────────────────────────────────────── #}
+{% if session.get('sirene_preview') %}
+{% set sirene_data = session['sirene_preview'] | from_json %}
+<div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-1">Prévisualisation SIRENE</h2>
+  <p class="text-sm text-gray-500 mb-4">{{ sirene_data.lignes | length }} valeur(s) prêtes à importer</p>
+  <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2 text-left">Indicateur</th>
+          <th class="px-3 py-2 text-center">Année</th>
+          <th class="px-3 py-2 text-right">Valeur</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in sirene_data.lignes %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-1.5 text-gray-700">{{ l.indicateur_id }}</td>
+          <td class="px-3 py-1.5 text-center text-gray-500">{{ l.annee }}</td>
+          <td class="px-3 py-1.5 text-right font-mono text-gray-800">{{ l.valeur | int }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('admin.confirm_sirene') }}" class="flex flex-wrap items-center gap-4">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <input type="checkbox" name="force" class="rounded">
+      Forcer la mise à jour (écraser les données existantes)
+    </label>
+    <button type="submit"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✅ Confirmer l'import
+    </button>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='sirene') }}" class="inline">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
+  </form>
+</div>
+{% endif %}
+
+{# ── Prévisualisation BPE ─────────────────────────────────────────────────── #}
+{% if session.get('bpe_preview') %}
+{% set bpe_data = session['bpe_preview'] | from_json %}
+<div class="bg-white rounded-xl shadow-sm border border-emerald-200 p-6 mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-1">Prévisualisation BPE INSEE</h2>
+  <p class="text-sm text-gray-500 mb-4">
+    {{ bpe_data.lignes | length }} valeur(s) prêtes à importer
+    {% if bpe_data.annees %}({{ bpe_data.annees | first }}){% endif %}
+  </p>
+  <div class="overflow-x-auto rounded-lg border border-gray-200 mb-5">
+    <table class="w-full text-xs">
+      <thead class="bg-gray-50 text-gray-500 uppercase tracking-wide">
+        <tr>
+          <th class="px-3 py-2 text-left">Indicateur</th>
+          <th class="px-3 py-2 text-center">Année</th>
+          <th class="px-3 py-2 text-right">Valeur</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for l in bpe_data.lignes %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-3 py-1.5 text-gray-700">{{ l.indicateur_id }}</td>
+          <td class="px-3 py-1.5 text-center text-gray-500">{{ l.annee }}</td>
+          <td class="px-3 py-1.5 text-right font-mono text-gray-800">{{ l.valeur | int }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="POST" action="{{ url_for('admin.confirm_bpe') }}" class="flex flex-wrap items-center gap-4">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+    <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+      <input type="checkbox" name="force" class="rounded">
+      Forcer la mise à jour (écraser les données existantes)
+    </label>
+    <button type="submit"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+      ✅ Confirmer l'import
+    </button>
+  </form>
+  <form method="POST" action="{{ url_for('admin.cancel_preview', source='bpe') }}" class="inline">
     <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
     <button type="submit" class="text-gray-500 hover:text-gray-700 text-sm">Annuler</button>
   </form>
