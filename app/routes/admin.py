@@ -1653,6 +1653,14 @@ def modifier_ville(ville_id):
         else:
             ville_model.update(ville_id, nom, slug, population, actif, code_insee, nb_conseillers,
                                whatsapp_url, indicateurs_vedettes, prochain_conseil)
+
+            # API keys
+            insee_api_key = request.form.get("insee_api_key", "").strip() or None
+            mistral_api_key = request.form.get("mistral_api_key", "").strip() or None
+            mistral_model = request.form.get("mistral_model", "").strip() or None
+            ville_model.update_api_keys(ville_id, insee_api_key=insee_api_key,
+                                        mistral_api_key=mistral_api_key, mistral_model=mistral_model)
+
             flash(f"Ville « {nom} » mise à jour.", "success")
             return redirect(url_for("admin.villes"))
 

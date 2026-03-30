@@ -77,6 +77,45 @@
         </label>
       </div>
 
+      <!-- API Keys (super_admin) -->
+      <div class="mt-6 pt-6 border-t border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Intégrations API</h3>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">INSEE API Key</label>
+          <div class="relative">
+            <input type="password" name="insee_api_key" id="sa_insee_api_key"
+                   value="{{ ville.insee_api_key or '' }}"
+                   placeholder="consumer_key:consumer_secret"
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <button type="button" onclick="toggleVisibility('sa_insee_api_key')"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs px-1">👁</button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Format : <code>consumer_key:consumer_secret</code></p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Clé API Mistral</label>
+          <div class="relative">
+            <input type="password" name="mistral_api_key" id="sa_mistral_api_key"
+                   value="{{ ville.mistral_api_key or '' }}"
+                   placeholder="sk-..."
+                   class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <button type="button" onclick="toggleVisibility('sa_mistral_api_key')"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs px-1">👁</button>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Modèle Mistral</label>
+          <input type="text" name="mistral_model"
+                 value="{{ ville.mistral_model or '' }}"
+                 placeholder="mistral-small-latest"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+          <p class="text-xs text-gray-400 mt-1">Laisser vide pour le modèle par défaut.</p>
+        </div>
+      </div>
+
       <button type="submit"
               class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
         Enregistrer
@@ -84,4 +123,11 @@
     </form>
   </div>
 </div>
+
+<script>
+function toggleVisibility(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+</script>
 {% endblock %}
