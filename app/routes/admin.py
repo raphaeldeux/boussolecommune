@@ -435,13 +435,12 @@ def interpretation(indicateur_id, annee):
 @login_required
 def interpretation_generer_ia(indicateur_id, annee):
     """Génère phrase_courte + phrase_longue via Mistral, retourne JSON."""
-    from app.services.ai_service import generer_interpretation_indicateur, MISTRAL_API_KEY
+    from app.services.ai_service import generer_interpretation_indicateur, is_ai_ready
     from flask import jsonify
 
-    if not MISTRAL_API_KEY:
-        return jsonify({"error": "Clé API Mistral non configurée."}), 400
-
     ville = _get_current_ville()
+    if not is_ai_ready(api_key=ville.get("mistral_api_key") if ville else None):
+        return jsonify({"error": "Clé API Mistral non configurée."}), 400
     ind = ind_model.get_by_id(indicateur_id)
     donnee = donnee_model.get_by_indicateur_annee(indicateur_id, annee, ville["id"]) if ville else None
     if not ind or not donnee:
@@ -466,6 +465,8 @@ def interpretation_generer_ia(indicateur_id, annee):
         annee_ancienne=annee_ancienne,
         pct_evolution=pct_evolution,
         valeur_reference=valeur_reference,
+        api_key=ville.get("mistral_api_key") if ville else None,
+        model=ville.get("mistral_model") if ville else None,
     )
     if not result:
         return jsonify({"error": "La génération a échoué."}), 500
@@ -1025,7 +1026,7 @@ def fetch_insee_rp():
         flash("Code INSEE non renseigné. Modifiez la fiche de la commune.", "danger")
         return redirect(url_for("admin.upload"))
 
-    result = fetch_insee_rp_data(code_insee)
+    result = fetch_insee_rp_data(code_insee, api_key=ville.get("insee_api_key"))
     if not result["ok"]:
         flash(f"INSEE RP : {result['error']}", "danger")
         return redirect(url_for("admin.upload"))
@@ -1116,7 +1117,6 @@ def confirm_insee_rp():
 def fetch_sirene():
     """Fetch les données SIRENE (entreprises + associations) et stocke le preview en session."""
     import json as _json
-    import os
     ville = _get_current_ville()
     if not ville:
         flash("Aucune commune sélectionnée.", "danger")
@@ -1125,11 +1125,8 @@ def fetch_sirene():
     if not code_insee:
         flash("Code INSEE non renseigné.", "danger")
         return redirect(url_for("admin.upload"))
-    if not os.environ.get("INSEE_API_KEY"):
-        flash("SIRENE : INSEE_API_KEY non configurée dans le .env.", "danger")
-        return redirect(url_for("admin.upload"))
 
-    result = fetch_sirene_data(code_insee)
+    result = fetch_sirene_data(code_insee, api_key=ville.get("insee_api_key"))
     if not result["ok"]:
         flash(f"SIRENE : {result['error']}", "danger")
         return redirect(url_for("admin.upload"))
@@ -2217,6 +2214,9 @@ def conseil_generer_resume(conseil_id):
         flash("Fichier PDF introuvable.", "danger")
         return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
+    mistral_api_key = ville.get("mistral_api_key")
+    mistral_model = ville.get("mistral_model")
+
     conseil_model.set_statut_resume(conseil_id, "en_cours", progres=0)
 
     def _run():
@@ -2226,7 +2226,7 @@ def conseil_generer_resume(conseil_id):
             conseil_model.set_statut_resume(conseil_id, "en_cours", progres=pct, message=message)
 
         try:
-            resume_texte, resume_structure = generer_resume(pdf_path, progress_callback=on_progress)
+            resume_texte, resume_structure = generer_resume(pdf_path, progress_callback=on_progress, api_key=mistral_api_key, model=mistral_model)
             conseil_model.set_statut_resume(
                 conseil_id, "termine",
                 resume_citoyen=resume_texte,
@@ -2333,6 +2333,9 @@ def conseil_analyser_odj(conseil_id):
         flash("Fichier PDF introuvable.", "danger")
         return redirect(url_for("admin.conseil_fiche", conseil_id=conseil_id))
 
+    mistral_api_key = ville.get("mistral_api_key")
+    mistral_model = ville.get("mistral_model")
+
     conseil_model.set_statut_odj(conseil_id, "en_cours", progres=0)
 
     def _run():
@@ -2342,7 +2345,7 @@ def conseil_analyser_odj(conseil_id):
             conseil_model.set_statut_odj(conseil_id, "en_cours", progres=pct)
 
         try:
-            odj_texte, resume = analyser_note_synthese(pdf_path, progress_callback=on_progress)
+            odj_texte, resume = analyser_note_synthese(pdf_path, progress_callback=on_progress, api_key=mistral_api_key, model=mistral_model)
             conseil_model.set_statut_odj(
                 conseil_id, "termine",
                 odj_texte=odj_texte,
@@ -2490,7 +2493,7 @@ def conseil_fiche(conseil_id):
         ville=ville,
         conseil=conseil,
         odj=odj,
-        ai_ready=is_ai_ready(),
+        ai_ready=is_ai_ready(api_key=ville.get("mistral_api_key")),
         statut=statut,
         prochaine_action=_conseil_prochaine_action(conseil),
         after_seance_active=after_seance_active,
@@ -2620,9 +2623,10 @@ def synthese_thematique_generer():
 
     from app.models import indicateur as ind_model
     from app.routes.public import _enrichir_indicateur
-    from app.services.ai_service import generer_synthese_thematique, MISTRAL_API_KEY
+    from app.services.ai_service import generer_synthese_thematique, is_ai_ready
 
-    if not MISTRAL_API_KEY:
+    ville = ville_model.get_by_id(ville_id)
+    if not is_ai_ready(api_key=ville.get("mistral_api_key") if ville else None):
         flash("Clé API Mistral non configurée.", "error")
         return redirect(url_for("admin.dashboard"))
 
@@ -2630,7 +2634,7 @@ def synthese_thematique_generer():
     enrichis = [_enrichir_indicateur(i, ville_id) for i in indicateurs]
 
     label = ind_model.THEMATIQUE_LABELS.get(thematique, thematique)
-    bullets = generer_synthese_thematique(label, enrichis)
+    bullets = generer_synthese_thematique(label, enrichis, api_key=ville.get("mistral_api_key"), model=ville.get("mistral_model"))
 
     if not bullets:
         flash("La génération a échoué. Vérifiez la clé API Mistral.", "error")
