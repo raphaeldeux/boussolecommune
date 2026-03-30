@@ -37,9 +37,8 @@ TRANCHES_AGE = [
 ]
 
 
-def _get_bearer_token():
+def _get_bearer_token(api_key: str):
     """Obtient un Bearer token OAuth2 depuis l'API INSEE."""
-    api_key = os.environ.get("INSEE_API_KEY", "")
     if not api_key or ":" not in api_key:
         raise ValueError(
             "INSEE_API_KEY non configurée. Format attendu : 'consumer_key:consumer_secret'. "
@@ -71,7 +70,7 @@ def _get_cube(token, cube_ref, code_insee):
     return resp.json()
 
 
-def fetch_insee_rp_data(code_insee: str) -> dict:
+def fetch_insee_rp_data(code_insee: str, api_key: str = None) -> dict:
     """
     Récupère les données RP pour une commune.
 
@@ -91,8 +90,10 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
     annee = int(RP_MILLESIME)
     pop_total = None
 
+    resolved_key = (api_key or "").strip() or os.environ.get("INSEE_API_KEY", "")
+
     try:
-        token = _get_bearer_token()
+        token = _get_bearer_token(resolved_key)
     except ValueError as e:
         return {"ok": False, "error": str(e), "lignes": [], "annees": [], "pyramide": [], "erreurs": []}
     except requests.RequestException as e:
