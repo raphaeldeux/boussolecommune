@@ -99,37 +99,38 @@
                   -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out">
       <nav class="flex-1 overflow-y-auto py-4 px-2 space-y-5">
 
-        <!-- Données -->
+        <!-- Tableau de bord -->
         <div>
-          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Données</div>
           <a href="{{ url_for('admin.dashboard') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
                {% if request.endpoint == 'admin.dashboard' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             🗂️ Tableau de bord
           </a>
-          <a href="{{ url_for('admin.saisie') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint == 'admin.saisie' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            ✏️ Saisie
-          </a>
+        </div>
+
+        <!-- Données -->
+        <div>
+          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Données</div>
           <a href="{{ url_for('admin.upload') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
                {% if request.endpoint == 'admin.upload' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            📤 Import
+            🔄 Sources automatiques
           </a>
-          <a href="{{ url_for('admin.dashboard') }}#interp-section"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm hover:bg-gray-700 hover:text-white">
-            📝 Interprétations
+          <a href="{{ url_for('admin.saisie') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.saisie' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            ✏️ Sources manuelles
           </a>
         </div>
 
-        <!-- Transparence -->
+        <!-- Commune -->
+        <!-- NOTE : le lien "Indicateurs" (/indicateurs) sera ajouté ici en Plan 2 -->
         <div>
-          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Transparence</div>
+          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Commune</div>
           <a href="{{ url_for('admin.conseils') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
                {% if request.endpoint in ('admin.conseils', 'admin.conseil_nouveau', 'admin.conseil_modifier', 'admin.conseil_resume') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            🏛️ Conseils
+            📋 Conseils municipaux
           </a>
           <a href="{{ url_for('admin.documents') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
@@ -138,7 +139,23 @@
           </a>
         </div>
 
-        <!-- Démographie & vie associative -->
+        <!-- Paramètres -->
+        <div>
+          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Paramètres</div>
+          <a href="{{ url_for('admin.references') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.references' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            📊 Références
+          </a>
+          <a href="{{ url_for('admin.ma_commune') }}"
+             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
+               {% if request.endpoint == 'admin.modifier_ville' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+            ⚙️ Ma commune
+          </a>
+        </div>
+
+        <!-- Admin uniquement : Démographie & vie asso. -->
+        {% if session.get('user_role') == 'super_admin' %}
         <div>
           <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Démographie & vie asso.</div>
           <a href="{{ url_for('admin.pyramide') }}"
@@ -153,38 +170,12 @@
           </a>
         </div>
 
-        <!-- Paramètres -->
+        <!-- Admin uniquement : Administration plateforme -->
         <div>
-          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Paramètres</div>
-          <a href="{{ url_for('admin.references') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint == 'admin.references' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            📊 Références
-          </a>
-          <a href="{{ url_for('admin.proposer_reference') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint == 'admin.proposer_reference' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            📬 Proposer une réf.
-          </a>
-          <a href="{{ url_for('admin.mes_propositions') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint == 'admin.mes_propositions' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            📋 Mes propositions
-          </a>
-          <a href="{{ url_for('admin.integrations') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint == 'admin.integrations' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            🔑 Intégrations
-          </a>
-        </div>
-
-        <!-- Super-admin -->
-        {% if session.get('user_role') == 'super_admin' %}
-        <div>
-          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Super-admin</div>
+          <div class="text-xs uppercase tracking-wider text-gray-500 font-semibold px-3 mb-1">Administration</div>
           <a href="{{ url_for('admin.villes') }}"
              class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint in ('admin.villes', 'admin.nouvelle_ville', 'admin.modifier_ville') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
+               {% if request.endpoint in ('admin.villes', 'admin.nouvelle_ville') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
             🏙️ Villes
           </a>
           <a href="{{ url_for('admin.users') }}"
@@ -195,18 +186,13 @@
           <a href="{{ url_for('admin.banque_references') }}"
              class="relative flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
                {% if request.endpoint in ('admin.banque_references','admin.banque_entrees','admin.banque_propositions') %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            🏛️ Banque de réf.
+            🏛️ Banque de références
             {%- set nb_p = pending_propositions_count | default(0) -%}
             {% if nb_p > 0 %}
             <span class="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0">
               {{ nb_p }}
             </span>
             {% endif %}
-          </a>
-          <a href="{{ url_for('admin.communes_vedette') }}"
-             class="flex items-center gap-2 px-3 py-2 rounded-lg transition text-sm
-               {% if request.endpoint == 'admin.communes_vedette' %}bg-emerald-700 text-white font-medium{% else %}hover:bg-gray-700 hover:text-white{% endif %}">
-            ⭐ Communes vedette
           </a>
         </div>
         {% endif %}
