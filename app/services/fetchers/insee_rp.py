@@ -65,6 +65,28 @@ def _filter_obs(obs_list: list[dict], **dims) -> list[dict]:
     return result
 
 
+_DIMS_INDEX = {"GEO", "TIME_PERIOD", "FREQ", "RP_MEASURE"}
+
+
+def _total_obs(obs_list: list[dict], **fixed_dims) -> dict | None:
+    """Parmi les observations correspondant à fixed_dims, retourne celle où
+    toutes les autres dimensions (hors index) valent '_T'.
+
+    Utile pour les datasets multi-dimensionnels (DS_RP_LOGEMENT_PRINC, etc.)
+    où _filter_obs peut ramener plusieurs sous-totaux.
+    """
+    candidates = _filter_obs(obs_list, **fixed_dims)
+    if not candidates:
+        return None
+    for obs in candidates:
+        if all(v == "_T"
+               for k, v in obs["dimensions"].items()
+               if k not in _DIMS_INDEX and k not in fixed_dims):
+            return obs
+    # Fallback : observation avec la valeur maximale (likely total)
+    return max(candidates, key=lambda o: _obs_value(o) or 0)
+
+
 # ── Fetcher principal ─────────────────────────────────────────────────────────
 
 def fetch_insee_rp_data(code_insee: str) -> dict:
@@ -142,26 +164,27 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
 
     # ── Logements ─────────────────────────────────────────────────────────────
     try:
-        obs_log = _get_melodi("DS_RP_LOGEMENT_PRINC", code_insee,
-                              {"TIME_PERIOD": RP_MILLESIME})
+        _obs_log_raw = _get_melodi("DS_RP_LOGEMENT_PRINC", code_insee,
+                                   {"TIME_PERIOD": RP_MILLESIME})
+        # Garder uniquement RP_MEASURE=DWELLINGS (dénombrement de logements)
+        # — le dataset contient aussi DWELLINGS_ROOMS, DWELLINGS_POPSIZE, etc.
+        obs_log = [o for o in _obs_log_raw
+                   if o["dimensions"].get("RP_MEASURE") == "DWELLINGS"]
 
         # Catégories (OCS)
-        total_log_obs = _filter_obs(obs_log, OCS="_T")
-        total_log = _obs_value(total_log_obs[0]) if total_log_obs else None
+        total_log = _obs_value(_total_obs(obs_log, OCS="_T"))
 
         if total_log and total_log > 0:
-            vac_obs = _filter_obs(obs_log, OCS="DW_VAC")
-            if vac_obs:
-                nb_vac = _obs_value(vac_obs[0])
-                if nb_vac is not None:
-                    lignes.append({"indicateur_id": "log_vacants_taux", "annee": annee,
-                                    "valeur": round(nb_vac / total_log * 100, 1), "source": SOURCE})
+            nb_vac = _obs_value(_total_obs(obs_log, OCS="DW_VAC"))
+            if nb_vac is not None:
+                lignes.append({"indicateur_id": "log_vacants_taux", "annee": annee,
+                                "valeur": round(nb_vac / total_log * 100, 1), "source": SOURCE})
 
             # Résidences secondaires — essayer les deux codes possibles
             for sec_code in ("DW_SEC_DW_OCC", "DW_SEC"):
-                sec_obs = _filter_obs(obs_log, OCS=sec_code)
+                sec_obs = _total_obs(obs_log, OCS=sec_code)
                 if sec_obs:
-                    nb_sec = _obs_value(sec_obs[0])
+                    nb_sec = _obs_value(sec_obs)
                     if nb_sec is not None:
                         lignes.append({"indicateur_id": "log_residences_secondaires_taux",
                                         "annee": annee,
@@ -169,16 +192,15 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
                                         "source": SOURCE})
                     break
 
-        # Propriétaires (dimension TSH — codes à découvrir à l'exécution)
+        # Propriétaires (dimension TSH sur résidences principales OCS=DW_MAIN)
         tsh_codes = {o["dimensions"]["TSH"]
                      for o in obs_log if "TSH" in o["dimensions"]}
-        total_tsh_obs = _filter_obs(obs_log, TSH="_T")
-        total_tsh = _obs_value(total_tsh_obs[0]) if total_tsh_obs else None
+        total_tsh = _obs_value(_total_obs(obs_log, OCS="DW_MAIN", TSH="_T"))
         if total_tsh and total_tsh > 0:
             for owner_code in ("100", "OWNER", "10", "OWN", "OWNER_OCC"):
-                prop_obs = _filter_obs(obs_log, TSH=owner_code)
+                prop_obs = _total_obs(obs_log, OCS="DW_MAIN", TSH=owner_code)
                 if prop_obs:
-                    nb_prop = _obs_value(prop_obs[0])
+                    nb_prop = _obs_value(prop_obs)
                     if nb_prop is not None:
                         lignes.append({"indicateur_id": "log_proprietaires_taux", "annee": annee,
                                         "valeur": round(nb_prop / total_tsh * 100, 1),
@@ -192,8 +214,7 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
                        for o in obs_log
                        if "BUILD_END" in o["dimensions"]
                        and o["dimensions"]["BUILD_END"] != "_T"}
-        total_build_obs = _filter_obs(obs_log, BUILD_END="_T")
-        total_build = _obs_value(total_build_obs[0]) if total_build_obs else None
+        total_build = _obs_value(_total_obs(obs_log, BUILD_END="_T"))
 
         if total_build and total_build > 0 and build_codes:
             av1946 = [c for c in build_codes
@@ -208,9 +229,7 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
             def _sum_build(codes):
                 total = 0
                 for c in codes:
-                    obs = _filter_obs(obs_log, BUILD_END=c)
-                    if obs:
-                        total += _obs_value(obs[0]) or 0
+                    total += _obs_value(_total_obs(obs_log, BUILD_END=c)) or 0
                 return total
 
             nb_av = _sum_build(av1946)
