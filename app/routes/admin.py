@@ -1621,9 +1621,23 @@ def nouvelle_ville():
     return render_template("admin/nouvelle_ville.html")
 
 
+@bp.route("/ma-commune")
+@login_required
+def ma_commune():
+    """Redirige vers modifier_ville de la ville courante."""
+    ville_id = session.get("admin_ville_id")
+    if not ville_id:
+        flash("Aucune commune assignée.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    return redirect(url_for("admin.modifier_ville", ville_id=ville_id))
+
+
 @bp.route("/villes/modifier/<int:ville_id>", methods=["GET", "POST"])
-@super_admin_required
+@login_required
 def modifier_ville(ville_id):
+    if not can_modify_ville(ville_id):
+        flash("Accès refusé.", "danger")
+        return redirect(url_for("admin.dashboard"))
     ville = ville_model.get_by_id(ville_id)
     if not ville:
         abort(404)
@@ -1662,14 +1676,21 @@ def modifier_ville(ville_id):
                                         mistral_api_key=mistral_api_key, mistral_model=mistral_model)
 
             flash(f"Ville « {nom} » mise à jour.", "success")
-            return redirect(url_for("admin.villes"))
+            if session.get("user_role") == "super_admin":
+                return redirect(url_for("admin.villes"))
+            return redirect(url_for("admin.modifier_ville", ville_id=ville_id))
 
+    from app.services.ai_service import MISTRAL_API_KEY as ENV_MISTRAL
+    has_env_insee = bool(os.environ.get("INSEE_API_KEY"))
+    has_env_mistral = bool(ENV_MISTRAL)
     tous_indicateurs = ind_model.get_all(actif_only=True)
     vedettes_actuelles = (ville.get("indicateurs_vedettes") or "").split(",")
     vedettes_actuelles += ["", "", ""]  # ensure at least 3 slots
     return render_template("admin/modifier_ville.html", ville=ville,
                            tous_indicateurs=tous_indicateurs,
-                           vedettes_actuelles=vedettes_actuelles)
+                           vedettes_actuelles=vedettes_actuelles,
+                           has_env_insee=has_env_insee,
+                           has_env_mistral=has_env_mistral)
 
 
 # ── Gestion des utilisateurs (super_admin) ────────────────────────────────
@@ -2616,32 +2637,8 @@ def document_supprimer(doc_id):
 @bp.route("/integrations", methods=["GET", "POST"])
 @login_required
 def integrations():
-    """Page de configuration des clés API par gestionnaire."""
-    from app.services.ai_service import MISTRAL_API_KEY as ENV_MISTRAL
-
-    ville = _get_current_ville()
-    if not ville:
-        flash("Aucune commune sélectionnée.", "danger")
-        return redirect(url_for("admin.dashboard"))
-
-    if request.method == "POST":
-        insee_api_key = request.form.get("insee_api_key", "").strip() or None
-        mistral_api_key = request.form.get("mistral_api_key", "").strip() or None
-        mistral_model = request.form.get("mistral_model", "").strip() or None
-        ville_model.update_api_keys(ville["id"], insee_api_key=insee_api_key,
-                                     mistral_api_key=mistral_api_key, mistral_model=mistral_model)
-        flash("Intégrations enregistrées.", "success")
-        return redirect(url_for("admin.integrations"))
-
-    has_env_insee = bool(os.environ.get("INSEE_API_KEY"))
-    has_env_mistral = bool(ENV_MISTRAL)
-
-    return render_template(
-        "admin/integrations.html",
-        ville=ville,
-        has_env_insee=has_env_insee,
-        has_env_mistral=has_env_mistral,
-    )
+    """Redirigé vers Ma commune — fonctionnalité absorbée dans modifier_ville."""
+    return redirect(url_for("admin.ma_commune"))
 
 
 @bp.route("/synthese-thematique/generer", methods=["POST"])
