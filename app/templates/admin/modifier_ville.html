@@ -1,9 +1,17 @@
 {% extends "admin_base.html" %}
 {% block title %}Modifier ville — Admin BoussoleCommune{% endblock %}
-{% block breadcrumb %} › <a href="{{ url_for('admin.villes') }}" class="hover:text-gray-600">Villes</a> › <span class="text-gray-800 font-medium">Modifier</span>{% endblock %}
+{% block breadcrumb %}
+  {% if session.get('user_role') == 'super_admin' %}
+   › <a href="{{ url_for('admin.villes') }}" class="hover:text-gray-600">Villes</a> › <span class="text-gray-800 font-medium">Modifier</span>
+  {% else %}
+   › <span class="text-gray-800 font-medium">Ma commune</span>
+  {% endif %}
+{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-900 mb-6">Modifier « {{ ville.nom }} »</h1>
+<h1 class="text-2xl font-bold text-gray-900 mb-6">
+  {% if session.get('user_role') == 'super_admin' %}Modifier « {{ ville.nom }} »{% else %}Ma commune — {{ ville.nom }}{% endif %}
+</h1>
 
 <div class="max-w-lg">
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -77,9 +85,17 @@
         </label>
       </div>
 
-      <!-- API Keys (super_admin) -->
+      <!-- Intégrations -->
       <div class="mt-6 pt-6 border-t border-gray-100">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">Intégrations API</h3>
+        <h3 class="text-sm font-semibold text-gray-700 mb-3">Intégrations</h3>
+        <p class="text-xs text-gray-500 mb-4">Clés API spécifiques à cette commune. Elles prennent le dessus sur la configuration globale du serveur si renseignées.</p>
+
+        {% if has_env_insee %}
+        <div class="mb-3 flex items-start gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg px-3 py-2">
+          <span class="mt-0.5">ℹ️</span>
+          <span>Clé SIRENE héritée de la configuration serveur — la valeur ci-dessous la remplace si renseignée.</span>
+        </div>
+        {% endif %}
 
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Clé API SIRENE</label>
@@ -93,6 +109,13 @@
           </div>
           <p class="text-xs text-gray-400 mt-1">Format : <code>consumer_key:consumer_secret</code></p>
         </div>
+
+        {% if has_env_mistral %}
+        <div class="mb-3 flex items-start gap-2 bg-blue-50 border border-blue-200 text-blue-700 text-sm rounded-lg px-3 py-2">
+          <span class="mt-0.5">ℹ️</span>
+          <span>Clé Mistral héritée de la configuration serveur — la valeur ci-dessous la remplace si renseignée.</span>
+        </div>
+        {% endif %}
 
         <div class="mb-4">
           <label class="block text-sm font-medium text-gray-700 mb-1">Clé API Mistral</label>
