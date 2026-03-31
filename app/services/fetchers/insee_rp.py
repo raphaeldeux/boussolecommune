@@ -60,7 +60,7 @@ def _filter_obs(obs_list: list[dict], **dims) -> list[dict]:
     """
     result = []
     for obs in obs_list:
-        if all(obs["dimensions"].get(k, {}).get("id") == v for k, v in dims.items()):
+        if all(obs["dimensions"].get(k) == v for k, v in dims.items()):
             result.append(obs)
     return result
 
@@ -170,12 +170,12 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
                     break
 
         # Propriétaires (dimension TSH — codes à découvrir à l'exécution)
-        tsh_codes = {o["dimensions"]["TSH"]["id"]
+        tsh_codes = {o["dimensions"]["TSH"]
                      for o in obs_log if "TSH" in o["dimensions"]}
         total_tsh_obs = _filter_obs(obs_log, TSH="_T")
         total_tsh = _obs_value(total_tsh_obs[0]) if total_tsh_obs else None
         if total_tsh and total_tsh > 0:
-            for owner_code in ("OWNER", "10", "OWN", "OWNER_OCC"):
+            for owner_code in ("100", "OWNER", "10", "OWN", "OWNER_OCC"):
                 prop_obs = _filter_obs(obs_log, TSH=owner_code)
                 if prop_obs:
                     nb_prop = _obs_value(prop_obs[0])
@@ -188,10 +188,10 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
                 erreurs.append(f"propriétaires : codes TSH disponibles = {tsh_codes}")
 
         # Ancienneté du parc (dimension BUILD_END)
-        build_codes = {o["dimensions"]["BUILD_END"]["id"]
+        build_codes = {o["dimensions"]["BUILD_END"]
                        for o in obs_log
                        if "BUILD_END" in o["dimensions"]
-                       and o["dimensions"]["BUILD_END"]["id"] != "_T"}
+                       and o["dimensions"]["BUILD_END"] != "_T"}
         total_build_obs = _filter_obs(obs_log, BUILD_END="_T")
         total_build = _obs_value(total_build_obs[0]) if total_build_obs else None
 
@@ -239,7 +239,7 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
         # Total ménages : observation avec toutes les dimensions à _T
         total_men_obs = [
             o for o in obs_men
-            if all(o["dimensions"].get(d, {}).get("id") == "_T"
+            if all(o["dimensions"].get(d) == "_T"
                    for d in o["dimensions"] if d != "GEO" and d != "TIME_PERIOD" and d != "FREQ")
         ]
         nb_men_total = _obs_value(total_men_obs[0]) if total_men_obs else None
@@ -255,7 +255,7 @@ def fetch_insee_rp_data(code_insee: str) -> dict:
                 # Fallback : tous COUPLE=0 à tous âges
                 solo_all = _filter_obs(obs_men, COUPLE="0")
                 nb_solo = sum(_obs_value(o) or 0 for o in solo_all
-                              if o["dimensions"].get("AGE", {}).get("id") == "_T")
+                              if o["dimensions"].get("AGE") == "_T")
             else:
                 nb_solo = sum(_obs_value(o) or 0 for o in solo_obs)
 
