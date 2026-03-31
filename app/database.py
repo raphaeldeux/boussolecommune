@@ -255,7 +255,7 @@ def init_db():  # noqa: C901
 
     conn.commit()
 
-    # Migration : ajouter api_cerema au CHECK source_type si absent
+    # Migration : mettre à jour le CHECK source_type pour inclure les nouveaux types API
     row = conn.execute(
         "SELECT constraint_name FROM information_schema.table_constraints "
         "WHERE table_name = 'indicateurs' AND constraint_type = 'CHECK' "
@@ -266,7 +266,7 @@ def init_db():  # noqa: C901
             "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
             "WHERE conname = 'indicateurs_source_type_check'"
         ).fetchone()
-        if defn and "api_cerema" not in defn["pg_get_constraintdef"]:
+        if defn and "api_insee_rp" not in defn["pg_get_constraintdef"]:
             conn.execute("ALTER TABLE indicateurs DROP CONSTRAINT indicateurs_source_type_check")
             conn.execute(
                 "ALTER TABLE indicateurs ADD CONSTRAINT indicateurs_source_type_check "
