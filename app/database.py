@@ -183,7 +183,7 @@ def init_db():  # noqa: C901
             libelle_reference TEXT,
             annee_reference INTEGER,
             description TEXT,
-            source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine','api_rpls','api_cerema')),
+            source_type TEXT CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle','api_macantine','api_rpls','api_cerema','api_insee_rp','api_sirene','api_bpe')),
             actif INTEGER DEFAULT 1
         )
     """)
@@ -271,7 +271,7 @@ def init_db():  # noqa: C901
             conn.execute(
                 "ALTER TABLE indicateurs ADD CONSTRAINT indicateurs_source_type_check "
                 "CHECK(source_type IN ('csv_ofgl','csv_generique','saisie_manuelle',"
-                "'api_macantine','api_rpls','api_cerema'))"
+                "'api_macantine','api_rpls','api_cerema','api_insee_rp','api_sirene','api_bpe'))"
             )
             conn.commit()
 
