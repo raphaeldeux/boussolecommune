@@ -1,85 +1,83 @@
 """
-Fetcher INSEE — Recensement de la Population (RP)
-Utilise l'API Données locales INSEE (https://api.insee.fr)
+Fetcher INSEE RP — API Melodi (open, sans authentification)
+https://api.insee.fr/melodi
 
-Authentification : OAuth2 Bearer Token
-Variable d'env : INSEE_API_KEY = "consumer_key:consumer_secret"
-
-Pour obtenir une clé gratuite :
-  https://portail-api.insee.fr/ → Créer une application → Abonner à "Données locales"
+Datasets utilisés :
+- DS_RP_POPULATION_PRINC : population par âge et sexe
+- DS_RP_LOGEMENT_PRINC   : catégories, tenure, ancienneté du parc
+- DS_RP_MENAGES_PRINC    : ménages et taille moyenne
+- DS_RP_EMPLOI_LT_PRINC  : emplois sur la commune (lieu de travail)
+- DS_RP_ACTIVITE_PRINC   : actifs résidents
 """
 
-import os
-import base64
 import requests
-from datetime import datetime
 
-BASE_URL = "https://api.insee.fr"
-TOKEN_URL = f"{BASE_URL}/token"
-DONNEES_URL = f"{BASE_URL}/donnees-locales/V0.1/donnees"
+MELODI_URL = "https://api.insee.fr/melodi"
 SOURCE = "INSEE RP"
 TIMEOUT = 30
 
-# Millésime RP le plus récent disponible (mettre à jour annuellement)
-RP_MILLESIME = "2021"
+# Millésime RP le plus récent disponible dans Melodi (couvre 2011–2022)
+RP_MILLESIME = "2022"
 
-# Tranches d'âge RP → correspondance tranche INSEE → (indicateur_id, tranche pyramide, ordre)
+# Tranches d'âge Melodi → (code_age, indicateur_id, label_pyramide, ordre)
 TRANCHES_AGE = [
-    # (code_modalite_insee, indicateur_id, tranche_pyramide, ordre_pyramide)
-    # À ajuster selon les modalités réelles de l'API
-    ("0-14",  "pop_age_0_14",  "0-14",  0),
-    ("15-29", "pop_age_15_29", "15-29", 1),
-    ("30-44", "pop_age_30_44", "30-44", 2),
-    ("45-59", "pop_age_45_59", "45-59", 3),
-    ("60-74", "pop_age_60_74", "60-74", 4),
-    ("75-89", "pop_age_75_89", "75-89", 5),
-    ("90+",   "pop_age_90_plus", "90+", 6),
+    ("Y_LT15", "pop_age_lt15",  "<15 ans", 0),
+    ("Y15T24", "pop_age_15_24", "15-24",   1),
+    ("Y25T39", "pop_age_25_39", "25-39",   2),
+    ("Y40T54", "pop_age_40_54", "40-54",   3),
+    ("Y55T64", "pop_age_55_64", "55-64",   4),
+    ("Y65T79", "pop_age_65_79", "65-79",   5),
+    ("Y_GE80", "pop_age_ge80",  "80+",     6),
 ]
 
 
-def _get_bearer_token(api_key: str):
-    """Obtient un Bearer token OAuth2 depuis l'API INSEE."""
-    if not api_key or ":" not in api_key:
-        raise ValueError(
-            "INSEE_API_KEY non configurée. Format attendu : 'consumer_key:consumer_secret'. "
-            "Inscription gratuite sur https://portail-api.insee.fr/"
-        )
-    credentials = base64.b64encode(api_key.encode()).decode()
-    resp = requests.post(
-        TOKEN_URL,
-        headers={
-            "Authorization": f"Basic {credentials}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-        data="grant_type=client_credentials",
-        timeout=TIMEOUT,
-    )
+# ── Helpers Melodi ────────────────────────────────────────────────────────────
+
+def _get_melodi(dataset: str, code_insee: str, extra_params: dict = None) -> list[dict]:
+    """Appelle Melodi et retourne la liste d'observations."""
+    params = {"GEO": f"COM-{code_insee}", "maxResult": 1000}
+    if extra_params:
+        params.update(extra_params)
+    resp = requests.get(f"{MELODI_URL}/data/{dataset}", params=params, timeout=TIMEOUT)
     resp.raise_for_status()
-    return resp.json()["access_token"]
+    return resp.json().get("observations", [])
 
 
-def _get_cube(token, cube_ref, code_insee):
-    """Appelle l'API Données locales pour un cube donné."""
-    url = f"{DONNEES_URL}/{cube_ref}/COM/{code_insee}"
-    resp = requests.get(
-        url,
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=TIMEOUT,
-    )
-    resp.raise_for_status()
-    return resp.json()
+def _obs_value(obs: dict) -> float | None:
+    """Extrait OBS_VALUE_NIVEAU.value d'une observation."""
+    try:
+        return obs["measures"]["OBS_VALUE_NIVEAU"]["value"]
+    except (KeyError, TypeError):
+        return None
 
 
-def fetch_insee_rp_data(code_insee: str, api_key: str = None) -> dict:
+def _filter_obs(obs_list: list[dict], **dims) -> list[dict]:
+    """Filtre les observations selon les dimensions données.
+
+    Note : Ne jamais filtrer sur GEO — la réponse Melodi préfixe GEO avec l'année
+    ("2025-COM-44202") tandis que la requête envoie "COM-44202".
+    Utiliser SEX, AGE, OCS, TSH, BUILD_END, COUPLE, etc.
     """
-    Récupère les données RP pour une commune.
+    result = []
+    for obs in obs_list:
+        if all(obs["dimensions"].get(k, {}).get("id") == v for k, v in dims.items()):
+            result.append(obs)
+    return result
+
+
+# ── Fetcher principal ─────────────────────────────────────────────────────────
+
+def fetch_insee_rp_data(code_insee: str) -> dict:
+    """
+    Récupère les données RP pour une commune via l'API Melodi (open).
 
     Retourne :
     {
         "ok": bool,
         "lignes": [{"indicateur_id": str, "annee": int, "valeur": float, "source": str}],
         "annees": [int],
-        "pyramide": [{"annee": int, "tranches": [{"tranche": str, "ordre": int, "hommes": int, "femmes": int}]}],
+        "pyramide": [{"annee": int, "tranches": [{"tranche": str, "ordre": int,
+                                                   "hommes": int, "femmes": int}]}],
         "erreurs": [str],
         "error": str,  # présent seulement si ok=False
     }
@@ -90,134 +88,209 @@ def fetch_insee_rp_data(code_insee: str, api_key: str = None) -> dict:
     annee = int(RP_MILLESIME)
     pop_total = None
 
-    resolved_key = (api_key or "").strip() or os.environ.get("INSEE_API_KEY", "")
-
+    # ── Population totale + structure par âge + pyramide ─────────────────────
     try:
-        token = _get_bearer_token(resolved_key)
-    except ValueError as e:
-        return {"ok": False, "error": str(e), "lignes": [], "annees": [], "pyramide": [], "erreurs": []}
+        obs_pop = _get_melodi("DS_RP_POPULATION_PRINC", code_insee,
+                              {"TIME_PERIOD": RP_MILLESIME})
+
+        pop_obs = _filter_obs(obs_pop, SEX="_T", AGE="_T")
+        if pop_obs:
+            pop_total = _obs_value(pop_obs[0])
+            if pop_total is not None:
+                lignes.append({"indicateur_id": "pop_total", "annee": annee,
+                                "valeur": pop_total, "source": SOURCE})
+
+        if pop_total and pop_total > 0:
+            tranches_pyramide = []
+            for code_age, ind_id, label, ordre in TRANCHES_AGE:
+                age_obs = _filter_obs(obs_pop, SEX="_T", AGE=code_age)
+                if age_obs:
+                    val = _obs_value(age_obs[0])
+                    if val is not None:
+                        pct = round(val / pop_total * 100, 1)
+                        lignes.append({"indicateur_id": ind_id, "annee": annee,
+                                        "valeur": pct, "source": SOURCE})
+                h_obs = _filter_obs(obs_pop, SEX="M", AGE=code_age)
+                f_obs = _filter_obs(obs_pop, SEX="F", AGE=code_age)
+                hommes = int(_obs_value(h_obs[0]) or 0) if h_obs else 0
+                femmes = int(_obs_value(f_obs[0]) or 0) if f_obs else 0
+                tranches_pyramide.append({"tranche": label, "ordre": ordre,
+                                          "hommes": hommes, "femmes": femmes})
+            if tranches_pyramide:
+                pyramide.append({"annee": annee, "tranches": tranches_pyramide})
+
     except requests.RequestException as e:
-        return {"ok": False, "error": f"Erreur d'authentification INSEE : {e}", "lignes": [], "annees": [], "pyramide": [], "erreurs": []}
-
-    # ── Population totale ──────────────────────────────────────────────────────
-    try:
-        data = _get_cube(token, f"geo-SEXE-AGE10@RP_POP_{RP_MILLESIME}", code_insee)
-        pop_total = _extraire_total(data)
-        if pop_total is not None:
-            lignes.append({"indicateur_id": "pop_total", "annee": annee, "valeur": pop_total, "source": SOURCE})
+        return {"ok": False, "error": f"Erreur Melodi (population) : {e}",
+                "lignes": [], "annees": [], "pyramide": [], "erreurs": []}
     except Exception as e:
         erreurs.append(f"population : {e}")
 
-    # ── Structure par âge + pyramide ───────────────────────────────────────────
+    # ── Évolution population (N vs N−10) ──────────────────────────────────────
     try:
-        data_age = _get_cube(token, f"geo-SEXE-AGE10@RP_POP_{RP_MILLESIME}", code_insee)
-        tranches_pyramide = []
-        for code_tranche, ind_id, tranche_label, ordre in TRANCHES_AGE:
-            hommes, femmes = _extraire_tranche(data_age, code_tranche)
-            total_tranche = hommes + femmes
-            if pop_total and pop_total > 0:
-                pct = round(total_tranche / pop_total * 100, 1)
-                lignes.append({"indicateur_id": ind_id, "annee": annee, "valeur": pct, "source": SOURCE})
-            tranches_pyramide.append({"tranche": tranche_label, "ordre": ordre, "hommes": hommes, "femmes": femmes})
-        if tranches_pyramide:
-            pyramide.append({"annee": annee, "tranches": tranches_pyramide})
+        annee_prec = annee - 10
+        obs_prec = _get_melodi("DS_RP_POPULATION_PRINC", code_insee,
+                               {"TIME_PERIOD": str(annee_prec)})
+        pop_prec_obs = _filter_obs(obs_prec, SEX="_T", AGE="_T")
+        if pop_prec_obs and pop_total:
+            pop_prec = _obs_value(pop_prec_obs[0])
+            if pop_prec and pop_prec > 0:
+                evolution = round((pop_total - pop_prec) / pop_prec * 100, 1)
+                lignes.append({"indicateur_id": "pop_evolution_10ans", "annee": annee,
+                                "valeur": evolution, "source": SOURCE})
     except Exception as e:
-        erreurs.append(f"structure par âge : {e}")
+        erreurs.append(f"évolution population : {e}")
 
     # ── Logements ─────────────────────────────────────────────────────────────
     try:
-        data_log = _get_cube(token, f"geo-CATL@RP_LOGEMENT_{RP_MILLESIME}", code_insee)
-        # CATL : 1=RP, 2=RS, 3=logement vacant, 4=autre résidence
-        nb_rp = _extraire_modalite(data_log, "1")
-        nb_rs = _extraire_modalite(data_log, "2")
-        nb_vac = _extraire_modalite(data_log, "3")
-        nb_total = (nb_rp or 0) + (nb_rs or 0) + (nb_vac or 0)
-        if nb_total > 0:
-            if nb_vac is not None:
-                lignes.append({"indicateur_id": "log_vacants_taux", "annee": annee,
-                                "valeur": round(nb_vac / nb_total * 100, 1), "source": SOURCE})
-            if nb_rs is not None:
-                lignes.append({"indicateur_id": "log_residences_secondaires_taux", "annee": annee,
-                                "valeur": round(nb_rs / nb_total * 100, 1), "source": SOURCE})
-    except Exception as e:
-        erreurs.append(f"logements (catégorie) : {e}")
+        obs_log = _get_melodi("DS_RP_LOGEMENT_PRINC", code_insee,
+                              {"TIME_PERIOD": RP_MILLESIME})
 
-    # ── Tenure (propriétaires/locataires) ─────────────────────────────────────
-    try:
-        data_stocd = _get_cube(token, f"geo-STOCD@RP_LOGEMENT_{RP_MILLESIME}", code_insee)
-        # STOCD : 10=proprio, 20=locataire privé, 21=locataire HLM, 30=logé gratuitement
-        nb_proprio = _extraire_modalite(data_stocd, "10")
-        nb_rp_total = _extraire_total(data_stocd)
-        if nb_proprio and nb_rp_total:
-            lignes.append({"indicateur_id": "log_proprietaires_taux", "annee": annee,
-                            "valeur": round(nb_proprio / nb_rp_total * 100, 1), "source": SOURCE})
-    except Exception as e:
-        erreurs.append(f"tenure : {e}")
+        # Catégories (OCS)
+        total_log_obs = _filter_obs(obs_log, OCS="_T")
+        total_log = _obs_value(total_log_obs[0]) if total_log_obs else None
 
-    # ── Ancienneté du parc ─────────────────────────────────────────────────────
-    try:
-        data_ancons = _get_cube(token, f"geo-ANCONS@RP_LOGEMENT_{RP_MILLESIME}", code_insee)
-        # ANCONS : 1=avant 1919, 2=1919-1945, 3=1946-1970, 4=1971-1990, 5=1991-2005, 6=2006-2011, 7=après 2011
-        nb_av1946 = (_extraire_modalite(data_ancons, "1") or 0) + (_extraire_modalite(data_ancons, "2") or 0)
-        nb_1946_1990 = (_extraire_modalite(data_ancons, "3") or 0) + (_extraire_modalite(data_ancons, "4") or 0)
-        nb_post1990 = sum(_extraire_modalite(data_ancons, str(i)) or 0 for i in range(5, 8))
-        nb_total_ancons = nb_av1946 + nb_1946_1990 + nb_post1990
-        if nb_total_ancons > 0:
-            lignes.append({"indicateur_id": "log_anciennete_avant1946", "annee": annee,
-                            "valeur": round(nb_av1946 / nb_total_ancons * 100, 1), "source": SOURCE})
-            lignes.append({"indicateur_id": "log_anciennete_1946_1990", "annee": annee,
-                            "valeur": round(nb_1946_1990 / nb_total_ancons * 100, 1), "source": SOURCE})
-            lignes.append({"indicateur_id": "log_anciennete_post1990", "annee": annee,
-                            "valeur": round(nb_post1990 / nb_total_ancons * 100, 1), "source": SOURCE})
+        if total_log and total_log > 0:
+            vac_obs = _filter_obs(obs_log, OCS="DW_VAC")
+            if vac_obs:
+                nb_vac = _obs_value(vac_obs[0])
+                if nb_vac is not None:
+                    lignes.append({"indicateur_id": "log_vacants_taux", "annee": annee,
+                                    "valeur": round(nb_vac / total_log * 100, 1), "source": SOURCE})
+
+            # Résidences secondaires — essayer les deux codes possibles
+            for sec_code in ("DW_SEC_DW_OCC", "DW_SEC"):
+                sec_obs = _filter_obs(obs_log, OCS=sec_code)
+                if sec_obs:
+                    nb_sec = _obs_value(sec_obs[0])
+                    if nb_sec is not None:
+                        lignes.append({"indicateur_id": "log_residences_secondaires_taux",
+                                        "annee": annee,
+                                        "valeur": round(nb_sec / total_log * 100, 1),
+                                        "source": SOURCE})
+                    break
+
+        # Propriétaires (dimension TSH — codes à découvrir à l'exécution)
+        tsh_codes = {o["dimensions"]["TSH"]["id"]
+                     for o in obs_log if "TSH" in o["dimensions"]}
+        total_tsh_obs = _filter_obs(obs_log, TSH="_T")
+        total_tsh = _obs_value(total_tsh_obs[0]) if total_tsh_obs else None
+        if total_tsh and total_tsh > 0:
+            for owner_code in ("OWNER", "10", "OWN", "OWNER_OCC"):
+                prop_obs = _filter_obs(obs_log, TSH=owner_code)
+                if prop_obs:
+                    nb_prop = _obs_value(prop_obs[0])
+                    if nb_prop is not None:
+                        lignes.append({"indicateur_id": "log_proprietaires_taux", "annee": annee,
+                                        "valeur": round(nb_prop / total_tsh * 100, 1),
+                                        "source": SOURCE})
+                    break
+            else:
+                erreurs.append(f"propriétaires : codes TSH disponibles = {tsh_codes}")
+
+        # Ancienneté du parc (dimension BUILD_END)
+        build_codes = {o["dimensions"]["BUILD_END"]["id"]
+                       for o in obs_log
+                       if "BUILD_END" in o["dimensions"]
+                       and o["dimensions"]["BUILD_END"]["id"] != "_T"}
+        total_build_obs = _filter_obs(obs_log, BUILD_END="_T")
+        total_build = _obs_value(total_build_obs[0]) if total_build_obs else None
+
+        if total_build and total_build > 0 and build_codes:
+            av1946 = [c for c in build_codes
+                      if any(x in c for x in ("LT1919", "LT1946", "1919T1945", "Y1919", "Y1945"))]
+            codes_1946_1990 = [c for c in build_codes
+                                if any(x in c for x in ("1946", "1970", "1971", "1990"))
+                                and c not in av1946]
+            post1990 = [c for c in build_codes
+                        if any(x in c for x in ("1991", "2005", "2006", "GT1990", "GE1991"))
+                        and c not in av1946 and c not in codes_1946_1990]
+
+            def _sum_build(codes):
+                total = 0
+                for c in codes:
+                    obs = _filter_obs(obs_log, BUILD_END=c)
+                    if obs:
+                        total += _obs_value(obs[0]) or 0
+                return total
+
+            nb_av = _sum_build(av1946)
+            nb_mid = _sum_build(codes_1946_1990)
+            nb_post = _sum_build(post1990)
+            total_connu = nb_av + nb_mid + nb_post
+
+            if total_connu > 0:
+                lignes.append({"indicateur_id": "log_anciennete_avant1946", "annee": annee,
+                                "valeur": round(nb_av / total_connu * 100, 1), "source": SOURCE})
+                lignes.append({"indicateur_id": "log_anciennete_1946_1990", "annee": annee,
+                                "valeur": round(nb_mid / total_connu * 100, 1), "source": SOURCE})
+                lignes.append({"indicateur_id": "log_anciennete_post1990", "annee": annee,
+                                "valeur": round(nb_post / total_connu * 100, 1), "source": SOURCE})
+            else:
+                erreurs.append(f"ancienneté : codes BUILD_END disponibles = {build_codes}")
+
     except Exception as e:
-        erreurs.append(f"ancienneté parc : {e}")
+        erreurs.append(f"logements : {e}")
 
     # ── Ménages ────────────────────────────────────────────────────────────────
     try:
-        data_men = _get_cube(token, f"geo-TYPMR@RP_MENAGES_{RP_MILLESIME}", code_insee)
-        # TYPMR : 11=personne seule, ... (voir catalogue)
-        nb_solo = _extraire_modalite(data_men, "11")
-        nb_men_total = _extraire_total(data_men)
-        if nb_solo and nb_men_total:
-            lignes.append({"indicateur_id": "pop_menages_solo", "annee": annee,
-                            "valeur": round(nb_solo / nb_men_total * 100, 1), "source": SOURCE})
-        # Taille moyenne : pop / nb ménages (approximation)
-        if pop_total and nb_men_total:
-            lignes.append({"indicateur_id": "pop_taille_menages", "annee": annee,
-                            "valeur": round(pop_total / nb_men_total, 2), "source": SOURCE})
+        obs_men = _get_melodi("DS_RP_MENAGES_PRINC", code_insee,
+                              {"TIME_PERIOD": RP_MILLESIME})
+
+        # Total ménages : observation avec toutes les dimensions à _T
+        total_men_obs = [
+            o for o in obs_men
+            if all(o["dimensions"].get(d, {}).get("id") == "_T"
+                   for d in o["dimensions"] if d != "GEO" and d != "TIME_PERIOD" and d != "FREQ")
+        ]
+        nb_men_total = _obs_value(total_men_obs[0]) if total_men_obs else None
+
+        if nb_men_total and nb_men_total > 0:
+            if pop_total:
+                lignes.append({"indicateur_id": "pop_taille_menages", "annee": annee,
+                                "valeur": round(pop_total / nb_men_total, 2), "source": SOURCE})
+
+            # Ménages d'une seule personne (COUPLE=0, AGE=_T)
+            solo_obs = _filter_obs(obs_men, COUPLE="0", AGE="_T")
+            if not solo_obs:
+                # Fallback : tous COUPLE=0 à tous âges
+                solo_all = _filter_obs(obs_men, COUPLE="0")
+                nb_solo = sum(_obs_value(o) or 0 for o in solo_all
+                              if o["dimensions"].get("AGE", {}).get("id") == "_T")
+            else:
+                nb_solo = sum(_obs_value(o) or 0 for o in solo_obs)
+
+            if nb_solo > 0:
+                lignes.append({"indicateur_id": "pop_menages_solo", "annee": annee,
+                                "valeur": round(nb_solo / nb_men_total * 100, 1), "source": SOURCE})
+            else:
+                erreurs.append("ménages solo : dimension COUPLE non résolue")
+
     except Exception as e:
         erreurs.append(f"ménages : {e}")
 
     # ── Emplois ────────────────────────────────────────────────────────────────
     try:
-        data_emp = _get_cube(token, f"geo-TACT@RP_ACT_{RP_MILLESIME}", code_insee)
-        # TACT : 11=actif occupé résident, ... (emplois sur commune via cube emplois)
-        nb_actifs = _extraire_modalite(data_emp, "11")
-        # Note : emplois SUR la commune nécessite un cube différent (RP_EMP)
-        data_emplois = _get_cube(token, f"geo-TACT@RP_EMP_{RP_MILLESIME}", code_insee)
-        nb_emplois = _extraire_total(data_emplois)
-        if nb_actifs and nb_emplois and nb_actifs > 0:
-            lignes.append({"indicateur_id": "eco_emplois_actifs_ratio", "annee": annee,
-                            "valeur": round(nb_emplois / nb_actifs, 2), "source": SOURCE})
-        if nb_emplois:
+        obs_emp = _get_melodi("DS_RP_EMPLOI_LT_PRINC", code_insee,
+                              {"TIME_PERIOD": RP_MILLESIME})
+        # Chercher le total : SEX=_T ou première observation si pas de dimension SEX
+        emp_total_obs = _filter_obs(obs_emp, SEX="_T") or obs_emp
+        nb_emplois = _obs_value(emp_total_obs[0]) if emp_total_obs else None
+
+        if nb_emplois is not None:
             lignes.append({"indicateur_id": "eco2_emplois_commune", "annee": annee,
                             "valeur": nb_emplois, "source": SOURCE})
+
+        obs_act = _get_melodi("DS_RP_ACTIVITE_PRINC", code_insee,
+                              {"TIME_PERIOD": RP_MILLESIME})
+        act_total_obs = _filter_obs(obs_act, SEX="_T") or obs_act
+        nb_actifs = _obs_value(act_total_obs[0]) if act_total_obs else None
+
+        if nb_emplois and nb_actifs and nb_actifs > 0:
+            lignes.append({"indicateur_id": "eco_emplois_actifs_ratio", "annee": annee,
+                            "valeur": round(nb_emplois / nb_actifs, 2), "source": SOURCE})
+
     except Exception as e:
         erreurs.append(f"emplois : {e}")
-
-    # ── Évolution population ───────────────────────────────────────────────────
-    try:
-        # Millésime précédent (N-10 ans)
-        annee_prec = annee - 10
-        millesime_prec = str(annee_prec)
-        data_prec = _get_cube(token, f"geo-SEXE-AGE10@RP_POP_{millesime_prec}", code_insee)
-        pop_prec = _extraire_total(data_prec)
-        if pop_prec and pop_total and pop_prec > 0:
-            evolution = round((pop_total - pop_prec) / pop_prec * 100, 1)
-            lignes.append({"indicateur_id": "pop_evolution_10ans", "annee": annee,
-                            "valeur": evolution, "source": SOURCE})
-    except Exception as e:
-        erreurs.append(f"évolution population : {e}")
 
     annees = list({l["annee"] for l in lignes}) if lignes else []
 
@@ -228,52 +301,3 @@ def fetch_insee_rp_data(code_insee: str, api_key: str = None) -> dict:
         "pyramide": pyramide,
         "erreurs": erreurs,
     }
-
-
-# ── Helpers pour parser les réponses JSON de l'API Données locales ────────────
-
-def _extraire_total(data):
-    """Extrait la valeur totale d'une réponse cube INSEE."""
-    # La structure de réponse JSON de l'API Données locales INSEE est :
-    # {"Cellule": [{"Modalite": [{"@variable": "VAR", "@code": "code"}], "Valeur": "123"}]}
-    try:
-        total = 0
-        for cellule in data.get("Cellule", []):
-            val = cellule.get("Valeur", "0")
-            total += int(float(val.replace(" ", "")))
-        return total if total > 0 else None
-    except Exception:
-        return None
-
-
-def _extraire_modalite(data, code):
-    """Extrait la valeur pour une modalité spécifique."""
-    try:
-        for cellule in data.get("Cellule", []):
-            for mod in cellule.get("Modalite", []):
-                if mod.get("@code") == code:
-                    val = cellule.get("Valeur", "0")
-                    return int(float(val.replace(" ", "")))
-        return None
-    except Exception:
-        return None
-
-
-def _extraire_tranche(data, tranche):
-    """Extrait hommes et femmes pour une tranche d'âge."""
-    hommes = 0
-    femmes = 0
-    try:
-        for cellule in data.get("Cellule", []):
-            modalites = {m.get("@variable"): m.get("@code") for m in cellule.get("Modalite", [])}
-            # Adapter les noms de variables selon la réponse réelle de l'API
-            if modalites.get("AGE10") == tranche or modalites.get("AGEPYR5") == tranche:
-                val = int(float(cellule.get("Valeur", "0").replace(" ", "")))
-                sexe = modalites.get("SEXE", "")
-                if sexe == "1":  # 1 = Hommes
-                    hommes += val
-                elif sexe == "2":  # 2 = Femmes
-                    femmes += val
-    except Exception:
-        pass
-    return hommes, femmes
