@@ -40,3 +40,10 @@ def super_admin_required(f):
             return redirect(url_for("admin.dashboard"))
         return f(*args, **kwargs)
     return decorated
+
+
+def can_modify_ville(ville_id):
+    """Retourne True si l'utilisateur connecté peut modifier la ville donnée."""
+    if session.get('user_role') == 'super_admin':
+        return True
+    return session.get('admin_ville_id') == ville_id

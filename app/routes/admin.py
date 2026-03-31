@@ -4,7 +4,7 @@ import tempfile
 import threading
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify, Response, abort
-from app.auth import login_required, super_admin_required, is_rate_limited, record_attempt
+from app.auth import login_required, super_admin_required, can_modify_ville, is_rate_limited, record_attempt
 import app.models.indicateur as ind_model
 import app.models.donnee as donnee_model
 import app.models.interpretation as interp_model
