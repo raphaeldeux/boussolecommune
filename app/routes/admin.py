@@ -1015,7 +1015,7 @@ def cancel_preview(source):
 @bp.route("/upload/fetch-insee-rp", methods=["POST"])
 @login_required
 def fetch_insee_rp():
-    """Fetch les données RP depuis l'API Données locales INSEE et stocke le preview en session."""
+    """Fetch les données RP depuis l'API Melodi INSEE et stocke le preview en session."""
     import json as _json
     ville = _get_current_ville()
     if not ville:
@@ -1026,7 +1026,7 @@ def fetch_insee_rp():
         flash("Code INSEE non renseigné. Modifiez la fiche de la commune.", "danger")
         return redirect(url_for("admin.upload"))
 
-    result = fetch_insee_rp_data(code_insee, api_key=ville.get("insee_api_key"))
+    result = fetch_insee_rp_data(code_insee)
     if not result["ok"]:
         flash(f"INSEE RP : {result['error']}", "danger")
         return redirect(url_for("admin.upload"))
