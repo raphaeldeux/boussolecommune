@@ -568,4 +568,18 @@ def init_db():  # noqa: C901
         conn.execute("ALTER TABLE villes ADD COLUMN mistral_model TEXT DEFAULT NULL")
         conn.commit()
 
+    # Migration Melodi : suppression des anciens indicateurs d'âge
+    # seed.py les recrée avec les nouveaux IDs (pop_age_lt15, etc.) au prochain démarrage
+    _AGE_OLD_IDS = [
+        "pop_age_0_14", "pop_age_15_29", "pop_age_30_44", "pop_age_45_59",
+        "pop_age_60_74", "pop_age_75_89", "pop_age_90_plus",
+    ]
+    for _old_id in _AGE_OLD_IDS:
+        _row = conn.execute("SELECT id FROM indicateurs WHERE id=%s", (_old_id,)).fetchone()
+        if _row:
+            for _table in ("donnees", "interpretations", "indicateur_ville_ref", "refs_banque"):
+                conn.execute(f"DELETE FROM {_table} WHERE indicateur_id=%s", (_old_id,))
+            conn.execute("DELETE FROM indicateurs WHERE id=%s", (_old_id,))
+    conn.commit()
+
     conn.close()
