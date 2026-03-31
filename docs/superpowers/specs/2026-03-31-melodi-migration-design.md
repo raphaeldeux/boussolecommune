@@ -76,7 +76,11 @@ def _obs_value(obs: dict) -> float | None:
         return None
 
 def _filter_obs(obs_list, **dims) -> list[dict]:
-    """Filtre les observations selon les dimensions données."""
+    """Filtre les observations selon les dimensions données (hors GEO, déjà filtré par la requête).
+
+    Note : La réponse Melodi préfixe GEO avec l'année de millésime ("2025-COM-44202").
+    Ne jamais filtrer sur GEO ici — utiliser SEX, AGE, OCS, TSH, BUILD_END, etc.
+    """
     result = []
     for obs in obs_list:
         if all(obs["dimensions"].get(k, {}).get("id") == v for k, v in dims.items()):
@@ -159,28 +163,29 @@ Filtre de base : `TIME_PERIOD=2022`
 
 ### Migration DB
 
-Dans `init_db()` (pattern `_column_exists` adapté) :
+Les anciens IDs sont PK de `indicateurs`, référencés en FK par `donnees`, `interpretations`, `indicateur_ville_ref`, `refs_banque` — sans `ON UPDATE CASCADE`. Un UPDATE direct échouerait.
+
+**Stratégie : supprimer puis laisser seed.py re-créer.**
+
+Dans `init_db()` :
 
 ```python
-# Renommage des indicateurs d'âge (migration Melodi)
-_AGE_RENAMES = {
-    "pop_age_0_14":  "pop_age_lt15",
-    "pop_age_15_29": "pop_age_15_24",
-    "pop_age_30_44": "pop_age_25_39",
-    "pop_age_45_59": "pop_age_40_54",
-    "pop_age_60_74": "pop_age_55_64",
-    "pop_age_75_89": "pop_age_65_79",
-    "pop_age_90_plus": "pop_age_ge80",
-}
-for old_id, new_id in _AGE_RENAMES.items():
-    # Vérifier si l'ancien ID existe encore
+# Migration Melodi : suppression des anciens indicateurs d'âge
+# seed.py les recrée avec les nouveaux IDs au démarrage
+_AGE_OLD_IDS = [
+    "pop_age_0_14", "pop_age_15_29", "pop_age_30_44", "pop_age_45_59",
+    "pop_age_60_74", "pop_age_75_89", "pop_age_90_plus",
+]
+for old_id in _AGE_OLD_IDS:
     row = conn.execute("SELECT id FROM indicateurs WHERE id=%s", (old_id,)).fetchone()
     if row:
-        # Supprimer les données liées (orphelines)
-        conn.execute("DELETE FROM donnees WHERE indicateur_id=%s", (old_id,))
-        # Renommer l'indicateur
-        conn.execute("UPDATE indicateurs SET id=%s WHERE id=%s", (new_id, old_id))
+        # Supprimer dans toutes les tables FK (ordre : feuilles d'abord)
+        for table in ("donnees", "interpretations", "indicateur_ville_ref", "refs_banque"):
+            conn.execute(f"DELETE FROM {table} WHERE indicateur_id=%s", (old_id,))
+        conn.execute("DELETE FROM indicateurs WHERE id=%s", (old_id,))
 ```
+
+seed.py insère ensuite les nouveaux indicateurs (`pop_age_lt15`, etc.) via son `INSERT ... ON CONFLICT DO UPDATE`.
 
 ---
 
