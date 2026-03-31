@@ -9,18 +9,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  ollama:
-    image: ollama/ollama
-    restart: always
-    volumes:
-      - ollama_data:/root/.ollama
-
   web:
     build: .
     restart: always
     depends_on:
       - db
-      - ollama
     ports:
       - "127.0.0.1:5001:5000"
     volumes:
@@ -29,4 +22,3 @@ services:
 
 volumes:
   postgres_data:
-  ollama_data:
