@@ -266,6 +266,10 @@ def saisie():
             tous_indicateurs.append({**i, "them_label": ind_model.THEMATIQUE_LABELS[them]})
 
     fv = {"annee": str(datetime.now().year), "valeur": "", "source": "", "commentaire": ""}
+    apercu = None
+    erreurs_csv = []
+    format_csv = "generique"
+
     if request.method == "GET":
         ind_arg = request.args.get("ind")
         annee_arg = request.args.get("annee")
@@ -283,52 +287,119 @@ def saisie():
                 pass
 
     if request.method == "POST":
-        indicateur_id = request.form.get("indicateur_id", "").strip()
-        annee_str = request.form.get("annee", "").strip()
-        valeur_str = request.form.get("valeur", "").strip()
-        source = request.form.get("source", "").strip()
-        commentaire = request.form.get("commentaire", "").strip()
+        action = request.form.get("action")
 
-        erreurs = []
-        annee = None
-        valeur = None
-        if not indicateur_id:
-            erreurs.append("Veuillez sélectionner un indicateur.")
-        if not annee_str:
-            erreurs.append("L'année est requise.")
+        if action == "apercu":
+            format_csv = request.form.get("format", "generique")
+            fichier = request.files.get("fichier")
+            if not fichier or fichier.filename == "":
+                flash("Aucun fichier sélectionné.", "danger")
+            else:
+                contenu = fichier.read().decode("utf-8", errors="replace")
+                old_tmp = session.pop("upload_tmp", None)
+                if old_tmp and os.path.exists(old_tmp):
+                    os.unlink(old_tmp)
+                tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, encoding="utf-8")
+                tmp.write(contenu)
+                tmp.close()
+                session["upload_tmp"] = tmp.name
+                session["upload_format"] = format_csv
+                session["upload_nom"] = fichier.filename
+                if format_csv == "ofgl":
+                    apercu, erreurs_csv = parser_ofgl(contenu, population=ville.get("population") if ville else None)
+                else:
+                    apercu, erreurs_csv = parser_generique(contenu)
+
+        elif action == "importer":
+            tmp_path = session.get("upload_tmp")
+            format_csv = session.get("upload_format", "generique")
+            nom_fichier = session.get("upload_nom", "inconnu")
+            if not tmp_path or not os.path.exists(tmp_path):
+                flash("Session expirée. Veuillez re-uploader le fichier.", "danger")
+                return redirect(url_for("admin.saisie"))
+            with open(tmp_path, encoding="utf-8") as f:
+                contenu = f.read()
+            os.unlink(tmp_path)
+            session.pop("upload_tmp", None)
+            if format_csv == "ofgl":
+                lignes_valides, erreurs_csv = parser_ofgl(contenu, population=ville.get("population") if ville else None)
+            else:
+                lignes_valides, erreurs_csv = parser_generique(contenu)
+            nb_importes = 0
+            for ligne in lignes_valides:
+                ind = ind_model.get_by_id(ligne["indicateur_id"])
+                if ind:
+                    donnee_model.upsert(
+                        ligne["indicateur_id"], ligne["annee"], ligne["valeur"],
+                        ligne.get("source", ""), "", "csv", ville["id"]
+                    )
+                    nb_importes += 1
+            conn = get_db()
+            conn.execute("""
+                INSERT INTO imports (fichier, format_csv, nb_lignes_traitees, nb_lignes_importees, nb_erreurs, rapport, statut)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (
+                nom_fichier, format_csv,
+                len(lignes_valides) + len(erreurs_csv),
+                nb_importes, len(erreurs_csv),
+                json.dumps([e for e in erreurs_csv], ensure_ascii=False),
+                "succes" if not erreurs_csv else ("partiel" if nb_importes > 0 else "echec"),
+            ))
+            conn.commit()
+            conn.close()
+            session.pop("upload_format", None)
+            session.pop("upload_nom", None)
+            flash(f"{nb_importes} valeur(s) importée(s), {len(erreurs_csv)} erreur(s).",
+                  "success" if nb_importes > 0 else "warning")
+            return redirect(url_for("admin.saisie"))
+
         else:
-            try:
-                annee = int(annee_str)
-            except ValueError:
-                erreurs.append("L'année doit être un nombre entier.")
-        if not valeur_str:
-            erreurs.append("La valeur est requise.")
-        else:
-            try:
-                valeur = float(valeur_str.replace(",", "."))
-            except ValueError:
-                erreurs.append("La valeur doit être un nombre.")
+            # Saisie manuelle
+            indicateur_id = request.form.get("indicateur_id", "").strip()
+            annee_str = request.form.get("annee", "").strip()
+            valeur_str = request.form.get("valeur", "").strip()
+            source = request.form.get("source", "").strip()
+            commentaire = request.form.get("commentaire", "").strip()
 
-        if not erreurs:
-            ind = ind_model.get_by_id(indicateur_id)
-            if not ind:
-                erreurs.append("Indicateur introuvable.")
+            erreurs = []
+            annee = None
+            valeur = None
+            if not indicateur_id:
+                erreurs.append("Veuillez sélectionner un indicateur.")
+            if not annee_str:
+                erreurs.append("L'année est requise.")
+            else:
+                try:
+                    annee = int(annee_str)
+                except ValueError:
+                    erreurs.append("L'année doit être un nombre entier.")
+            if not valeur_str:
+                erreurs.append("La valeur est requise.")
+            else:
+                try:
+                    valeur = float(valeur_str.replace(",", "."))
+                except ValueError:
+                    erreurs.append("La valeur doit être un nombre.")
 
-        if erreurs:
-            for e in erreurs:
-                flash(e, "danger")
-        else:
-            donnee_model.upsert(indicateur_id, annee, valeur, source, commentaire, "manuel", ville["id"])
-            flash(f"Valeur enregistrée pour « {ind['libelle_citoyen']} » ({annee}).", "success")
-            return redirect(url_for("admin.saisie", saved_ind=indicateur_id, saved_annee=annee))
+            if not erreurs:
+                ind = ind_model.get_by_id(indicateur_id)
+                if not ind:
+                    erreurs.append("Indicateur introuvable.")
 
-    if request.method == "POST":
-        fv = {
-            "annee": request.form.get("annee", str(datetime.now().year)),
-            "valeur": request.form.get("valeur", ""),
-            "source": request.form.get("source", ""),
-            "commentaire": request.form.get("commentaire", ""),
-        }
+            if erreurs:
+                for e in erreurs:
+                    flash(e, "danger")
+            else:
+                donnee_model.upsert(indicateur_id, annee, valeur, source, commentaire, "manuel", ville["id"])
+                flash(f"Valeur enregistrée pour « {ind['libelle_citoyen']} » ({annee}).", "success")
+                return redirect(url_for("admin.saisie", saved_ind=indicateur_id, saved_annee=annee))
+
+            fv = {
+                "annee": request.form.get("annee", str(datetime.now().year)),
+                "valeur": request.form.get("valeur", ""),
+                "source": request.form.get("source", ""),
+                "commentaire": request.form.get("commentaire", ""),
+            }
 
     recentes = donnee_model.get_recentes(15, ville["id"])
     # Historique pour mini-graphiques (US9)
@@ -339,6 +410,13 @@ def saisie():
         if ind_id not in historique_by_ind:
             historique_by_ind[ind_id] = []
         historique_by_ind[ind_id].append({"annee": d["annee"], "valeur": d["valeur"]})
+
+    conn = get_db()
+    imports_hist = conn.execute(
+        "SELECT * FROM imports ORDER BY date_import DESC LIMIT 30"
+    ).fetchall()
+    conn.close()
+
     return render_template(
         "admin/saisie.html",
         indicateurs=tous_indicateurs,
@@ -348,6 +426,11 @@ def saisie():
         fv=fv,
         ville=ville,
         historique_by_ind=historique_by_ind,
+        apercu=apercu,
+        erreurs_csv=erreurs_csv,
+        format_csv=format_csv,
+        imports_hist=[dict(r) for r in imports_hist],
+        current_year=datetime.now().year - 1,
     )
 
 
@@ -474,116 +557,32 @@ def interpretation_generer_ia(indicateur_id, annee):
     return jsonify(result)
 
 
-# ── Upload CSV ────────────────────────────────────────────────────────────
+# ── Sources automatiques ──────────────────────────────────────────────────
 
-@bp.route("/upload", methods=["GET", "POST"])
+@bp.route("/upload", methods=["GET"])
 @login_required
 def upload():
     ville = _get_current_ville()
-    apercu = None
-    erreurs = []
-    format_csv = None
+    if not ville:
+        flash("Aucune ville sélectionnée.", "warning")
+        return redirect(url_for("admin.dashboard"))
 
-    if request.method == "POST":
-        action = request.form.get("action", "apercu")
-        format_csv = request.form.get("format", "generique")
-
-        if action == "apercu":
-            fichier = request.files.get("fichier")
-            if not fichier or fichier.filename == "":
-                flash("Aucun fichier sélectionné.", "danger")
-                return render_template("admin/upload.html", ville=ville)
-
-            contenu = fichier.read().decode("utf-8", errors="replace")
-
-            # Stocker le contenu côté serveur (pas dans le cookie de session)
-            old_tmp = session.pop("upload_tmp", None)
-            if old_tmp and os.path.exists(old_tmp):
-                os.unlink(old_tmp)
-            tmp = tempfile.NamedTemporaryFile(
-                mode="w", suffix=".csv", delete=False, encoding="utf-8"
-            )
-            tmp.write(contenu)
-            tmp.close()
-            session["upload_tmp"] = tmp.name
-            session["upload_format"] = format_csv
-            session["upload_nom"] = fichier.filename
-
-            if format_csv == "ofgl":
-                lignes_valides, erreurs = parser_ofgl(contenu, population=ville.get("population") if ville else None)
-            else:
-                lignes_valides, erreurs = parser_generique(contenu)
-
-            apercu = lignes_valides
-
-        elif action == "importer":
-            tmp_path = session.get("upload_tmp")
-            format_csv = session.get("upload_format", "generique")
-            nom_fichier = session.get("upload_nom", "inconnu")
-
-            if not tmp_path or not os.path.exists(tmp_path):
-                flash("Session expirée. Veuillez re-uploader le fichier.", "danger")
-                return redirect(url_for("admin.upload"))
-
-            with open(tmp_path, encoding="utf-8") as f:
-                contenu = f.read()
-            os.unlink(tmp_path)
-            session.pop("upload_tmp", None)
-
-            if format_csv == "ofgl":
-                lignes_valides, erreurs = parser_ofgl(contenu, population=ville.get("population") if ville else None)
-            else:
-                lignes_valides, erreurs = parser_generique(contenu)
-
-            nb_importes = 0
-            for ligne in lignes_valides:
-                ind = ind_model.get_by_id(ligne["indicateur_id"])
-                if ind:
-                    donnee_model.upsert(
-                        ligne["indicateur_id"], ligne["annee"], ligne["valeur"],
-                        ligne.get("source", ""), "", "csv", ville["id"]
-                    )
-                    nb_importes += 1
-
-            conn = get_db()
-            conn.execute("""
-                INSERT INTO imports (fichier, format_csv, nb_lignes_traitees, nb_lignes_importees, nb_erreurs, rapport, statut)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (
-                nom_fichier,
-                format_csv,
-                len(lignes_valides) + len(erreurs),
-                nb_importes,
-                len(erreurs),
-                json.dumps([e for e in erreurs], ensure_ascii=False),
-                "succes" if not erreurs else ("partiel" if nb_importes > 0 else "echec"),
-            ))
-            conn.commit()
-            conn.close()
-
-            session.pop("upload_format", None)
-            session.pop("upload_nom", None)
-
-            flash(
-                f"{nb_importes} valeur(s) importée(s), {len(erreurs)} erreur(s).",
-                "success" if nb_importes > 0 else "warning"
-            )
-            return redirect(url_for("admin.upload"))
-
-    # Historique des imports (US10)
+    # Historique des imports automatiques (mode_saisie='api')
     conn = get_db()
-    imports_hist = conn.execute(
-        "SELECT * FROM imports ORDER BY date_import DESC LIMIT 30"
-    ).fetchall()
+    api_recentes = conn.execute("""
+        SELECT d.indicateur_id, d.annee, d.valeur, d.source, d.date_saisie, i.libelle_citoyen, i.unite
+        FROM donnees d
+        JOIN indicateurs i ON d.indicateur_id = i.id
+        WHERE d.ville_id = %s AND d.mode_saisie = 'api'
+        ORDER BY d.date_saisie DESC
+        LIMIT 50
+    """, (ville["id"],)).fetchall()
     conn.close()
+
     return render_template(
         "admin/upload.html",
-        apercu=apercu,
-        erreurs=erreurs,
-        format_csv=format_csv or "generique",
         ville=ville,
-        imports_hist=[dict(r) for r in imports_hist],
-        current_year=datetime.now().year - 1,
+        api_recentes=[dict(r) for r in api_recentes],
     )
 
 

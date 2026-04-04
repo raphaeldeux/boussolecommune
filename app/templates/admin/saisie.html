@@ -139,6 +139,238 @@
   </div>
 </div>
 
+<!-- Import CSV -->
+<div class="mb-8">
+  <h2 class="text-lg font-semibold text-gray-800 mb-4">Import CSV</h2>
+
+  <!-- Boutons télécharger modèle -->
+  <div class="flex gap-3 mb-5 flex-wrap">
+    <a href="{{ url_for('admin.modele_csv', format_csv='generique') }}"
+       class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition shadow-sm">
+      ⬇️ Modèle générique (.csv)
+    </a>
+    <a href="{{ url_for('admin.modele_csv', format_csv='ofgl') }}"
+       class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition shadow-sm">
+      ⬇️ Modèle OFGL (.csv)
+    </a>
+  </div>
+
+  {% if not apercu %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-2xl mb-6">
+    <form method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="apercu">
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Format du fichier</label>
+        <div class="flex gap-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="format" value="generique"
+                   {% if format_csv == 'generique' or not format_csv %}checked{% endif %}>
+            <span class="text-sm">Format générique</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="format" value="ofgl"
+                   {% if format_csv == 'ofgl' %}checked{% endif %}>
+            <span class="text-sm">Format OFGL (finances)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="mb-5">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Fichier CSV</label>
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-400 transition"
+             id="csv-drop-zone">
+          <input type="file" name="fichier" accept=".csv,.txt" id="csv-file-input" class="hidden" required>
+          <div class="text-4xl mb-2">📂</div>
+          <p class="text-sm text-gray-500">Glissez un fichier ici ou
+            <button type="button" onclick="document.getElementById('csv-file-input').click()"
+                    class="text-emerald-600 hover:underline font-medium">parcourez</button>
+          </p>
+          <p id="csv-file-name" class="text-xs text-gray-400 mt-2"></p>
+        </div>
+      </div>
+
+      <div class="mb-5 text-xs text-gray-500 bg-gray-50 rounded-lg p-3 space-y-2">
+        <div>
+          <strong>Format générique :</strong>
+          <code class="bg-white px-1 rounded border">annee,indicateur_id,valeur,source</code>
+        </div>
+        <div>
+          <strong>Format OFGL :</strong>
+          <code class="bg-white px-1 rounded border">code_commune;libelle_commune;annee;libelle_compte;montant</code>
+        </div>
+      </div>
+
+      <button type="submit"
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg text-sm transition">
+        🔍 Analyser le fichier
+      </button>
+    </form>
+  </div>
+
+  {% else %}
+  <!-- Aperçu -->
+  <div class="space-y-6 mb-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <h3 class="text-base font-semibold text-gray-800 mb-4">
+        Aperçu — {{ apercu | length }} ligne(s) valide(s)
+        {% if erreurs_csv %}<span class="text-red-500 text-sm font-normal ml-2">· {{ erreurs_csv | length }} erreur(s)</span>{% endif %}
+      </h3>
+
+      {% if apercu %}
+      <div class="overflow-x-auto mb-4">
+        <table class="w-full text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="text-left px-3 py-2 text-gray-500 font-medium">Indicateur</th>
+              <th class="text-center px-3 py-2 text-gray-500 font-medium">Année</th>
+              <th class="text-center px-3 py-2 text-gray-500 font-medium">Valeur</th>
+              <th class="text-left px-3 py-2 text-gray-500 font-medium">Source</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            {% for ligne in apercu %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-3 py-2">
+                <div class="font-medium text-gray-700">{{ ligne.get('libelle_citoyen', ligne.indicateur_id) | truncate(50) }}</div>
+                <div class="text-xs text-gray-400">{{ ligne.indicateur_id }}</div>
+              </td>
+              <td class="px-3 py-2 text-center text-gray-600">{{ ligne.annee }}</td>
+              <td class="px-3 py-2 text-center font-mono text-gray-700">{{ ligne.valeur }}</td>
+              <td class="px-3 py-2 text-gray-500 text-xs">{{ ligne.get('source', '') | truncate(40) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if erreurs_csv %}
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+        <h4 class="text-sm font-semibold text-red-700 mb-2">Lignes ignorées ({{ erreurs_csv | length }})</h4>
+        <ul class="text-xs text-red-600 space-y-1">
+          {% for e in erreurs_csv %}
+          <li>Ligne {{ e.ligne }} : {{ e.message }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      {% if apercu %}
+      <div class="flex gap-3">
+        <form method="POST">
+          <input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="importer">
+          <input type="hidden" name="format" value="{{ format_csv }}">
+          <button type="submit"
+                  class="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition"
+                  onclick="return confirm('Confirmer l\'import de {{ apercu | length }} ligne(s) ?')">
+            ✅ Confirmer l'import
+          </button>
+        </form>
+        <a href="{{ url_for('admin.saisie') }}"
+           class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium transition">
+          Annuler
+        </a>
+      </div>
+      {% else %}
+      <a href="{{ url_for('admin.saisie') }}"
+         class="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium transition">
+        ← Recommencer
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Historique des imports CSV -->
+<div class="mb-8">
+  <h2 class="text-base font-semibold text-gray-700 mb-3">Historique des imports CSV</h2>
+  {% if imports_hist %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-100">
+        <tr>
+          <th class="text-left px-4 py-2 text-gray-500 font-medium">Date</th>
+          <th class="text-left px-3 py-2 text-gray-500 font-medium">Fichier</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Format</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Importées</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium hidden sm:table-cell">Erreurs</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium">Statut</th>
+          <th class="text-center px-3 py-2 text-gray-500 font-medium w-8"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for imp in imports_hist %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2.5 text-xs text-gray-500 whitespace-nowrap">
+            {{ imp.date_import | format_date if imp.date_import else '—' }}
+          </td>
+          <td class="px-3 py-2.5 text-gray-700 text-xs max-w-xs truncate" title="{{ imp.fichier }}">
+            {{ imp.fichier or '—' }}
+          </td>
+          <td class="px-3 py-2.5 text-center text-xs text-gray-500 hidden sm:table-cell">
+            {{ imp.format_csv or imp.thematique or '—' }}
+          </td>
+          <td class="px-3 py-2.5 text-center text-xs hidden sm:table-cell">
+            <span class="text-emerald-700 font-medium">{{ imp.nb_lignes_importees or 0 }}</span>
+            <span class="text-gray-400">/{{ imp.nb_lignes_traitees or 0 }}</span>
+          </td>
+          <td class="px-3 py-2.5 text-center text-xs hidden sm:table-cell">
+            {% if imp.nb_erreurs %}
+            <span class="text-red-500 font-medium">{{ imp.nb_erreurs }}</span>
+            {% else %}
+            <span class="text-gray-300">0</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-center">
+            {% if imp.statut == 'succes' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">succès</span>
+            {% elif imp.statut == 'partiel' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">partiel</span>
+            {% elif imp.statut == 'echec' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">échec</span>
+            {% else %}
+            <span class="text-gray-400 text-xs">—</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-center">
+            {% if imp.rapport and imp.nb_erreurs %}
+            <button type="button" onclick="toggleRapport('rapport-{{ imp.id }}')"
+                    class="text-gray-400 hover:text-gray-600 transition text-xs">▶</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% if imp.rapport and imp.nb_erreurs %}
+        <tr id="rapport-{{ imp.id }}" class="hidden bg-red-50">
+          <td colspan="7" class="px-4 py-3">
+            <div class="text-xs text-red-700 font-medium mb-1">Détail des erreurs :</div>
+            <ul class="text-xs text-red-600 space-y-0.5">
+              {% set rapport = imp.rapport | from_json %}
+              {% for e in rapport %}
+              <li>
+                {% if e is mapping %}
+                  Ligne {{ e.get('ligne', '?') }} : {{ e.get('message', e) }}
+                {% else %}
+                  {{ e }}
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-gray-400 text-sm italic">Aucun import CSV pour l'instant.</p>
+  {% endif %}
+</div>
+
 <!-- Saisies récentes -->
 <div>
   <h2 class="text-base font-semibold text-gray-700 mb-3">Saisies récentes</h2>
@@ -323,5 +555,34 @@ async function checkExistingValue() {
 sel.addEventListener('change', updateFiche);
 document.getElementById('input-annee').addEventListener('input', scheduleCheck);
 if (sel.value) updateFiche();
+
+// Drag & drop CSV
+const csvDropZone = document.getElementById('csv-drop-zone');
+const csvFileInput = document.getElementById('csv-file-input');
+const csvFileName = document.getElementById('csv-file-name');
+if (csvFileInput) {
+  csvFileInput.addEventListener('change', () => {
+    if (csvFileInput.files[0]) csvFileName.textContent = csvFileInput.files[0].name;
+  });
+}
+if (csvDropZone) {
+  csvDropZone.addEventListener('dragover', e => { e.preventDefault(); csvDropZone.classList.add('border-emerald-400'); });
+  csvDropZone.addEventListener('dragleave', () => csvDropZone.classList.remove('border-emerald-400'));
+  csvDropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    csvDropZone.classList.remove('border-emerald-400');
+    if (e.dataTransfer.files[0]) {
+      csvFileInput.files = e.dataTransfer.files;
+      csvFileName.textContent = e.dataTransfer.files[0].name;
+    }
+  });
+}
+
+function toggleRapport(id) {
+  var el = document.getElementById(id);
+  var btn = el.previousElementSibling.querySelector('button');
+  el.classList.toggle('hidden');
+  if (btn) btn.textContent = el.classList.contains('hidden') ? '▶' : '▼';
+}
 </script>
 {% endblock %}
