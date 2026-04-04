@@ -126,14 +126,14 @@
       </div>
       {% endif %}
       {% if dc.resume_citoyen %}
-      <p class="text-xs mt-1.5 leading-relaxed" style="color:#5c5448;
+      <p class="text-sm mt-1.5 leading-relaxed" style="color:#5c5448;
          display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
         {{ dc.resume_citoyen }}
       </p>
       {% elif dc.theme_dominant %}
-      <p class="text-xs mt-1.5" style="color:#9d8c7a;">{{ dc.theme_dominant }}</p>
+      <p class="text-sm mt-1.5" style="color:#9d8c7a;">{{ dc.theme_dominant }}</p>
       {% else %}
-      <p class="text-xs mt-1.5 italic" style="color:#c5bbae;">Résumé en cours de rédaction</p>
+      <p class="text-sm mt-1.5 italic" style="color:#c5bbae;">Résumé en cours de rédaction</p>
       {% endif %}
     </div>
     <svg class="w-4 h-4 flex-shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform"

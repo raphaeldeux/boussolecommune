@@ -92,7 +92,7 @@
       </div>
     </div>
     <!-- Résumé en langue naturelle -->
-    <div class="mt-2 text-xs {% if ecart_bon %}text-green-700 bg-green-50{% elif ecart_mauvais %}text-red-600 bg-red-50{% else %}text-gray-500 bg-gray-100{% endif %} rounded px-2 py-1">
+    <div class="mt-2 text-sm {% if ecart_bon %}text-green-700 bg-green-50{% elif ecart_mauvais %}text-red-600 bg-red-50{% else %}text-gray-500 bg-gray-100{% endif %} rounded px-2 py-1">
       {% if ecart_bon %}
         ✓ {% if ecart > 0 %}{{ ecart }}% au-dessus{% else %}{{ ecart | abs }}% en dessous{% endif %} de la moyenne — favorable pour cette commune
       {% elif ecart_mauvais %}
@@ -171,7 +171,7 @@
       <i class="ri-book-2-line text-xs text-gray-400"></i>
       <span class="text-xs text-gray-400 font-medium uppercase tracking-wide">Définition</span>
     </div>
-    <div class="p-2.5 bg-gray-50 rounded-lg text-xs text-gray-500 leading-relaxed">{{ ind.description }}</div>
+    <div class="p-2.5 bg-gray-50 rounded-lg text-sm text-gray-500 leading-relaxed">{{ ind.description }}</div>
   </div>
   {% endif %}
 

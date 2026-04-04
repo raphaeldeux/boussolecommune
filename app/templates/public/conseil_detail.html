@@ -124,7 +124,7 @@
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-900">{{ point.titre }}</p>
             {% if point.description %}
-            <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">{{ point.description }}</p>
+            <p class="text-sm text-gray-500 mt-0.5 leading-relaxed">{{ point.description }}</p>
             {% endif %}
           </div>
         </li>
@@ -224,7 +224,7 @@
                 {% if delib.montant.count('€') >= 2 and ',' in delib.montant %}<div class="text-xs mt-1">{{ delib.montant | format_delib_desc | safe }}</div>
                 {% else %}<p class="text-xs font-bold text-emerald-700 mt-0.5">{{ delib.montant }}</p>{% endif %}
               {% endif %}
-              {% if delib.description %}<div class="text-xs text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>{% endif %}
+              {% if delib.description %}<div class="text-sm text-gray-500 mt-1.5 leading-relaxed space-y-1">{{ delib.description | format_delib_desc | safe }}</div>{% endif %}
               {# Vote visuel #}
               {% if adopte is not none %}
               {% set total_votes = delib.vote.pour + delib.vote.contre %}
