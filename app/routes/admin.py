@@ -401,7 +401,7 @@ def saisie():
                 "commentaire": request.form.get("commentaire", ""),
             }
 
-    recentes = donnee_model.get_recentes(15, ville["id"])
+    recentes = donnee_model.get_recentes(15, ville["id"], exclude_api=True)
     # Historique pour mini-graphiques (US9)
     historique_raw = donnee_model.get_all_for_ville(ville["id"])
     historique_by_ind = {}

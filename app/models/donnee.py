@@ -43,16 +43,20 @@ def upsert(indicateur_id, annee, valeur, source, commentaire, mode_saisie, ville
         conn.commit()
 
 
-def get_recentes(limit=20, ville_id=1):
+def get_recentes(limit=20, ville_id=1, exclude_api=False):
     with get_db() as conn:
-        rows = conn.execute("""
+        where = "d.ville_id = %s"
+        params = [ville_id]
+        if exclude_api:
+            where += " AND d.mode_saisie != 'api'"
+        rows = conn.execute(f"""
             SELECT d.*, i.libelle_citoyen, i.thematique, i.unite
             FROM donnees d
             JOIN indicateurs i ON d.indicateur_id = i.id
-            WHERE d.ville_id = %s
+            WHERE {where}
             ORDER BY d.date_saisie DESC
             LIMIT %s
-        """, (ville_id, limit)).fetchall()
+        """, (*params, limit)).fetchall()
     return [dict(r) for r in rows]
 
 
