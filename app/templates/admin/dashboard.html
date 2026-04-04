@@ -212,9 +212,9 @@
 
       {% if s.derniere_annee %}
       {% if s.synthese %}
-      <div class="text-xs text-gray-600 bg-gray-50 rounded p-2 mb-3 whitespace-pre-wrap">{{ s.synthese.texte }}</div>
+      <div class="text-sm text-gray-600 bg-gray-50 rounded p-2 mb-3 whitespace-pre-wrap">{{ s.synthese.texte }}</div>
       {% else %}
-      <p class="text-xs text-gray-400 italic mb-3">Aucune synthèse générée.</p>
+      <p class="text-sm text-gray-400 italic mb-3">Aucune synthèse générée.</p>
       {% endif %}
 
       <form method="POST" action="{{ url_for('admin.synthese_thematique_modifier') }}" class="mb-2">
@@ -222,10 +222,10 @@
         <input type="hidden" name="thematique" value="{{ s.slug }}">
         <input type="hidden" name="annee" value="{{ s.derniere_annee }}">
         <textarea name="texte" rows="3"
-                  class="w-full text-xs border border-gray-200 rounded px-2 py-1.5 mb-1 resize-y"
+                  class="w-full text-sm border border-gray-200 rounded px-2 py-1.5 mb-1 resize-y"
                   placeholder="Entrez les bullet points (un par ligne, commencer par ↗ ou ⚠)">{{ s.synthese.texte if s.synthese else '' }}</textarea>
         <button type="submit"
-                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs rounded transition">
+                class="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded transition">
           Enregistrer
         </button>
       </form>

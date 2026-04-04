@@ -128,11 +128,11 @@
             🔒 Note de synthèse <span class="font-normal text-gray-400">(confidentielle — sert à l'analyse IA)</span>
           </h4>
           {% if conseil.note_synthese_pdf %}
-          <p class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
+          <p class="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
             ✓ Déposée — {{ conseil.note_synthese_pdf[-30:] }}
           </p>
           {% else %}
-          <p class="text-xs text-gray-400 mb-3">Déposez la note de synthèse pour générer automatiquement l'ODJ et le résumé citoyen via l'IA.</p>
+          <p class="text-sm text-gray-400 mb-3">Déposez la note de synthèse pour générer automatiquement l'ODJ et le résumé citoyen via l'IA.</p>
           {% endif %}
           <form method="POST" enctype="multipart/form-data"
                 action="{{ url_for('admin.conseil_upload_note', conseil_id=conseil.id) }}"
@@ -145,7 +145,7 @@
               {% if conseil.note_synthese_pdf %}Remplacer{% else %}Déposer{% endif %}
             </button>
           </form>
-          <p class="text-xs text-gray-400 mt-2">Ce fichier ne sera jamais rendu public.</p>
+          <p class="text-sm text-gray-400 mt-2">Ce fichier ne sera jamais rendu public.</p>
         </div>
 
         {# 3. Analyse IA — si note déposée #}
@@ -167,11 +167,11 @@
             </div>
           </div>
           {% elif conseil.statut_odj == 'erreur' %}
-          <p class="text-xs text-red-600">Erreur lors de l'analyse. Réessayez.</p>
+          <p class="text-sm text-red-600">Erreur lors de l'analyse. Réessayez.</p>
           {% elif conseil.statut_odj == 'termine' %}
-          <p class="text-xs text-emerald-700">✓ Analyse terminée — ODJ et résumé générés ci-dessous.</p>
+          <p class="text-sm text-emerald-700">✓ Analyse terminée — ODJ et résumé générés ci-dessous.</p>
           {% else %}
-          <p class="text-xs text-gray-600">Lancez l'analyse pour remplir automatiquement l'ODJ et le résumé avant séance.</p>
+          <p class="text-sm text-gray-600">Lancez l'analyse pour remplir automatiquement l'ODJ et le résumé avant séance.</p>
           {% endif %}
           {% if ai_ready and conseil.statut_odj != 'en_cours' %}
           <form method="POST" action="{{ url_for('admin.conseil_analyser_odj', conseil_id=conseil.id) }}">
@@ -209,7 +209,7 @@
                            class="w-full px-2 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">
                     <input type="text" name="odj_point_description_{{ loop.index }}"
                            value="{{ point.description or '' }}" placeholder="Description (optionnel)"
-                           class="w-full px-2 py-2 border border-gray-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-400">
+                           class="w-full px-2 py-2 border border-gray-200 rounded text-sm text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-400">
                   </div>
                   <button type="button" onclick="supprimerPoint(this)"
                           class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg mt-0.5">✕</button>
@@ -220,11 +220,11 @@
             {% else %}
             <div id="odj-points" class="space-y-2 mb-2"></div>
             <textarea name="odj_texte" rows="4" id="odj-texte-fallback"
-                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-y mb-2"
+                      class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-400 resize-y mb-2"
                       placeholder="Saisissez les points ou utilisez le bouton ci-dessous.">{{ conseil.odj_texte or '' }}</textarea>
             {% endif %}
             <button type="button" onclick="ajouterPoint()"
-                    class="text-xs text-emerald-600 hover:text-emerald-800 font-medium">+ Ajouter un point</button>
+                    class="text-sm text-emerald-600 hover:text-emerald-800 font-medium">+ Ajouter un point</button>
           </div>
 
           <div class="bg-white border border-gray-200 rounded-xl p-5">
@@ -338,7 +338,7 @@
         <div class="bg-white border border-gray-200 rounded-xl p-5">
           <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Procès-verbal (PDF)</h4>
           {% if conseil.fichier_pdf %}
-          <p class="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
+          <p class="text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mb-3">
             ✓ Déposé — {{ conseil.fichier_pdf[-30:] }}
           </p>
           {% endif %}
@@ -374,9 +374,9 @@
             </div>
           </div>
           {% elif conseil.statut_resume == 'erreur' %}
-          <p class="text-xs text-red-500 mb-2">Erreur lors de la génération. Réessayez.</p>
+          <p class="text-sm text-red-500 mb-2">Erreur lors de la génération. Réessayez.</p>
           {% elif conseil.statut_resume == 'termine' %}
-          <p class="text-xs text-emerald-600 mb-2">✓ Génération terminée.</p>
+          <p class="text-sm text-emerald-600 mb-2">✓ Génération terminée.</p>
           {% endif %}
           {% if ai_ready and conseil.statut_resume != 'en_cours' %}
           <form method="POST" action="{{ url_for('admin.conseil_generer_resume', conseil_id=conseil.id) }}">
@@ -454,7 +454,7 @@
           </button>
         </form>
         {% if not conseil.resume_citoyen and not conseil.publie %}
-        <p class="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
+        <p class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-3">
           ⚠️ Aucun résumé citoyen rédigé. Le compte-rendu sera publié sans synthèse.
         </p>
         {% endif %}
@@ -539,7 +539,7 @@ function ajouterPoint() {
     '<span class="text-xs font-bold text-gray-400 mt-2 w-5 flex-shrink-0 odj-num">' + idx + '</span>' +
     '<div class="flex-1 space-y-1.5">' +
     '<input type="text" name="odj_point_titre_' + idx + '" placeholder="Titre du point" class="w-full px-2 py-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-emerald-400">' +
-    '<input type="text" name="odj_point_description_' + idx + '" placeholder="Description (optionnel)" class="w-full px-2 py-2 border border-gray-200 rounded text-xs text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-400">' +
+    '<input type="text" name="odj_point_description_' + idx + '" placeholder="Description (optionnel)" class="w-full px-2 py-2 border border-gray-200 rounded text-sm text-gray-500 focus:outline-none focus:ring-1 focus:ring-emerald-400">' +
     '</div>' +
     '<button type="button" onclick="supprimerPoint(this)" class="flex-shrink-0 w-8 h-8 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg mt-0.5">✕</button>' +
     '</div></div>';
